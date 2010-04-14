@@ -1,0 +1,12 @@
+--- linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig.orig    2010-04-15 07:27:12.696544239 +0930
++++ linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig 2010-04-15 07:29:08.785294069 +0930
+@@ -1026,7 +1026,8 @@
+ # CONFIG_W1_SLAVE_DS2760 is not set
+ CONFIG_W1_SLAVE_DS2784=y
+ # CONFIG_POWER_SUPPLY is not set
+-# CONFIG_HWMON is not set
++CONFIG_HWMON=y
++CONFIG_SENSORS_OMAP34XX=y
+ # CONFIG_WATCHDOG is not set
+ 
+ #
