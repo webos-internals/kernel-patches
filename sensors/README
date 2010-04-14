@@ -1,0 +1,4 @@
+Note that we have not been able to verify the operation of this patch
+yet.  Testing on one P100UEU Palm Pre device returned a raw temp value
+of 0 (i.e. an indication that either the temperature sensor does not
+exist in the OMAP3430 in the Pre, or the driver is unable to read it).
