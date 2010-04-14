@@ -1,3 +1,16 @@
+--- a/drivers/hwmon/Kconfig
++++ b/drivers/hwmon/Kconfig
+@@ -754,6 +754,10 @@
+ 	  Say Y here if you have an applicable laptop and want to experience
+ 	  the awesome power of applesmc.
+ 
++config SENSORS_OMAP34XX
++       tristate "TI OMAP34xx internal temperature sensor"
++       depends on ARCH_OMAP3 && HIGH_RES_TIMERS
++
+ config HWMON_DEBUG_CHIP
+        bool "Hardware Monitoring Chip debugging messages"
+        default n
 --- linux-2.6.24/drivers/hwmon/Makefile.orig	2008-01-24 14:58:37.000000000 -0800
 +++ linux-2.6.24/drivers/hwmon/Makefile	2010-04-14 14:22:59.000000000 -0700
 @@ -68,6 +68,7 @@
