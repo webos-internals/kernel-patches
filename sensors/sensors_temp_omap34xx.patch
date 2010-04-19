@@ -23,7 +23,7 @@
  EXTRA_CFLAGS += -DDEBUG
 --- /dev/null	2010-04-15 05:47:33.000000000 +0930
 +++ linux-2.6.24/drivers/hwmon/omap34xx_temp.c	2010-04-15 07:10:07.000000000 +0930
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,265 @@
 +/*
 + * omap34xx_temp.c - Linux kernem module for OMAP34xx hardware monitoring
 + *
@@ -289,6 +289,3 @@
 +
 +module_init(omap34xx_temp_init)
 +module_exit(omap34xx_temp_exit)
-+
-+-- 
-+1.5.3.4
