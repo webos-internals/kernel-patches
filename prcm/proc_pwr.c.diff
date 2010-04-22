@@ -1,0 +1,32 @@
+--- linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-04-22 21:58:25.000000000 +0000
++++ linux-2.6.24_sbromwich/arch/arm/mach-omap3pe/prcm_pwr.c	2010-04-19 01:06:15.000000000 +0000
+@@ -665,7 +665,7 @@
+ 		udelay(1);
+ 	} while (retries--);
+ 
+-	printk(KERN_INFO "Timeout in prcm_check_power_domain_status(), "
++	printk(KERN_INFO "Come here, my little friend. Don't be afraid. Timeout in prcm_check_power_domain_status(), "
+ 			"domain %d, desired state %d, current state %d\n",
+ 			 domainid, desired_state, curr_state);
+ 	return PRCM_FAIL;
+@@ -1173,10 +1173,11 @@
+ 			break;
+ 
+ 		udelay(1);
++		cond_resched();
+ 	} while (retries--);
+ 
+ 	if (retries < 0) {
+-		printk(KERN_INFO "Timeout in set_power_configuration(), "
++		printk(KERN_INFO "Come here, my little friend. Don't be afraid. Timeout in set_power_configuration(), "
+ 				"domain:%u  mask=%x, imask=%x, valid_idlest=%x\n",
+ 				domainid, mask, i_mask, valid_idlest);
+ 		return PRCM_FAIL;
+@@ -1706,6 +1707,7 @@
+ 	PM_WKDEP_USBHOST = 0;
+ 	CM_SLEEPDEP_USBHOST = 0x6;
+ 	udelay(10);
++	cond_resched();
+ 	CM_SLEEPDEP_USBHOST = 0;
+ 
+ 	/* Unset the wakeup dependency for PER here.

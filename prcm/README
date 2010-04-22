@@ -1,0 +1,8 @@
+Some of the devices require a timeout before being woken up when multiple
+devices are woken up sequentially. If the timeout is not long enough, this
+can cause PRCM_FAIL to be returned, which causes a LunaSysMgr restart. These
+two patches simply add a cond_resched to put the thread to the back of the
+queue. This may increase the time for resume from suspend dependent on the
+number of threads desiring CPU time. The wait has been empirically proven to
+be a maximum of approximately 0.25 seconds. This is considered preferable to
+the 60-120 seconds a LunaSysMgr restart requires.
