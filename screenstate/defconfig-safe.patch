@@ -1,6 +1,6 @@
---- linux-2.6.24-a/arch/arm/configs/omap_sirloin_3430_defconfig	2010-04-29 23:57:08.000000000 -0400
-+++ linux-2.6.24-b/arch/arm/configs/omap_sirloin_3430_defconfig	2010-04-30 00:00:34.000000000 -0400
-@@ -356,8 +356,10 @@
+--- linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig.orig
++++ linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig
+@@ -356,11 +356,13 @@
  CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE=y
  # CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND is not set
  # CONFIG_CPU_FREQ_DEFAULT_GOV_CONSERVATIVE is not set
@@ -11,6 +11,6 @@
  CONFIG_CPU_FREQ_GOV_ONDEMAND=y
  CONFIG_CPU_FREQ_GOV_CONSERVATIVE=y
 +CONFIG_CPU_FREQ_GOV_SCREENSTATE=y
-
+ 
  #
  # Floating point emulation
