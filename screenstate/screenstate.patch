@@ -1,0 +1,196 @@
+diff -ur linux-2.6.24/drivers/cpufreq/Kconfig linux-2.6.24-b/drivers/cpufreq/Kconfig
+--- linux-2.6.24/drivers/cpufreq/Kconfig	2010-04-25 23:00:26.000000000 -0400
++++ linux-2.6.24-b/drivers/cpufreq/Kconfig	2010-04-29 22:01:14.000000000 -0400
+@@ -87,6 +87,15 @@
+ 	  program shall be able to set the CPU dynamically without having
+ 	  to enable the userspace governor manually.
+ 
++config CPU_FREQ_DEFAULT_GOV_SCREENSTATE
++        bool "screenstate"
++        select CPU_FREQ_GOV_SCREENSTATE
++        help
++          Use the CPUFreq governor 'screenstate' as default. This will
++	  scale the CPU frequency down when the LCD is off then scale
++	  back to max speed when LCD is powered on.  This also will not
++	  allow to set the CPU frequency manually.
++
+ config CPU_FREQ_DEFAULT_GOV_ONDEMAND
+ 	bool "ondemand"
+ 	select CPU_FREQ_GOV_ONDEMAND
+@@ -149,6 +158,16 @@
+ 
+ 	  If in doubt, say Y.
+ 
++config CPU_FREQ_GOV_SCREENSTATE
++        tristate "'screenstate' governor for frequency scaling"
++        help
++          Enable this cpufreq governor to scale when LCD is on/off.
++
++          To compile this driver as a module, choose M here: the
++          module will be called cpufreq_screenstate.
++
++          If in doubt, say Y.
++
+ config CPU_FREQ_GOV_ONDEMAND
+ 	tristate "'ondemand' cpufreq policy governor"
+ 	select CPU_FREQ_TABLE
+diff -ur linux-2.6.24/drivers/cpufreq/Makefile linux-2.6.24-b/drivers/cpufreq/Makefile
+--- linux-2.6.24/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
++++ linux-2.6.24-b/drivers/cpufreq/Makefile	2010-04-29 21:59:11.000000000 -0400
+@@ -9,6 +9,7 @@
+ obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
+ obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
+ obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
++obj-$(CONFIG_CPU_FREQ_GOV_SCREENSTATE)	+= cpufreq_screenstate.o
+ 
+ # CPUfreq cross-arch helpers
+ obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
+diff -ur linux-2.6.24/drivers/video/omap/lcd_panel.c linux-2.6.24-b/drivers/video/omap/lcd_panel.c
+--- linux-2.6.24/drivers/video/omap/lcd_panel.c	2010-04-25 23:00:27.000000000 -0400
++++ linux-2.6.24-b/drivers/video/omap/lcd_panel.c	2010-04-29 21:28:07.000000000 -0400
+@@ -31,6 +31,8 @@
+ 
+ #include "lcd.h"
+ 
++#include <linux/cpufreq.h>
++
+ #define MOD_NAME 		"LCD: "
+ 
+ #undef MODDEBUG
+@@ -94,6 +96,8 @@
+ /* local functions */
+ static void panel_set_state(struct lcd_params *params, unsigned int state)
+ {
++	struct cpufreq_policy policy, *pol;
++
+ 	DPRINTK("%s, state = %d\n", __FUNCTION__, state);
+ 
+ 	/* Get console lock to protect against framebuffer ioctl()s.
+@@ -128,6 +132,13 @@
+ 						DISPLAY_BACKLIGHT_STATE_ON);
+ 		}
+ 		params->panel_state = DISPLAY_DEVICE_STATE_ON;
++
++                cpufreq_get_policy(&policy, 0);
++                pol=&policy;
++                if (!strncmp(pol->governor->name,"screenstate",CPUFREQ_NAME_LEN)) {
++                  __cpufreq_driver_target(&policy, policy.max, CPUFREQ_RELATION_H);
++                }
++
+ 	} else {
+ 		if (params->panel_state == DISPLAY_DEVICE_STATE_OFF) {
+ 			DPRINTK(" %s:  Panel already off, returning...\n",
+@@ -155,6 +166,13 @@
+ 			params->ctrl_ops->ctrl_set_state(params->ctrl_dev,
+ 						DISPLAY_CONTROLLER_STATE_OFF);
+ 		}
++
++                cpufreq_get_policy(&policy, 0);
++		pol=&policy;
++                if (!strncmp(pol->governor->name,"screenstate",CPUFREQ_NAME_LEN)) {
++                  __cpufreq_driver_target(&policy, 500000, CPUFREQ_RELATION_L);
++		}
++
+ 		params->panel_state = DISPLAY_DEVICE_STATE_OFF;
+ 	}
+ 
+@@ -172,6 +190,8 @@
+ 
+ static void panel_set_brightness(struct lcd_params *params, int brightness)
+ {
++	struct cpufreq_policy policy, *pol;
++
+ 	DPRINTK("%s: brightness = %d\n", __FUNCTION__, brightness);
+ 
+ 	mutex_lock(&params->ops_lock);
+@@ -179,6 +199,16 @@
+ 	    params->bl_ops->bl_set_brightness) {
+ 		params->bl_ops->bl_set_brightness(params->bl_dev, brightness);
+ 	}
++
++	// Scale down when on touchstone
++	cpufreq_get_policy(&policy, 0);
++        pol=&policy;
++        if (!strncmp(pol->governor->name,"screenstate",CPUFREQ_NAME_LEN)) {
++	  if (brightness == 1) {
++            __cpufreq_driver_target(&policy, 500000, CPUFREQ_RELATION_L);
++          }
++	}
++
+ 	mutex_unlock(&params->ops_lock);
+ }
+ 
+@@ -435,6 +465,7 @@
+ 	 * on wake-up.
+ 	 */
+ 	lcd_set_state(dev, 0);
++
+ 	return 0;
+ }
+ #  else
+diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufreq.h
+--- linux-2.6.24/include/linux/cpufreq.h	2010-04-25 23:00:27.000000000 -0400
++++ linux-2.6.24-b/include/linux/cpufreq.h	2010-04-29 22:27:58.000000000 -0400
+@@ -309,6 +309,9 @@
+ #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
+ extern struct cpufreq_governor cpufreq_gov_userspace;
+ #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_userspace)
++#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE)
++extern struct cpufreq_governor cpufreq_gov_screenstate;
++#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_screenstate)
+ #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND)
+ extern struct cpufreq_governor cpufreq_gov_ondemand;
+ #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
+diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/drivers/cpufreq/cpufreq_screenstate.c
+--- linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c  1969-12-31 19:00:00.000000000 -0500
++++ linux-2.6.24-b/drivers/cpufreq/cpufreq_screenstate.c        2010-04-29 22:49:38.000000000 -0400
+@@ -0,0 +1,48 @@
++/*
++ *  linux/drivers/cpufreq/cpufreq_screenstate.c
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/cpufreq.h>
++#include <linux/init.h>
++
++static int cpufreq_governor_screenstate(struct cpufreq_policy *policy, unsigned int event) {
++       switch (event) {
++               case CPUFREQ_GOV_START:
++               case CPUFREQ_GOV_LIMITS:
++                       __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++                       break;
++               default:
++                       break;
++       }
++       return 0;
++}
++
++struct cpufreq_governor cpufreq_gov_screenstate = {
++       .name           = "screenstate",
++       .governor       = cpufreq_governor_screenstate,
++       .owner          = THIS_MODULE,
++};
++
++static int __init cpufreq_gov_screenstate_init(void) {
++       return cpufreq_register_governor(&cpufreq_gov_screenstate);
++}
++
++static void __exit cpufreq_gov_screenstate_exit(void) {
++       cpufreq_unregister_governor(&cpufreq_gov_screenstate);
++}
++
++EXPORT_SYMBOL(cpufreq_gov_screenstate);
++
++MODULE_AUTHOR("marco@unixpsycho.com");
++MODULE_DESCRIPTION("CPUfreq policy governor 'screenstate'");
++MODULE_LICENSE("GPL");
++
++fs_initcall(cpufreq_gov_screenstate_init);
++module_exit(cpufreq_gov_screenstate_exit);
+
