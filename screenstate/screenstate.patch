@@ -54,7 +54,7 @@ diff -ur linux-2.6.24-a/drivers/video/omap/lcd_panel.c linux-2.6.24-b/drivers/vi
 
 +#include <linux/cpufreq.h>
 +
- #define MOD_NAME               "LCD: "
+ #define MOD_NAME 		"LCD: "
 
  #undef MODDEBUG
 @@ -94,6 +96,9 @@
@@ -64,75 +64,67 @@ diff -ur linux-2.6.24-a/drivers/video/omap/lcd_panel.c linux-2.6.24-b/drivers/vi
 +       struct cpufreq_policy policy, *pol;
 +       char buf[CPUFREQ_NAME_LEN];
 +
-        DPRINTK("%s, state = %d\n", __FUNCTION__, state);
-
-        /* Get console lock to protect against framebuffer ioctl()s.
+ 	DPRINTK("%s, state = %d\n", __FUNCTION__, state);
+ 
+ 	/* Get console lock to protect against framebuffer ioctl()s.
 @@ -128,6 +133,14 @@
-                                                DISPLAY_BACKLIGHT_STATE_ON);
-                }
-                params->panel_state = DISPLAY_DEVICE_STATE_ON;
+ 						DISPLAY_BACKLIGHT_STATE_ON);
+ 		}
+ 		params->panel_state = DISPLAY_DEVICE_STATE_ON;
 +
-+                cpufreq_get_policy(&policy, 0);
-+                pol=&policy;
-+               scnprintf(buf, CPUFREQ_NAME_LEN, "%s", pol->governor->name);
-+                if (!strncmp(buf,"screenstate",CPUFREQ_NAME_LEN)) {
-+                  __cpufreq_driver_target(&policy, policy.max, CPUFREQ_RELATION_H);
-+                }
++		cpufreq_get_policy(&policy, 0);
++		pol=&policy;
++		scnprintf(buf, CPUFREQ_NAME_LEN, "%s", pol->governor->name);
++		if (!strncmp(buf,"screenstate",CPUFREQ_NAME_LEN)) {
++		  __cpufreq_driver_target(&policy, policy.max, CPUFREQ_RELATION_H);
++		}
 +
-        } else {
-                if (params->panel_state == DISPLAY_DEVICE_STATE_OFF) {
-                        DPRINTK(" %s:  Panel already off, returning...\n",
+ 	} else {
+ 		if (params->panel_state == DISPLAY_DEVICE_STATE_OFF) {
+ 			DPRINTK(" %s:  Panel already off, returning...\n",
 @@ -155,6 +168,14 @@
-                        params->ctrl_ops->ctrl_set_state(params->ctrl_dev,
-                                                DISPLAY_CONTROLLER_STATE_OFF);
-                }
+ 			params->ctrl_ops->ctrl_set_state(params->ctrl_dev,
+ 						DISPLAY_CONTROLLER_STATE_OFF);
+ 		}
 +
-+                cpufreq_get_policy(&policy, 0);
-+               pol=&policy;
-+               scnprintf(buf, CPUFREQ_NAME_LEN, "%s", pol->governor->name);
-+                if (!strncmp(buf,"screenstate",CPUFREQ_NAME_LEN)) {
-+                  __cpufreq_driver_target(&policy, 500000, CPUFREQ_RELATION_L);
-+               }
++		cpufreq_get_policy(&policy, 0);
++		pol=&policy;
++		scnprintf(buf, CPUFREQ_NAME_LEN, "%s", pol->governor->name);
++		if (!strncmp(buf,"screenstate",CPUFREQ_NAME_LEN)) {
++		  __cpufreq_driver_target(&policy, 500000, CPUFREQ_RELATION_L);
++		}
 +
-                params->panel_state = DISPLAY_DEVICE_STATE_OFF;
-        }
-
+ 		params->panel_state = DISPLAY_DEVICE_STATE_OFF;
+ 	}
+ 
 @@ -172,6 +193,9 @@
-
+ 
  static void panel_set_brightness(struct lcd_params *params, int brightness)
  {
-+       struct cpufreq_policy policy, *pol;
-+       char buf[CPUFREQ_NAME_LEN];
++	struct cpufreq_policy policy, *pol;
++	char buf[CPUFREQ_NAME_LEN];
 +
-        DPRINTK("%s: brightness = %d\n", __FUNCTION__, brightness);
-
-        mutex_lock(&params->ops_lock);
+ 	DPRINTK("%s: brightness = %d\n", __FUNCTION__, brightness);
+ 
+ 	mutex_lock(&params->ops_lock);
 @@ -179,6 +203,17 @@
-            params->bl_ops->bl_set_brightness) {
-                params->bl_ops->bl_set_brightness(params->bl_dev, brightness);
-        }
+ 	    params->bl_ops->bl_set_brightness) {
+ 		params->bl_ops->bl_set_brightness(params->bl_dev, brightness);
+ 	}
 +
-+       // Scale down when on touchstone
-+       cpufreq_get_policy(&policy, 0);
-+        pol=&policy;
-+       scnprintf(buf, CPUFREQ_NAME_LEN, "%s", pol->governor->name);
-+        if (!strncmp(buf,"screenstate",CPUFREQ_NAME_LEN)) {
-+         if (brightness == 1) {
-+            __cpufreq_driver_target(&policy, 500000, CPUFREQ_RELATION_L);
-+          }
-+       }
++	// Scale down when on touchstone
++	cpufreq_get_policy(&policy, 0);
++	pol=&policy;
++	scnprintf(buf, CPUFREQ_NAME_LEN, "%s", pol->governor->name);
++	if (!strncmp(buf,"screenstate",CPUFREQ_NAME_LEN)) {
++	  if (brightness == 1) {
++	    __cpufreq_driver_target(&policy, 500000, CPUFREQ_RELATION_L);
++	  }
++	}
 +
-        mutex_unlock(&params->ops_lock);
+ 	mutex_unlock(&params->ops_lock);
  }
-
-@@ -435,6 +470,7 @@
-         * on wake-up.
-         */
-        lcd_set_state(dev, 0);
-+
-        return 0;
- }
- #  else
+ 
 diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufreq.h
 --- linux-2.6.24/include/linux/cpufreq.h	2010-04-25 23:00:27.000000000 -0400
 +++ linux-2.6.24-b/include/linux/cpufreq.h	2010-04-29 22:27:58.000000000 -0400
@@ -165,29 +157,29 @@ diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/dri
 +#include <linux/init.h>
 +
 +static int cpufreq_governor_screenstate(struct cpufreq_policy *policy, unsigned int event) {
-+       switch (event) {
-+               case CPUFREQ_GOV_START:
-+               case CPUFREQ_GOV_LIMITS:
-+                       __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
-+                       break;
-+               default:
-+                       break;
-+       }
-+       return 0;
++	switch (event) {
++		case CPUFREQ_GOV_START:
++		case CPUFREQ_GOV_LIMITS:
++			__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++			break;
++		default:
++			break;
++	}
++	return 0;
 +}
 +
 +struct cpufreq_governor cpufreq_gov_screenstate = {
-+       .name           = "screenstate",
-+       .governor       = cpufreq_governor_screenstate,
-+       .owner          = THIS_MODULE,
++	.name		= "screenstate",
++	.governor	= cpufreq_governor_screenstate,
++	.owner		= THIS_MODULE,
 +};
 +
 +static int __init cpufreq_gov_screenstate_init(void) {
-+       return cpufreq_register_governor(&cpufreq_gov_screenstate);
++	return cpufreq_register_governor(&cpufreq_gov_screenstate);
 +}
 +
 +static void __exit cpufreq_gov_screenstate_exit(void) {
-+       cpufreq_unregister_governor(&cpufreq_gov_screenstate);
++	cpufreq_unregister_governor(&cpufreq_gov_screenstate);
 +}
 +
 +EXPORT_SYMBOL(cpufreq_gov_screenstate);
