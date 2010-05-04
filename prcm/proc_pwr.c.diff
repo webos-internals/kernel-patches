@@ -1,5 +1,5 @@
---- /home/sbromwich/linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-03 15:57:40.000000000 +0000
-+++ linux-2.6.24_sbromwich/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-03 15:19:57.000000000 +0000
+--- linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-04 11:19:11.000000000 +0000
++++ linux-2.6.24_sbromwich/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-04 16:43:29.000000000 +0000
 @@ -488,6 +488,7 @@
  
  static void DUMP_REGS_AFTER_WAKEUP(void)
@@ -188,13 +188,15 @@
  
  #ifdef CONFIG_FASTPATH
  	omap3_wakeup_sources_save();
-@@ -1826,7 +1865,9 @@
+@@ -1826,8 +1865,10 @@
  	return PRCM_PASS;
  
  Fail:
 +#ifdef DEBUG_PRCM
  	wkup_log_printk_suspend_event  ( wkup_log_idx, 1);
+-
 +#endif
- 
++	asm("wfi"); // Wait For Interrupt before returning
  #ifdef CONFIG_FASTPATH
  	omap3_wakeup_sources_save();
+ #endif
