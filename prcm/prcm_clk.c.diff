@@ -1,7 +1,10 @@
---- linux-2.6.24/arch/arm/mach-omap3pe/prcm_clk.c	2010-04-22 21:58:25.000000000 +0000
-+++ linux-2.6.24_sbromwich/arch/arm/mach-omap3pe/prcm_clk.c	2010-04-19 22:24:12.000000000 +0000
-@@ -88,7 +88,7 @@
+--- /home/sbromwich/linux-2.6.24/arch/arm/mach-omap3pe/prcm_clk.c	2010-05-03 15:57:40.000000000 +0000
++++ linux-2.6.24_sbromwich/arch/arm/mach-omap3pe/prcm_clk.c	2010-05-01 02:54:50.000000000 +0000
+@@ -86,9 +86,10 @@
+ 			return PRCM_PASS;
+ 
  		udelay(5);
++		// cond_resched_softirq (); - fails
  	} while (retries--);
  
 -	printk(KERN_INFO "Timeout in check_device_status(), deviceid %d, "
@@ -9,17 +12,19 @@
  			"desired state %d, current state %d\n",
  			deviceid, control, curr_state);
  
-@@ -150,7 +150,9 @@
+@@ -150,7 +151,10 @@
  			/* FCLK/ICLK present and is ON
  			 * Wait for sometime for the clocks to stabilize*/
  			DPRINTK("Adding delay\n");
+-			udelay(100);
 +			cond_resched();
- 			udelay(100);
++			cond_resched_softirq();
 +			cond_resched();
++			cond_resched_softirq();
  			return PRCM_PASS;
  		}
  	}
-@@ -264,8 +266,9 @@
+@@ -264,8 +268,9 @@
  	enbit = DEV_BIT_POS(deviceid);
  	domain = DOMAIN_ID(deviceid);
  
@@ -30,11 +35,32 @@
  
  	addr  = get_addr(domain, REG_AUTOIDLE);
  	valid = get_val_bits(domain, REG_AUTOIDLE);
-@@ -352,9 +355,10 @@
- 			return PRCM_PASS;
+@@ -342,7 +347,12 @@
  
- 		udelay(1);
-+		cond_resched();
+ 	FAIL_ON_INVALID_DOMAINID(domainid);
+ 
+-	retries = 500;
++	if (domainid == DOM_PER) {
++		retries = 5;
++	} else {
++		retries = 500;
++	}
++	
+ 	do {
+ 		ret = prcm_is_clock_domain_active(domainid, &curr_state);
+ 		if (ret != PRCM_PASS)
+@@ -350,11 +360,16 @@
+ 
+ 		if (curr_state == desired_state)
+ 			return PRCM_PASS;
++		
++		if (retries > 450) {
++			udelay(1);
++		} else {
++			cond_resched_softirq ();
++		}
+ 
+-		udelay(1);
  	} while (retries--);
  
 -	printk(KERN_INFO "Timeout in %s(), "
