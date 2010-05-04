@@ -1,0 +1,3 @@
+Tell gcc to explicitly tune for cortex a8 hardware and force it to use that
+instruction set. Note that this is still using -Os, as -O2 and PREEMPT cause
+intermittent lockups.

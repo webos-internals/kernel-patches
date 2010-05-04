@@ -1,0 +1,11 @@
+--- linux-2.6.24/Makefile	2010-05-04 11:19:10.000000000 +0000
++++ linux-2.6.24_sbromwich/Makefile	2010-05-04 14:07:45.000000000 +0000
+@@ -507,7 +507,7 @@
+ all: vmlinux
+ 
+ ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
+-COPTIMIZE	= -Os
++COPTIMIZE	= -Os -mcpu=cortex-a8 -mtune=cortex-a8
+ else
+ COPTIMIZE	= -O2
+ endif
