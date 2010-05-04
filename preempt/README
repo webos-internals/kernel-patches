@@ -1,0 +1,2 @@
+This is a simple kludge to enable pre-empt while keeping the version string
+the same. This is necessary in order to keep the binary modules working.

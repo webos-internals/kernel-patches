@@ -1,0 +1,19 @@
+--- linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig	2010-05-04 11:19:10.000000000 +0000
++++ linux-2.6.24_sbromwich/arch/arm/configs/omap_sirloin_3430_defconfig	2010-05-04 11:22:10.000000000 +0000
+@@ -300,7 +300,7 @@
+ # CONFIG_VMSPLIT_2G is not set
+ # CONFIG_VMSPLIT_1G is not set
+ CONFIG_PAGE_OFFSET=0xA0000000
+-# CONFIG_PREEMPT is not set
++CONFIG_PREEMPT=y
+ CONFIG_HZ=100
+ CONFIG_AEABI=y
+ # CONFIG_OABI_COMPAT is not set
+@@ -1743,6 +1743,7 @@
+ CONFIG_SCHED_DEBUG=y
+ # CONFIG_SCHEDSTATS is not set
+ CONFIG_TIMER_STATS=y
++CONFIG_DEBUG_PREEMPT=y
+ # CONFIG_DEBUG_RT_MUTEXES is not set
+ # CONFIG_RT_MUTEX_TESTER is not set
+ # CONFIG_DEBUG_SPINLOCK is not set
