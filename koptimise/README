@@ -1,0 +1,3 @@
+Some miscellaneous patches to the default config to reduce debugging
+overhead for production kernels.
+
