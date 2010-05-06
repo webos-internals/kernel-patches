@@ -70,6 +70,8 @@ diff -ru linux-2.6.24/arch/arm/mach-omap3pe/Kconfig linux-2.6.24-webos1411/arch/
 diff -ru linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c linux-2.6.24-webos1411/arch/arm/mach-omap3pe/prcm_opp.c
 --- linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c	2010-04-08 20:35:15.000000000 -0400
 +++ linux-2.6.24-webos1411/arch/arm/mach-omap3pe/prcm_opp.c	2010-04-08 20:12:19.000000000 -0400
+--- linux-2.6.24-a/arch/arm/mach-omap3pe/prcm_opp.c	2010-04-29 23:57:09.000000000 -0400
++++ linux-2.6.24-b/arch/arm/mach-omap3pe/prcm_opp.c	2010-05-06 13:58:17.000000000 -0400
 @@ -56,8 +56,8 @@
  
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
@@ -151,20 +153,21 @@ diff -ru linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c linux-2.6.24-webos1411/ar
  #if 0
  	/* 13M values */
  	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
-@@ -215,7 +239,11 @@
+@@ -215,7 +239,13 @@
  	/* OPP3(360 Mhz) and OPP4(360 Mhz)*/
  	 {0x168, 0x0C, 0x03, 0x01}, {0x168, 0x0C, 0x03, 0x01},
  	/* OPP5 (360 Mhz) */
--	 {0x168, 0x0C, 0x03, 0x01} },
 +	 {0x168, 0x0C, 0x03, 0x01},
 +        /* OPP6 (520 Mhz) */
-+        {0x0D7, 0x05, 0x07, 0x01},
++	 {0x168, 0x0C, 0x03, 0x01},
++//        {0x0D7, 0x05, 0x07, 0x01},
 +        /* OPP7 (600 Mhz) */
-+        {0x0D7, 0x05, 0x07, 0x01} },
+ 	 {0x168, 0x0C, 0x03, 0x01} },
++//        {0x0D7, 0x05, 0x07, 0x01} },
  #endif
  	/* 19.2M values */
  	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
-@@ -223,21 +251,33 @@
+@@ -223,21 +253,33 @@
  	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
  	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
  	/* OPP5 (430 Mhz) */
@@ -201,7 +204,7 @@ diff -ru linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c linux-2.6.24-webos1411/ar
  };
  
  /* CORE parameters */
-@@ -478,6 +518,13 @@
+@@ -478,6 +520,13 @@
  		case PRCM_VDD1_OPP5:
  			valid_rate = clk_round_rate(p_vdd1_clk, S600M);
  			break;
@@ -215,7 +218,7 @@ diff -ru linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c linux-2.6.24-webos1411/ar
  		}
  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
  	}
-@@ -495,6 +542,9 @@
+@@ -495,6 +544,9 @@
  	{500, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
  	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
  	{600, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
@@ -225,7 +228,7 @@ diff -ru linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c linux-2.6.24-webos1411/ar
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
-@@ -506,8 +556,8 @@
+@@ -506,8 +558,8 @@
  	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
  };
  
@@ -236,7 +239,7 @@ diff -ru linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c linux-2.6.24-webos1411/ar
  };
  static unsigned int rnd_rate_vdd2[3] = {
  	0, S83M, S166M
-@@ -1449,6 +1499,11 @@
+@@ -1449,6 +1501,11 @@
  	target_vdd1_opp = PRCM_VDD1_OPP4;
  #elif defined(CONFIG_OMAP3ES2_VDD1_OPP5)
  	target_vdd1_opp = PRCM_VDD1_OPP5;
