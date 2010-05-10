@@ -1,5 +1,5 @@
 --- /home/sbromwich/linux-2.6.24/arch/arm/mach-omap3pe/prcm_clk.c	2010-05-04 11:19:11.000000000 +0000
-+++ linux-2.6.24/arch/arm/mach-omap3pe/prcm_clk.c	2010-05-09 01:14:38.000000000 +0000
++++ linux-2.6.24/arch/arm/mach-omap3pe/prcm_clk.c	2010-05-10 16:36:02.000000000 +0000
 @@ -86,9 +86,10 @@
  			return PRCM_PASS;
  
@@ -32,21 +32,23 @@
  
  	addr  = get_addr(domain, REG_AUTOIDLE);
  	valid = get_val_bits(domain, REG_AUTOIDLE);
-@@ -342,7 +344,12 @@
+@@ -342,7 +344,15 @@
  
  	FAIL_ON_INVALID_DOMAINID(domainid);
  
--	retries = 500;
-+	if (domainid == DOM_PER) {
-+		retries = 5;
-+	} else {
-+		retries = 500;
-+	}
++	// Setting retries this low may be the cause of battery drain
++	//if (domainid == DOM_PER) {
++	//	retries = 5;
++	//} else {
++	//	retries = 500;
++	//}
++	
+ 	retries = 500;
 +	
  	do {
  		ret = prcm_is_clock_domain_active(domainid, &curr_state);
  		if (ret != PRCM_PASS)
-@@ -350,11 +357,16 @@
+@@ -350,11 +360,27 @@
  
  		if (curr_state == desired_state)
  			return PRCM_PASS;
@@ -55,6 +57,17 @@
 +			udelay(1);
 +		} else {
 +			cond_resched_softirq ();
++			// Reduce retries more quickly to help battery
++			if (retries > 50) {
++				retries = retries - 50;
++			}
++		}
++		
++		if (domainid == DOM_PER) {
++			// fail more quickly with DOM_PER as it keeps failing anyway
++			if (retries > 50) {
++				retries = retries - 25;
++			}
 +		}
  
 -		udelay(1);
