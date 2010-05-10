@@ -1,5 +1,5 @@
 --- /home/sbromwich/linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-04 11:19:11.000000000 +0000
-+++ linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-10 00:27:35.000000000 +0000
++++ linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-10 16:29:11.000000000 +0000
 @@ -488,6 +488,7 @@
  
  static void DUMP_REGS_AFTER_WAKEUP(void)
@@ -188,7 +188,7 @@
  
  #ifdef CONFIG_FASTPATH
  	omap3_wakeup_sources_save();
-@@ -1826,8 +1865,11 @@
+@@ -1826,8 +1865,12 @@
  	return PRCM_PASS;
  
  Fail:
@@ -197,7 +197,8 @@
 -
 +#endif
 +	// Remove to test to ensure this is not a regression
-+	//asm("wfi"); // Wait For Interrupt before returning
++	// pslag1 confirmed wfi removal made no difference, re-enabling.
++	asm("wfi"); // Wait For Interrupt before returning
  #ifdef CONFIG_FASTPATH
  	omap3_wakeup_sources_save();
  #endif
