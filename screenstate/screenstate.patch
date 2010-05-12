@@ -155,9 +155,11 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/drivers/cpufreq/cpufreq_screenstate.c
 --- linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c  1969-12-31 19:00:00.000000000 -0500
 +++ linux-2.6.24-b/drivers/cpufreq/cpufreq_screenstate.c        2010-04-29 22:49:38.000000000 -0400
-@@ -0,0 +1,48 @@
+@@ -0,0 +1,124 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
++ *
++ *  Modfied by:        marco@unixpsycho.com 
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -167,41 +169,114 @@ diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/dri
 +
 +#include <linux/kernel.h>
 +#include <linux/module.h>
-+#include <linux/cpufreq.h>
++#include <linux/smp.h>
 +#include <linux/init.h>
++#include <linux/spinlock.h>
++#include <linux/interrupt.h>
++#include <linux/cpufreq.h>
++#include <linux/cpu.h>
++#include <linux/types.h>
++#include <linux/fs.h>
++#include <linux/sysfs.h>
++#include <linux/mutex.h>
++#include <asm/uaccess.h>
 +
-+static int cpufreq_governor_screenstate(struct cpufreq_policy *policy, unsigned int event) {
-+	switch (event) {
-+		case CPUFREQ_GOV_START:
-+		case CPUFREQ_GOV_LIMITS:
-+			__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
-+			break;
-+		default:
-+			break;
-+	}
-+	return 0;
++static unsigned int    cpu_max_freq[NR_CPUS];
++static unsigned int    cpu_min_freq[NR_CPUS];
++static unsigned int    cpu_cur_freq[NR_CPUS];
++static unsigned int    cpu_set_freq[NR_CPUS];
++static unsigned int    cpu_is_managed[NR_CPUS];
++
++static DEFINE_MUTEX    (screenstate_mutex);
++static int cpus_using_screenstate_governor;
++
++static int screenstate_cpufreq_notifier(struct notifier_block *nb, unsigned long val, void *data) {
++        struct cpufreq_freqs *freq = data;
++
++       if (!cpu_is_managed[freq->cpu])  return 0;
++       cpu_cur_freq[freq->cpu] = freq->new;
++        return 0;
++}
++
++static struct notifier_block screenstate_cpufreq_notifier_block = {
++        .notifier_call  = screenstate_cpufreq_notifier
++};
++
++static ssize_t show_speed (struct cpufreq_policy *policy, char *buf) {
++       return sprintf (buf, "%u\n", cpu_cur_freq[policy->cpu]);
++}
++
++static int cpufreq_governor_screenstate(struct cpufreq_policy *policy,
++                                  unsigned int event) {
++       unsigned int cpu = policy->cpu;
++
++       switch (event) {
++               case CPUFREQ_GOV_START:
++                       if (!cpu_online(cpu)) return -EINVAL;
++                       mutex_lock(&screenstate_mutex);
++                       if (cpus_using_screenstate_governor == 0) {
++                               cpufreq_register_notifier(
++                                       &screenstate_cpufreq_notifier_block,
++                                       CPUFREQ_TRANSITION_NOTIFIER);
++                       }
++                       cpus_using_screenstate_governor++;
++                       cpu_is_managed[cpu] = 1;
++                       cpu_min_freq[cpu] = policy->min;
++                       cpu_max_freq[cpu] = policy->max;
++                       cpu_cur_freq[cpu] = policy->cur;
++                       cpu_set_freq[cpu] = policy->cur;
++start_out:
++                       mutex_unlock(&screenstate_mutex);
++                       break;
++               case CPUFREQ_GOV_STOP:
++                       mutex_lock(&screenstate_mutex);
++                       cpus_using_screenstate_governor--;
++                       if (cpus_using_screenstate_governor == 0) {
++                               cpufreq_unregister_notifier(
++                                       &screenstate_cpufreq_notifier_block,
++                                       CPUFREQ_TRANSITION_NOTIFIER);
++                       }
++
++                       cpu_is_managed[cpu] = 0;
++                       cpu_min_freq[cpu] = 0;
++                       cpu_max_freq[cpu] = 0;
++                       cpu_set_freq[cpu] = 0;
++                       mutex_unlock(&screenstate_mutex);
++                       break;
++               case CPUFREQ_GOV_LIMITS:
++                       mutex_lock(&screenstate_mutex);
++                       cpu_min_freq[cpu] = policy->min;
++                       cpu_max_freq[cpu] = policy->max;
++                       cpu_cur_freq[cpu] = policy->cur;
++                       mutex_unlock(&screenstate_mutex);
++                       break;
++               }
++               return 0;
 +}
 +
 +struct cpufreq_governor cpufreq_gov_screenstate = {
-+	.name		= "screenstate",
-+	.governor	= cpufreq_governor_screenstate,
-+	.owner		= THIS_MODULE,
++       .name           = "screenstate",
++       .governor       = cpufreq_governor_screenstate,
++       .owner          = THIS_MODULE,
 +};
 +
 +static int __init cpufreq_gov_screenstate_init(void) {
-+	return cpufreq_register_governor(&cpufreq_gov_screenstate);
++       return cpufreq_register_governor(&cpufreq_gov_screenstate);
 +}
 +
 +static void __exit cpufreq_gov_screenstate_exit(void) {
-+	cpufreq_unregister_governor(&cpufreq_gov_screenstate);
++       cpufreq_unregister_governor(&cpufreq_gov_screenstate);
 +}
 +
 +EXPORT_SYMBOL(cpufreq_gov_screenstate);
 +
-+MODULE_AUTHOR("marco@unixpsycho.com");
-+MODULE_DESCRIPTION("CPUfreq policy governor 'screenstate'");
-+MODULE_LICENSE("GPL");
++MODULE_AUTHOR ("marco@unixpsycho.com");
++MODULE_DESCRIPTION ("CPUfreq policy governor 'screenstate'");
++MODULE_LICENSE ("GPL");
 +
++#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE
 +fs_initcall(cpufreq_gov_screenstate_init);
++#else
++module_init(cpufreq_gov_screenstate_init);
++#endif
 +module_exit(cpufreq_gov_screenstate_exit);
-
