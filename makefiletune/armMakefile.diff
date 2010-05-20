@@ -1,0 +1,12 @@
+--- /home/sbromwich/linux-2.6.24_sbromwich/arch/arm/Makefile	2010-05-04 11:18:31.000000000 +0000
++++ linux-2.6.24/arch/arm/Makefile	2010-05-13 01:39:34.000000000 +0000
+@@ -47,7 +47,8 @@
+ # Note that GCC does not numerically define an architecture version
+ # macro, but instead defines a whole series of macros which makes
+ # testing for a specific architecture or later rather impossible.
+-arch-$(CONFIG_CPU_32v7)		:=-D__LINUX_ARM_ARCH__=7 $(call cc-option,-march=armv7-a,-march=armv5t -Wa$(comma)-march=armv7-a)
++arch-$(CONFIG_CPU_32v7)		:=-D__LINUX_ARM_ARCH__=7 $(call cc-option,-mcpu=cortex-a8,-mtune=cortex-a8 -Wa$(comma)-mtune=cortex-a8 -mcpu=cortex-a8)
++# -march=armv7-a,-march=armv5t -Wa$(comma)-march=armv7-a)
+ arch-$(CONFIG_CPU_32v6)		:=-D__LINUX_ARM_ARCH__=6 $(call cc-option,-march=armv6,-march=armv5t -Wa$(comma)-march=armv6)
+ # Only override the compiler option if ARMv6. The ARMv6K extensions are
+ # always available in ARMv7
