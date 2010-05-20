@@ -1,0 +1,43 @@
+--- /home/sbromwich/linux-2.6.24_sbromwich/arch/arm/mach-omap3pe/pm_cpuidle.c	2010-05-04 11:18:31.000000000 +0000
++++ linux-2.6.24/arch/arm/mach-omap3pe/pm_cpuidle.c	2010-05-20 20:24:16.000000000 +0000
+@@ -70,7 +70,7 @@
+  *
+  ******************************************************************************/
+ 
+-#define DEBUG_BAIL_STATS
++//#define DEBUG_BAIL_STATS
+ //#define DEBUG_STATES
+ 
+ #ifdef DEBUG_CPUIDLE
+@@ -263,7 +263,9 @@
+ 	u32 flags;
+ };
+ 
+-static struct omap3_processor_cx omap3_power_states[OMAP3_MAX_STATES] = {
++// static struct omap3_processor_cx omap3_power_states[OMAP3_MAX_STATES] = {
++// Hard code extra array element as a test
++static struct omap3_processor_cx omap3_power_states[8] = {
+ 	{ /* C1 */
+ 		1,
+ 		OMAP3_STATE_C1,
+@@ -346,6 +348,20 @@
+ 		PRCM_CORE_OFF,
+ 		CPUIDLE_FLAG_TIME_VALID | CPUIDLE_FLAG_DEEP | CPUIDLE_FLAG_CHECK_BM,
+ 	},
++	{ /* C7 - dummy extra version to check for suspected fencepost error*/
++#ifdef CONFIG_CORE_OFF_CPUIDLE
++		1,
++#else
++		0, /* DISABLED */
++#endif
++		OMAP3_STATE_C7,
++		10000,
++		30000,
++		300000,
++		PRCM_MPU_OFF,
++		PRCM_CORE_OFF,
++		CPUIDLE_FLAG_TIME_VALID | CPUIDLE_FLAG_DEEP | CPUIDLE_FLAG_CHECK_BM,
++	},
+ };
+ 
+ /******************************************************************************
