@@ -1,2 +1,7 @@
 This turns on FOLK (Functionally OverLoaded Kernel) features as an
 experimental test.
+
+defconfig-folk.diff applies functionally overloaded kernel settings.
+
+pm_cpuidle.c disables debug stats and adds an extra entry to an array in
+case of fenceposting.
