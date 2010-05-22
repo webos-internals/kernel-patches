@@ -1,0 +1,11 @@
+--- linux-2.6.24.orig/arch/arm/mach-omap3pe/board-sirloin-headset-detect.c	2010-05-22 14:22:01.000000000 +0000
++++ linux-2.6.24/arch/arm/mach-omap3pe/board-sirloin-headset-detect.c	2010-05-22 14:22:17.000000000 +0000
+@@ -62,7 +62,7 @@
+ 
+ #define INPUT_DEVICE_PHYS   "headset/input0"
+ 
+-#define DEBUG
++// #define DEBUG
+ 
+ #ifdef DEBUG
+ #define dprintk(x ...)    printk(x)

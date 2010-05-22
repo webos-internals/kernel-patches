@@ -1,0 +1,11 @@
+--- linux-2.6.24.orig/drivers/video/omap/omap_fb.c	2010-05-22 14:41:27.000000000 +0000
++++ linux-2.6.24/drivers/video/omap/omap_fb.c	2010-05-22 14:42:15.000000000 +0000
+@@ -36,7 +36,7 @@
+ #include <asm/uaccess.h>
+ 
+ #ifdef CONFIG_PM
+-#define PM_DEBUG 1
++// #define PM_DEBUG 1
+ #include <linux/notifier.h>
+ #include <linux/pm.h>
+ #endif
