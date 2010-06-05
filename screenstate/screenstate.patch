@@ -136,19 +136,18 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
  EXPORT_SYMBOL(gadget_event_power_state_changed);
  
 +#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+int ss_usb_charger(void) {
++int gadget_event_state_current(void) {
 +	return the_state.current_mA;
 +}
-+EXPORT_SYMBOL(ss_usb_charger);
++EXPORT_SYMBOL(gadget_event_state_current);
 +#endif
 +
  static int __init init(void)
  {
  	int ret = 0;
-diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/drivers/cpufreq/cpufreq_screenstate.c
 --- linux-2.6.24-a/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-b/drivers/cpufreq/cpufreq_screenstate.c	2010-05-24 18:58:01.000000000 -0400
-@@ -0,0 +1,163 @@
++++ linux-2.6.24.7-test/drivers/cpufreq/cpufreq_screenstate.c	2010-06-05 11:54:17.000000000 -0400
+@@ -0,0 +1,106 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -162,107 +161,42 @@ diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/dri
 +
 +#include <linux/kernel.h>
 +#include <linux/module.h>
-+#include <linux/smp.h>
 +#include <linux/init.h>
 +#include <linux/spinlock.h>
 +#include <linux/interrupt.h>
 +#include <linux/cpufreq.h>
 +#include <linux/cpu.h>
 +#include <linux/types.h>
-+#include <linux/fs.h>
-+#include <linux/sysfs.h>
 +#include <linux/mutex.h>
 +#include <asm/uaccess.h>
 +
-+static unsigned int	cpu_max_freq;
-+static unsigned int	cpu_min_freq;
-+static unsigned int	cpu_cur_freq;
-+static unsigned int	cpu_is_managed;
-+static unsigned int	is_charging;
++// Cap min freq capped to 500MHz, undef to set to policy->min
++#define SCREENSTATE_CAP_MIN_FREQ
 +
-+int ss_usb_charger(void);
++static unsigned int	cpu_is_managed;
++
++int gadget_event_state_current(void);
 +
 +static DEFINE_MUTEX	(screenstate_mutex);
 +
-+static int screenstate_cpufreq_notifier(struct notifier_block *nb, unsigned long val, void *data) {
-+        struct cpufreq_freqs *freq = data;
-+
-+	if (!cpu_is_managed)  return 0;
-+	cpu_cur_freq = freq->new;
-+        return 0;
-+}
-+
-+static struct notifier_block screenstate_cpufreq_notifier_block = {
-+        .notifier_call  = screenstate_cpufreq_notifier
-+};
-+
-+static ssize_t show_charging(struct cpufreq_policy *policy, char *buf) {
-+	return sprintf (buf, "%u\n", is_charging);
-+}
-+
-+static ssize_t store_charging(struct cpufreq_policy *policy, const char *buf, size_t count) {
-+	unsigned int chsts = 0;
-+
-+	if(sscanf (buf, "%u", &chsts) != 1) return -EINVAL;
-+
-+	if((chsts != 0) && (chsts != 1))  return -EINVAL;
-+	else {
-+		__cpufreq_driver_target(policy, cpu_min_freq, CPUFREQ_RELATION_L);
-+		is_charging = chsts;
-+	}
-+
-+	return count;
-+}
-+
-+static struct freq_attr freq_attr_is_charging = {
-+        .attr = { .name = "on_ts_charger", .mode = 0644 },
-+        .show = show_charging,
-+        .store = store_charging,
-+};
-+
 +static int cpufreq_governor_screenstate(struct cpufreq_policy *policy,
 +				   unsigned int event) {
-+	unsigned int cpu = policy->cpu;
 +
 +	switch (event) {
 +		case CPUFREQ_GOV_START:
-+			if (!cpu_online(cpu)) return -EINVAL;
-+			mutex_lock(&screenstate_mutex);
-+			if(sysfs_create_file(&policy->kobj, &freq_attr_is_charging.attr))
-+				goto start_out;
-+			cpufreq_register_notifier(
-+				&screenstate_cpufreq_notifier_block,
-+				CPUFREQ_TRANSITION_NOTIFIER);
 +			cpu_is_managed = 1;
-+			is_charging = 0;
-+			cpu_min_freq = 500000;
-+			cpu_max_freq = policy->max;
-+			cpu_cur_freq = policy->cur;
-+start_out:
-+			mutex_unlock(&screenstate_mutex);
 +			break;
 +		case CPUFREQ_GOV_STOP:
-+			mutex_lock(&screenstate_mutex);
-+			cpufreq_unregister_notifier(
-+				&screenstate_cpufreq_notifier_block,
-+				CPUFREQ_TRANSITION_NOTIFIER);
 +			cpu_is_managed = 0;
-+			is_charging = 0;
-+			cpu_min_freq = 0;
-+			cpu_max_freq = 0;
-+			sysfs_remove_file(&policy->kobj, &freq_attr_is_charging.attr);
-+			mutex_unlock(&screenstate_mutex);
 +			break;
 +		case CPUFREQ_GOV_LIMITS:
 +			mutex_lock(&screenstate_mutex);
-+			if((is_charging) || (ss_usb_charger() == 1000))
-+				__cpufreq_driver_target(policy, cpu_min_freq, CPUFREQ_RELATION_L);
-+			cpu_min_freq = 500000;
-+			cpu_max_freq = policy->max;
-+			if(cpu_cur_freq != policy->cur) {
-+				printk("CPUfreq: %u != %u\n",cpu_cur_freq, policy->cur);
-+			}
-+			cpu_cur_freq = policy->cur;
++			if(gadget_event_state_current() == 1000)
++#ifdef SCREENSTATE_CAP_MIN_FREQ
++				__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++#else
++				__cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
++#endif
 +			mutex_unlock(&screenstate_mutex);
 +			break;
 +		}
@@ -286,7 +220,11 @@ diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/dri
 +void cpufreq_gov_screenstate_lcdoff(void) {
 +	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 +	if(cpu_is_managed) {
-+		cpufreq_driver_target(policy, cpu_min_freq, CPUFREQ_RELATION_L);
++#ifdef SCREENSTATE_CAP_MIN_FREQ
++		cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++#else
++		cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
++#endif
 +	}
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdoff);
@@ -294,8 +232,12 @@ diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/dri
 +void cpufreq_gov_screenstate_lcdon(void) {
 +	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 +        if(cpu_is_managed) {
-+                if((!is_charging) && (ss_usb_charger() != 1000)) cpufreq_driver_target(policy, cpu_max_freq, CPUFREQ_RELATION_H);
-+		else cpufreq_driver_target(policy, cpu_min_freq, CPUFREQ_RELATION_L);
++                if(gadget_event_state_current() != 1000) cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++#ifdef SCREENSTATE_CAP_MIN_FREQ
++		else cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++#else
++		else cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
++#endif
 +        }
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdon);
@@ -312,4 +254,3 @@ diff -BurN linux-2.6.24/drivers/cpufreq/cpufreq_screenstate.c linux-2.6.24-b/dri
 +module_init(cpufreq_gov_screenstate_init);
 +#endif
 +module_exit(cpufreq_gov_screenstate_exit);
-
