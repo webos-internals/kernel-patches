@@ -1,0 +1,156 @@
+--- linux-2.6.24-palm/drivers/misc/lowmemnotify.c	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24.7-test/drivers/misc/lowmemnotify.c	2010-06-01 22:33:07.000000000 -0400
+@@ -69,9 +69,12 @@
+ 
+ static const char *_threshold_string[6] = {
+ 	"normal",
+-	"low",
+-	"critical",
+-	"reboot",
++	"normal",
++	"normal",
++	"normal",
++//	"low",
++//	"critical",
++//	"reboot",
+ };
+ 
+ static const char * threshold_string(int threshold)
+@@ -84,9 +87,9 @@
+ 
+ static unsigned long memnotify_messages[6] = {
+ 	MEMNOTIFY_NORMAL,      /* The happy state */
+-	MEMNOTIFY_LOW,         /* Userspace drops uneeded caches. */
+-	MEMNOTIFY_CRITICAL,    /* Userspace should attempt to stop new allocs */
+-	MEMNOTIFY_REBOOT,      /* Super critical point...we should reboot */
++	MEMNOTIFY_NORMAL,      /* The happy state */
++	MEMNOTIFY_NORMAL,      /* The happy state */
++	MEMNOTIFY_NORMAL,      /* The happy state */
+ };
+ static int memnotify_messages_size = 4;
+ 
+@@ -115,7 +118,7 @@
+ static int memnotify_leave_thresholds_size = 4;
+ 
+ #define lowmem_print(level, x...) do { if(memnotify_debug_level >= (level)) printk(x); } while(0)
+-
++/*
+ module_param_array_named(thresholds_enter,
+ 	memnotify_enter_thresholds, uint,
+ 	&memnotify_enter_thresholds_size, S_IRUGO | S_IWUSR);
+@@ -126,7 +129,7 @@
+ 
+ module_param_named(debug_level,
+ 	memnotify_debug_level, uint, S_IRUGO | S_IWUSR);
+-
++*/
+ /** 
+ * @brief Wakes up low-memory watchers if state changed.
+ * 
+@@ -143,6 +146,7 @@
+ 	
+ 	last_threshold = atomic_read(&memnotify_last_threshold);
+ 
++	goto out;
+ 	changed = (threshold != last_threshold);
+ 	if (!changed) {
+ 		goto out;
+@@ -234,6 +238,7 @@
+ 	used_ratio = used * 100 / totalram_pages;
+ 
+ 	threshold = THRESHOLD_NORMAL;
++	goto out4;
+ 	last_threshold = atomic_read(&memnotify_last_threshold);
+ 
+ 	/* Obtain threshold level */
+@@ -256,7 +261,7 @@
+ 
+ 	/* Rate limited notification of threshold changes. */
+ 	memory_pressure_notify(used, used_ratio, threshold);
+-
++out4:
+ 	return threshold;
+ }
+ 
+@@ -265,6 +270,7 @@
+ 	struct memnotify_file_info *info;
+ 	int err = 0;
+ 
++	goto out;
+ 	info = kmalloc(sizeof(*info), GFP_KERNEL);
+ 	if (!info) {
+ 		err = -ENOMEM;
+@@ -282,6 +288,7 @@
+ static int lowmemnotify_release(struct inode *inode, struct file *file)
+ {
+ 	struct memnotify_file_info *info = file->private_data;
++	return 0;
+ 
+ 	kfree(info);
+ 	atomic_dec(&nr_watcher_task);
+@@ -296,6 +303,7 @@
+ 	unsigned long now = jiffies;
+ 	int last_threshold;
+ 	int changed = 0;
++	goto out3;
+ 
+ 	poll_wait(file, &memnotify_wait, wait);
+ 
+@@ -309,7 +317,7 @@
+ 
+ 		retval = POLLIN;
+ 	}
+-
++out3:
+ 	return retval;
+ }
+ 
+@@ -319,6 +327,7 @@
+ 	int threshold;
+ 	unsigned long data;
+ 	ssize_t ret = 0;
++	goto out2;
+ 
+ 	if (count < sizeof(unsigned long))
+ 		return -EINVAL;
+@@ -331,6 +340,7 @@
+ 		if (0 == ret)
+ 			ret = sizeof(unsigned long);
+ 	}
++out2:
+ 	return ret;
+ }
+ 
+@@ -349,7 +359,7 @@
+ 
+ 	int len = 0;
+ 	int i;
+-
++	goto out1;
+ 	used = memnotify_get_used();
+ 	total_mem = totalram_pages;
+ 
+@@ -405,7 +415,7 @@
+ 			MB(limit),
+ 			MB(left));
+ 	}
+-
++out1:
+ 	return len;
+ }
+ 
+@@ -449,12 +459,12 @@
+ 		goto error_create_class_dev;
+ 	}
+ 
+-	err = class_create_file(memnotify_class, &class_attr_meminfo);
++/*	err = class_create_file(memnotify_class, &class_attr_meminfo);
+ 	if (err) {
+ 		printk(KERN_ERR "%s: couldn't create meminfo.\n", __FUNCTION__);
+ 		goto error_create_class_file;
+ 	}
+-
++*/
+ 	return 0;
+ 
+ error_create_class_file:

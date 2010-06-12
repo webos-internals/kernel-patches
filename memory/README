@@ -1,0 +1,6 @@
+tmc_mem.patch:
+A total abomination patch to man-handle TMC errors.
+
+This will work better with compcache but doesnt require it.
+
+** REAL programmers know how to use "goto".
