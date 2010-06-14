@@ -1,0 +1,20 @@
+--- a/drivers/misc/lowmemnotify.c
++++ b/drivers/misc/lowmemnotify.c
+@@ -231,7 +231,7 @@
+ 	int i;
+ 
+ 	used = memnotify_get_used();
+-	used_ratio = used * 100 / totalram_pages;
++	used_ratio = used * 100 / (totalram_pages + total_swap_pages);
+ 
+ 	threshold = THRESHOLD_NORMAL;
+ 	last_threshold = atomic_read(&memnotify_last_threshold);
+@@ -351,7 +351,7 @@
+ 	int i;
+ 
+ 	used = memnotify_get_used();
+-	total_mem = totalram_pages;
++	total_mem = totalram_pages + total_swap_pages;
+ 
+ 	threshold = memnotify_threshold();
+ 	last_threshold = atomic_read(&memnotify_last_threshold);
