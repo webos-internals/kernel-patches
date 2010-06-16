@@ -147,7 +147,7 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
  	int ret = 0;
 --- linux-2.6.24-a/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
 +++ linux-2.6.24.7-test/drivers/cpufreq/cpufreq_screenstate.c	2010-06-05 11:54:17.000000000 -0400
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,108 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -171,7 +171,8 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
 +#include <asm/uaccess.h>
 +
 +// Cap min freq capped to 500MHz, undef to set to policy->min
-+#define SCREENSTATE_CAP_MIN_FREQ
++//#define SCREENSTATE_CAP_MIN_FREQ 1
++#undef SCREENSTATE_CAP_MIN_FREQ
 +
 +static unsigned int	cpu_is_managed;
 +
@@ -185,6 +186,7 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
 +	switch (event) {
 +		case CPUFREQ_GOV_START:
 +			cpu_is_managed = 1;
++			__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
 +			break;
 +		case CPUFREQ_GOV_STOP:
 +			cpu_is_managed = 0;
