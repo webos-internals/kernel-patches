@@ -5,7 +5,7 @@
  
  ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 -COPTIMIZE	= -Os
-+COPTIMIZE	= -Os -mcpu=cortex-a8 -mtune=cortex-a8
++COPTIMIZE	= -Os -mcpu=cortex-a8 -mtune=cortex-a8 -march=armv7-a -mfpu=vfpv3
  else
  COPTIMIZE	= -O2
  endif
