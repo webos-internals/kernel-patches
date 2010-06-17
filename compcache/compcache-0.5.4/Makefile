@@ -3,7 +3,7 @@ KERNEL_BUILD_PATH ?= "/build/webos-14x/beta/linux-2.6.24.7-test"
 XVM = sub-projects/allocators/xvmalloc-kmod
 EXTRA_CFLAGS	:=	-DCONFIG_BLK_DEV_RAMZSWAP_STATS	\
 			-I$(PWD)/$(XVM)			\
-			-Wall -mcpu=cortex-a8 -mtune=cortex-a8
+			-Wall
 
 obj-m	+=	ramzswap.o
 
