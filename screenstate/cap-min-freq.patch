@@ -1,0 +1,13 @@
+--- a/drivers/cpufreq/cpufreq_screenstate.c
++++ b/drivers/cpufreq/cpufreq_screenstate.c
+@@ -21,8 +21,8 @@
+ #include <asm/uaccess.h>
+ 
+ // Cap min freq capped to 500MHz, undef to set to policy->min
+-//#define SCREENSTATE_CAP_MIN_FREQ 1
+-#undef SCREENSTATE_CAP_MIN_FREQ
++#define SCREENSTATE_CAP_MIN_FREQ 1
++//#undef SCREENSTATE_CAP_MIN_FREQ
+ 
+ static unsigned int	cpu_is_managed;
+ 
