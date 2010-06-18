@@ -1,0 +1,18 @@
+--- linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig	2010-06-18 11:55:26.885742100 -0400
++++ linux-2.6.24-webos1411/arch/arm/configs/omap_sirloin_3430_defconfig	2010-06-18 11:56:41.495117100 -0400
+@@ -451,12 +451,12 @@
+ # CONFIG_TCP_CONG_YEAH is not set
+ CONFIG_TCP_CONG_ILLINOIS=y
+ # CONFIG_DEFAULT_BIC is not set
+-CONFIG_DEFAULT_CUBIC=y
++# CONFIG_DEFAULT_CUBIC is not set
+ # CONFIG_DEFAULT_HTCP is not set
+ # CONFIG_DEFAULT_VEGAS is not set
+-# CONFIG_DEFAULT_WESTWOOD is not set
++CONFIG_DEFAULT_WESTWOOD=y
+ # CONFIG_DEFAULT_RENO is not set
+-CONFIG_DEFAULT_TCP_CONG="cubic"
++CONFIG_DEFAULT_TCP_CONG="westwood"
+ # CONFIG_TCP_MD5SIG is not set
+ CONFIG_TCP_FASTPATH=y
+ # CONFIG_IP_VS is not set
