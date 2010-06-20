@@ -2,7 +2,7 @@ ifeq ($(DEVICE),pre)
 	MARCH_TUNE := -Os -march=armv7-a -mcpu=cortex-a8 -mtune=cortex-a8
 else
 ifeq ($(DEVICE),pixi)
-	MARCH_TUNE := -Os -march=armv6j -mcpu=arm1136jf-s -mtune=arm1136jf-s
+	MARCH_TUNE := -Os -mcpu=arm1136jf-s -mtune=arm1136jf-s
 endif
 endif
 
