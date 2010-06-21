@@ -5,7 +5,7 @@
  
  ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 -COPTIMIZE	= -Os
-+COPTIMIZE	= -Os -mcpu=arm1136jf-s -mtune=arm1136jf-s
++COPTIMIZE	= -Os -march=armv6j -mtune=arm1136jf-s
  else
  COPTIMIZE	= -O2
  endif
