@@ -1,0 +1,8 @@
+Overclocking patches
+
+opp6-720-opp7-1005-min-opp5.patch: max 1005MHz
+
+opp6-720-opp7-800-min-opp5.patch: max 800MHz
+
+defconfigs can be used with both patchsets.
+
