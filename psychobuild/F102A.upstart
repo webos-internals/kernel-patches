@@ -12,7 +12,7 @@ script
 
 swapoff -a
 insmod /lib/modules/`uname -r`/extra/xvmalloc.ko
-insmod /lib/modules/`uname -r`/extra/ramzswap.ko memlimit_kb=20240 backing_swap=/dev/mapper/store-swap
+insmod /lib/modules/`uname -r`/extra/ramzswap.ko memlimit_kb=20480 backing_swap=/dev/mapper/store-swap
 sleep 3
 swapon /dev/ramzswap0 -p 1
 
