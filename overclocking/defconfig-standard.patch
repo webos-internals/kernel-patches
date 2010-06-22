@@ -1,0 +1,19 @@
+diff -ru linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig linux-2.6.24-webos1411/arch/arm/configs/omap_sirloin_3430_defconfig
+--- linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig   2010-04-08 20:35:15.000000000 -0400
++++ linux-2.6.24-webos1411/arch/arm/configs/omap_sirloin_3430_defconfig 2010-04-08 22:21:12.000000000 -0400
+@@ -224,10 +224,11 @@
+ #
+ # CONFIG_OMAP3ES2_VDD1_OPP1 is not set
+ # CONFIG_OMAP3ES2_VDD1_OPP2 is not set
+-# CONFIG_OMAP3ES2_VDD1_OPP3 is not set
+-CONFIG_OMAP3ES2_VDD1_OPP4=y
++CONFIG_OMAP3ES2_VDD1_OPP3=y
++# CONFIG_OMAP3ES2_VDD1_OPP4 is not set
+ # CONFIG_OMAP3ES2_VDD1_OPP5 is not set
+-
++# CONFIG_OMAP3ES2_VDD1_OPP6 is not set
++# CONFIG_OMAP3ES2_VDD1_OPP7 is not set
+ #
+ # Default VDD2 OPP Level Selection
+ #
+
