@@ -13,7 +13,6 @@ diff -ru linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig linux-2.6.24-
 -
 +# CONFIG_OMAP3ES2_VDD1_OPP6 is not set
 +# CONFIG_OMAP3ES2_VDD1_OPP7 is not set
-+# CONFIG_OMAP3ES2_VDD1_OPP8 is not set
  #
  # Default VDD2 OPP Level Selection
  #
