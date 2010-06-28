@@ -15,5 +15,5 @@ insmod /lib/modules/`uname -r`/extra/xvmalloc.ko
 insmod /lib/modules/`uname -r`/extra/ramzswap.ko memlimit_kb=20480 backing_swap=/dev/mapper/store-swap
 sleep 3
 swapon /dev/ramzswap0 -p 1
-
+sysctl -w vm.overcommit_memory=0
 end script

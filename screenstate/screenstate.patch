@@ -146,8 +146,8 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
  {
  	int ret = 0;
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24.7-test/drivers/cpufreq/cpufreq_screenstate.c	2010-06-23 21:05:45.000000000 -0400
-@@ -0,0 +1,101 @@
++++ linux-2.6.24.7-F105/drivers/cpufreq/cpufreq_screenstate.c	2010-06-26 19:06:51.000000000 -0400
+@@ -0,0 +1,109 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -175,6 +175,7 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
 +#undef SCREENSTATE_CAP_MIN_FREQ
 +
 +static unsigned int	cpu_is_managed;
++static unsigned int	lcd_state;
 +
 +int gadget_event_state_current(void);
 +
@@ -186,16 +187,21 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
 +	switch (event) {
 +		case CPUFREQ_GOV_START:
 +			cpu_is_managed = 1;
++			lcd_state=1;
 +			__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
 +			break;
 +		case CPUFREQ_GOV_STOP:
 +			cpu_is_managed = 0;
++			lcd_state = 0;
 +			break;
 +		case CPUFREQ_GOV_LIMITS:
 +			mutex_lock(&screenstate_mutex);
 +			if(gadget_event_state_current() == 1000)
 +				__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
-+			else __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++			else {
++				if(lcd_state) __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++				else __cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
++			}
 +			mutex_unlock(&screenstate_mutex);
 +			break;
 +		}
@@ -224,6 +230,7 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
 +#else
 +		cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
 +#endif
++		lcd_state = 0;
 +	}
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdoff);
@@ -233,6 +240,7 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
 +        if(cpu_is_managed) {
 +                if(gadget_event_state_current() != 1000) cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
 +		else cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++		lcd_state = 1;
 +        }
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdon);

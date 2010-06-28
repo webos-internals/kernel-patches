@@ -1,0 +1,13 @@
+--- linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig	2010-06-22 03:56:20.000000000 -0700
++++ linux-2.6.24-codecrumb/arch/arm/configs/omap_sirloin_3430_defconfig	2010-06-25 16:41:20.000000000 -0700
+@@ -1753,8 +1753,8 @@
+ # CONFIG_DEBUG_SPINLOCK_SLEEP is not set
+ # CONFIG_DEBUG_LOCKING_API_SELFTESTS is not set
+ # CONFIG_DEBUG_KOBJECT is not set
+-CONFIG_DEBUG_BUGVERBOSE=y
+-CONFIG_DEBUG_INFO=y
++# CONFIG_DEBUG_BUGVERBOSE is not set
++# CONFIG_DEBUG_INFO is not set
+ # CONFIG_DEBUG_VM is not set
+ # CONFIG_DEBUG_LIST is not set
+ # CONFIG_DEBUG_SG is not set
