@@ -4,5 +4,7 @@ opp6-720-opp7-1005-min-opp5.patch: max 1005MHz
 
 opp6-720-opp7-800-min-opp5.patch: max 800MHz
 
+F105-overclock.patch: 500, 700, 800, 900, 1005MHz
+
 defconfigs can be used with both patchsets.
 
