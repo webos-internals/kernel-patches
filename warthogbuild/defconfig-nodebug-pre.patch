@@ -1,5 +1,16 @@
 --- linux-2.6.24/arch/arm/configs/omap_sirloin_3430_defconfig	2010-06-22 03:56:20.000000000 -0700
-+++ linux-2.6.24-codecrumb/arch/arm/configs/omap_sirloin_3430_defconfig	2010-06-25 16:41:20.000000000 -0700
++++ linux-2.6.24-codecrumb/arch/arm/configs/omap_sirloin_3430_defconfig	2010-06-28 19:07:12.000000000 -0700
+@@ -92,8 +92,8 @@
+ CONFIG_MODULES=y
+ CONFIG_MODULE_UNLOAD=y
+ # CONFIG_MODULE_FORCE_UNLOAD is not set
+-CONFIG_MODVERSIONS=y
+-CONFIG_MODULE_SRCVERSION_ALL=y
++# CONFIG_MODVERSIONS is not set
++# CONFIG_MODULE_SRCVERSION_ALL is not set
+ CONFIG_KMOD=y
+ CONFIG_BLOCK=y
+ # CONFIG_LBD is not set
 @@ -1753,8 +1753,8 @@
  # CONFIG_DEBUG_SPINLOCK_SLEEP is not set
  # CONFIG_DEBUG_LOCKING_API_SELFTESTS is not set

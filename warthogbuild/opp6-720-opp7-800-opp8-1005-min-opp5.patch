@@ -85,7 +85,7 @@ diff -r -u linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c linux-2.6.24-codecrumb/
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
 -				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
-+	1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5), 1.35 (OPP6), 1.35 (OPP7), 1.35 (OPP8) */
++	1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5), 1.35 (OPP6), 1.42 (OPP7), 1.42 (OPP8) */
 +	0x1e, 0x24, 0x30, 0x36, 0x3c, 0x3c, 0x42, 0x42
  };
  
