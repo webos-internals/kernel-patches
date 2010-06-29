@@ -1,0 +1,15 @@
+--- linux-2.6.24/arch/arm/mach-omap3pe/pm_cpuidle.c	2010-06-29 20:49:08.000000000 -0300
++++ linux-2.6.24_sbromwich/arch/arm/mach-omap3pe/pm_cpuidle.c	2010-06-29 12:30:09.000000000 -0300
+@@ -1099,6 +1099,12 @@
+ 	 */
+ 	getnstimeofday(&ts_preidle);
+ 
++        // Something seems to be calling with underflowed cx->type, winch back if necessary	
++	if (cx->type > DEEPEST_SUPPORTED_STATE) {
++	  // Make sure DEEPEST_SUPPORTED_STATE is the highest idle state selected
++	  cx->type = DEEPEST_SUPPORTED_STATE;
++	}
++
+ 	/* If the requested state is C0, we bail here...
+ 	 */
+ 	if (cx->type == OMAP3_STATE_C1) {
