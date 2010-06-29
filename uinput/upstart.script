@@ -1,0 +1,7 @@
+#!/bin/sh
+
+start on stopped finish
+
+script
+/sbin/modprobe -q uinput
+end script
