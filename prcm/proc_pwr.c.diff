@@ -1,5 +1,5 @@
---- /home/sbromwich/linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-04 11:19:11.000000000 +0000
-+++ linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-05-10 16:29:11.000000000 +0000
+--- linux-2.6.24/arch/arm/mach-omap3pe/prcm_pwr.c	2010-06-29 20:17:28.000000000 -0300
++++ linux-2.6.24_sbromwich/arch/arm/mach-omap3pe/prcm_pwr.c	2010-06-29 12:44:34.000000000 -0300
 @@ -488,6 +488,7 @@
  
  static void DUMP_REGS_AFTER_WAKEUP(void)
@@ -23,7 +23,7 @@
 -	retries = 500;
 +	if (domainid == DOM_PER) {
 +		/* DOM_PER keeps failing so we'll not try so hard */
-+		retries = 5;
++		retries = 150;
 +	} else {
 +		retries = 500;
 +	}
@@ -31,20 +31,36 @@
  	do {
  		ret = prcm_get_power_domain_state(domainid, &curr_state);
  		if (ret)
-@@ -662,12 +670,19 @@
+@@ -662,12 +670,35 @@
  			return PRCM_PASS;
  		}
  
 -		udelay(1);
-+		if (retries > 450) {
-+			udelay(1);
-+		} else {
-+			cond_resched_softirq ();
-+		}
++		if ((retries == 300) || (retries == 200) || (retries == 100)) {
++		        cond_resched_softirq ();
++                } else {
++		        udelay(1);
++                }
 +		
  	} while (retries--);
++	
++	/* If it's still failing, run 5 iterations with cond_resched_softirq */
++	retries = 5;
++	do {
++		ret = prcm_get_power_domain_state(domainid, &curr_state);
++		if (ret)
++			return ret;
  
 -	printk(KERN_INFO "Timeout in prcm_check_power_domain_status(), "
++		if (curr_state == desired_state) {
++			return PRCM_PASS;
++		}
++
++		cond_resched_softirq ();
++
++	} while (retries--);
++	
++	
 +	if (domainid != DOM_PER) {
 +		printk(KERN_INFO "Come here, my little friend. Don't be afraid. Timeout in prcm_check_power_domain_status(), "
  			"domain %d, desired state %d, current state %d\n",
@@ -53,30 +69,42 @@
  	return PRCM_FAIL;
  }
  
-@@ -1163,7 +1178,12 @@
+@@ -1163,7 +1194,28 @@
  	prcm_set_domain_functional_clocks(domainid, valid_func_clk);
  	prcm_set_domain_interface_clocks(domainid, valid_int_clk);
  
 -	retries = 500;
 +	if (domainid == DOM_PER) {
-+		retries = 5;
++		retries = 150;
 +	} else {
 +		retries = 500;
 +	}
 +	
++	do {
++		ret = prcm_get_devices_not_idle(domainid, &mask);
++		if (ret == PRCM_FAIL)
++			return ret;
++
++		if ((mask | i_mask) == valid_idlest)
++			break;
++
++                if ((retries == 300) || (retries == 200) || (retries == 100)) {
++                        cond_resched_softirq ();
++                } else {
++                        udelay(1);
++                }
++	} while (retries--);
++	
++	retries = 5;
  	do {
  		ret = prcm_get_devices_not_idle(domainid, &mask);
  		if (ret == PRCM_FAIL)
-@@ -1172,11 +1192,15 @@
+@@ -1172,11 +1224,11 @@
  		if ((mask | i_mask) == valid_idlest)
  			break;
  
 -		udelay(1);
-+		if (retries > 450) {
-+			udelay(1);
-+		} else {
-+			cond_resched_softirq ();
-+		}
++		cond_resched_softirq ();
  	} while (retries--);
  
  	if (retries < 0) {
@@ -85,7 +113,7 @@
  				"domain:%u  mask=%x, imask=%x, valid_idlest=%x\n",
  				domainid, mask, i_mask, valid_idlest);
  		return PRCM_FAIL;
-@@ -1261,7 +1285,7 @@
+@@ -1261,7 +1313,7 @@
  {
  	int i;
  	int rc;
@@ -94,7 +122,7 @@
  	printd("wakeup_sources_activate: enter \n");
  	printd("##### INTCPS_MIR0       %08x\n", INTCPS_MIR0);
  	printd("##### INTCPS_MIR1       %08x\n", INTCPS_MIR1);
-@@ -1271,7 +1295,8 @@
+@@ -1271,7 +1323,8 @@
  	printd("##### INTCPS_ITR2       %08x\n", INTCPS_ITR2);
  	printd("##### PRM_IRQSTATUS_MPU %08x\n", PRM_IRQSTATUS_MPU);
  	printd("##### PRM_IRQENABLE_MPU %08x\n", PRM_IRQENABLE_MPU);
@@ -104,7 +132,7 @@
  	/* Mask all interrupts in MIR registers.
  	 * Interrupts that are required for wakeup will be enabled below.
  	 */
-@@ -1353,7 +1378,7 @@
+@@ -1353,7 +1406,7 @@
  			INTCPS_MIR_CLEAR0  = (1 << 11); // PRCM_MPU_IRQ
  		}
  	}
@@ -113,7 +141,7 @@
  	printd("wakeup_sources_activate: done\n");
  	{
  		/* Note: GPIO indices are 1 based... */
-@@ -1397,6 +1422,7 @@
+@@ -1397,6 +1450,7 @@
  	printd("##### INTCPS_PENDING_IRQ2 %08x\n", INTCPS_PENDING_IRQ2);
  	printd("##### PRM_IRQSTATUS_MPU %08x\n", PRM_IRQSTATUS_MPU);
  	printd("##### PRM_IRQENABLE_MPU %08x\n", PRM_IRQENABLE_MPU);
@@ -121,7 +149,7 @@
  }
  
  static void wakeup_sources_deactivate(void)
-@@ -1443,8 +1469,9 @@
+@@ -1443,8 +1497,9 @@
  	struct system_power_state cur_st;
  	u32 sdrc_power_register = 0x0;
  	int ret;
@@ -132,7 +160,7 @@
  
  //### Do we really need to do this. When we get here the state params should be fine.
  	/* Check that parameters are valid */
-@@ -1646,7 +1673,9 @@
+@@ -1646,7 +1701,9 @@
  	/* Wait for clocks to shut down. */
  	WAIT_WHILE(CM_IDLEST_CKGEN & 0xFFFFFFFE, 10000);
  
@@ -142,7 +170,7 @@
  
  	/* Errata 1.142:
  	 * SDRC not sending auto-refresh when OMAP wakes-up from OFF mode
-@@ -1674,8 +1703,10 @@
+@@ -1674,8 +1731,10 @@
  	if (!is_device_type_gp() && is_sil_rev_equal_to(OMAP3430_REV_ES3_0))
  		SDRC_POWER_REG = sdrc_power_register;
  
@@ -154,7 +182,7 @@
  	DUMP_REGS_AFTER_WAKEUP();
  
  
-@@ -1705,7 +1736,11 @@
+@@ -1705,7 +1764,11 @@
  	 */
  	PM_WKDEP_USBHOST = 0;
  	CM_SLEEPDEP_USBHOST = 0x6;
@@ -167,7 +195,7 @@
  	CM_SLEEPDEP_USBHOST = 0;
  
  	/* Unset the wakeup dependency for PER here.
-@@ -1736,7 +1771,9 @@
+@@ -1736,7 +1799,9 @@
  	CM_ICLKEN1_CORE |= 0x40;
  	WAIT_WHILE(CM_IDLEST1_CORE & 0x40, 1000);
  
@@ -177,7 +205,7 @@
  
  	/* Handle the case if we are using HW support clock transition.
  	 */
-@@ -1809,8 +1846,10 @@
+@@ -1809,8 +1874,10 @@
  	prcm_debug("\nRegister dump after restore\n\n");
  #endif
  
@@ -188,7 +216,7 @@
  
  #ifdef CONFIG_FASTPATH
  	omap3_wakeup_sources_save();
-@@ -1826,8 +1865,12 @@
+@@ -1826,11 +1893,16 @@
  	return PRCM_PASS;
  
  Fail:
@@ -202,3 +230,7 @@
  #ifdef CONFIG_FASTPATH
  	omap3_wakeup_sources_save();
  #endif
++	printk (KERN_INFO "prcm_pwr Fail called, wfi ran instead");
+ 	return PRCM_FAIL;
+ }
+ 
