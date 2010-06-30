@@ -148,7 +148,7 @@ int au_h_create(struct inode *h_dir, struct dentry *h_dentry, int mode,
 /* ---------------------------------------------------------------------- */
 
 /* empty_zero_page is not exported before 2.6.24 */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24) && !defined __arm__
 static char *au_zp_alloc(void)
 {
 	return page_address(ZERO_PAGE(0));
