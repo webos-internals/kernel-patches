@@ -1,6 +1,6 @@
---- linux-2.6.24/arch/arm/configs/chuck_defconfig	2010-06-22 03:27:40.000000000 -0700
-+++ linux-2.6.24-codecrumb/arch/arm/configs/chuck_defconfig	2010-06-22 03:38:50.000000000 -0700
-@@ -292,12 +292,12 @@
+--- linux-2.6.24/arch/arm/configs/chuck_defconfig	2010-06-25 16:42:54.000000000 -0700
++++ linux-2.6.24-codecrumb/arch/arm/configs/chuck_defconfig	2010-06-29 20:40:09.000000000 -0700
+@@ -292,13 +292,14 @@
  # CONFIG_CPU_FREQ_DEFAULT_GOV_CONSERVATIVE is not set
  # CONFIG_CPU_FREQ_DEFAULT_GOV_MSM7K is not set
  CONFIG_CPU_FREQ_GOV_PERFORMANCE=y
@@ -14,5 +14,7 @@
 +CONFIG_CPU_FREQ_GOV_CONSERVATIVE=y
 +CONFIG_CPU_FREQ_GOV_MSM7K=y
  CONFIG_CPU_FREQ_MSM=y
++CONFIG_CPU_FREQ_GOV_SCREENSTATE=y
  
  #
+ # Floating point emulation
