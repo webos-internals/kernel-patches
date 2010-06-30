@@ -1,5 +1,6 @@
 modules:
-	$(MAKE) KDIR=${KERNEL_BUILD_PATH} CONFIG_AUFS_SYSAUFS= -f local.mk
+	$(MAKE) KDIR=$(KERNEL_BUILD_PATH) aufs.ko -f local.mk
 
-modules_install:
-	$(MAKE) -C ${KERNEL_BUILD_PATH} M=$(PWD)/fs/aufs modules_install
+	#$(MAKE) -C $(KDIR) M=$(PWD)/fs/aufs modules
+
+#KDIR = $(KERNEL_BUILD_PATH)
