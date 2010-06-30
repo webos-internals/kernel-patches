@@ -6,3 +6,6 @@ queue. This may increase the time for resume from suspend dependent on the
 number of threads desiring CPU time. The wait has been empirically proven to
 be a maximum of approximately 2 seconds. This is considered preferable to
 the 60-120 seconds a LunaSysMgr restart requires.
+
+In addition, something may be calling the PRCM sleep routine with an invalid
+value. In this case the deepest available sleep is used.
