@@ -1,0 +1,16 @@
+Index: linux-2.6.19/fs/super.c
+===================================================================
+RCS file: /proj/linux-2.6/repository/linux-2.6.19/fs/super.c,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -p -r1.1 -r1.2
+--- linux-2.6.19/fs/super.c	20 Feb 2008 05:23:09 -0000	1.1
++++ linux-2.6.19/fs/super.c	20 Feb 2008 05:24:15 -0000	1.2
+@@ -250,6 +250,7 @@ int fsync_super(struct super_block *sb)
+ 	__fsync_super(sb);
+ 	return sync_blockdev(sb->s_bdev);
+ }
++EXPORT_SYMBOL(fsync_super);
+ 
+ /**
+  *	generic_shutdown_super	-	common helper for ->kill_sb()

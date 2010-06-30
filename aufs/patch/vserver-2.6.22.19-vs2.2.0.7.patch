@@ -1,0 +1,90 @@
+This patch makes aufs version 20080825 to support
+http://ftp.linux-vserver.org/pub/kernel/vs2.2/patch-2.6.22.19-vs2.2.0.7.diff.
+
+I didn't test this patch by myself because I am not an ubuntu user.
+
+
+Index: fs/aufs/super.h
+===================================================================
+RCS file: /cvsroot/aufs/aufs/fs/aufs/super.h,v
+retrieving revision 1.81
+diff -u -p -r1.81 super.h
+--- fs/aufs/super.h	25 Aug 2008 01:50:40 -0000	1.81
++++ fs/aufs/super.h	25 Aug 2008 02:07:56 -0000
+@@ -35,6 +35,7 @@
+ #else
+ #include <linux/nfs_fs.h>
+ #endif
++#include <linux/shmem_fs.h>
+ #include <linux/aufs_type.h>
+ //#include "hinode.h"
+ #include "misc.h"
+@@ -253,6 +254,7 @@ static inline int au_test_xfs(struct sup
+ static inline int au_test_tmpfs(struct super_block *sb)
+ {
+ #ifdef CONFIG_TMPFS
++	BUILD_BUG_ON(TMPFS_MAGIC != TMPFS_SUPER_MAGIC);
+ 	return (sb->s_magic == TMPFS_MAGIC);
+ #else
+ 	return 0;
+Index: fs/aufs/vfsub.c
+===================================================================
+RCS file: /cvsroot/aufs/aufs/fs/aufs/vfsub.c,v
+retrieving revision 1.39
+diff -u -p -r1.39 vfsub.c
+--- fs/aufs/vfsub.c	21 Jul 2008 02:53:09 -0000	1.39
++++ fs/aufs/vfsub.c	25 Aug 2008 02:07:56 -0000
+@@ -134,7 +134,7 @@ int do_vfsub_symlink(struct inode *dir, 
+ 		  dir->i_ino, AuDLNPair(dentry), symname, mode);
+ 	IMustLock(dir);
+ 
+-	err = vfs_symlink(dir, dentry, symname, mode);
++	err = vfs_symlink(dir, dentry, symname, mode, NULL);
+ 	if (!err) {
+ 		/* dir inode is locked */
+ 		au_update_fuse_h_inode(NULL, dentry->d_parent); /*ignore*/
+@@ -151,7 +151,7 @@ int do_vfsub_mknod(struct inode *dir, st
+ 	LKTRTrace("i%lu, %.*s, 0x%x\n", dir->i_ino, AuDLNPair(dentry), mode);
+ 	IMustLock(dir);
+ 
+-	err = vfs_mknod(dir, dentry, mode, dev);
++	err = vfs_mknod(dir, dentry, mode, dev, NULL);
+ 	if (!err) {
+ 		/* dir inode is locked */
+ 		au_update_fuse_h_inode(NULL, dentry->d_parent); /*ignore*/
+@@ -170,7 +170,7 @@ int do_vfsub_link(struct dentry *src_den
+ 	IMustLock(dir);
+ 
+ 	lockdep_off();
+-	err = vfs_link(src_dentry, dir, dentry);
++	err = vfs_link(src_dentry, dir, dentry, NULL);
+ 	lockdep_on();
+ 	if (!err) {
+ 		LKTRTrace("src_i %p, dst_i %p\n",
+@@ -214,7 +214,7 @@ int do_vfsub_mkdir(struct inode *dir, st
+ 	LKTRTrace("i%lu, %.*s, 0x%x\n", dir->i_ino, AuDLNPair(dentry), mode);
+ 	IMustLock(dir);
+ 
+-	err = vfs_mkdir(dir, dentry, mode);
++	err = vfs_mkdir(dir, dentry, mode, NULL);
+ 	if (!err) {
+ 		/* dir inode is locked */
+ 		au_update_fuse_h_inode(NULL, dentry->d_parent); /*ignore*/
+@@ -231,7 +231,7 @@ int do_vfsub_rmdir(struct inode *dir, st
+ 	IMustLock(dir);
+ 
+ 	lockdep_off();
+-	err = vfs_rmdir(dir, dentry);
++	err = vfs_rmdir(dir, dentry, NULL);
+ 	lockdep_on();
+ 	/* dir inode is locked */
+ 	if (!err)
+@@ -248,7 +248,7 @@ int do_vfsub_unlink(struct inode *dir, s
+ 
+ 	/* vfs_unlink() locks inode */
+ 	lockdep_off();
+-	err = vfs_unlink(dir, dentry);
++	err = vfs_unlink(dir, dentry, NULL);
+ 	lockdep_on();
+ 	/* dir inode is locked */
+ 	if (!err)

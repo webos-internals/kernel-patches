@@ -1,0 +1,107 @@
+#!/bin/sh
+
+# aufs sample -- diskless system
+
+# Copyright (C) 2005-2009 Junjiro Okajima
+#
+# This program, aufs is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+# $Id: linuxrc,v 1.8 2009/01/26 06:24:45 sfjro Exp $
+
+set -e
+#echo here i am
+trap "test \$? -ne 0 && sleep 3600" 0
+
+#set
+#echo $PATH
+mount -nt proc proc /proc
+f=/proc/sys/kernel/printk
+echo 8 > $f
+
+eval `bootpc | egrep '^(HOSTNAME|SERVER|BOOTFILE|DOMAIN|DNSSRVS)='`
+test `cat /proc/sys/kernel/hostname` = $HOSTNAME
+export HOSTNAME SERVER BOOTFILE DOMAIN DNSSRVS
+
+mount -t tmpfs tmp tmp
+remote=`dirname $BOOTFILE`
+for i in aufs.ko comount.sh exportfs.ko nfsd.ko
+do
+	tftp -g $SERVER -r $remote/$i -l tmp/$i > /dev/null 2>&1
+	test -f tmp/$i
+done
+insmod tmp/exportfs.ko
+insmod tmp/nfsd.ko
+insmod tmp/aufs.ko brs=1
+
+eval `tr ' ' '\n' < /proc/cmdline | grep '^dl_label='`
+sh tmp/comount.sh $dl_label
+#/bin/sh -i
+rm tmp/comount.sh
+
+d=/aufs/etc
+f=$d/resolv.conf
+mkdir -p $d
+test -h $f || { echo domain $DOMAIN; echo nameserver $DNSSRVS; } > $f
+
+#cat /proc/mounts; /bin/sh -i
+echo 0x0100 > /proc/sys/kernel/real-root-dev
+umount /proc
+
+if [ "$initrd" = "initramfs.gz" ]
+then
+	# rm
+	umount /branch || :
+	mkdir -p aufs/branch
+	#mount -t tmpfs none aufs/branch
+	set -x
+	for i in branch/* branch/loop/*
+	do
+		test -d $i || continue
+		mkdir -p aufs/$i
+		#/bin/mount -n --move $i aufs/$i || :
+		/bin/mount -n --move $i aufs/$i 2> /dev/null || :
+	done
+
+	cd aufs
+	if [ "$dl_label" = "faunos" ]
+	then
+		cd /tfs
+	else
+		/bin/mount -n --bind /tmp branch
+		mount -nt proc proc /proc
+		egrep -v ' (root|cram)fs ' /proc/mounts > etc/mtab
+		umount /proc
+		/bin/mount -n -o remount,ro aufsroot .
+	fi
+	/bin/mount -n --move . /
+	test "$dl_label" = "knoppix" && mount -nt proc proc /proc
+	#/bin/sh -i
+	trap "" 0
+	if [ "$dl_label" = "faunos" ]
+	then
+		exec chroot . sbin/init s < dev/console > dev/console 2>&1 dev/console
+	else
+		exec chroot . sbin/init < dev/console > dev/console 2>&1 dev/console
+	fi
+else
+	cd aufs
+	mkdir -p initrd
+	pivot_root . initrd
+	/initrd/bin/busybox mount -nt proc proc /proc
+	/initrd/bin/busybox egrep -v ' (root|cram)fs ' /proc/mounts > etc/mtab
+	/initrd/bin/busybox umount /proc
+	/initrd/bin/busybox mount -o remount,ro .
+	trap "" 0
+fi

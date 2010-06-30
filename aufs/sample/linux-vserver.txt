@@ -1,0 +1,210 @@
+
+A sample procedure for Linux-VServer and aufs on plain Debian Etch.
+Junjiro Okajima
+
+# $Id: linux-vserver.txt,v 1.7 2008/02/18 04:42:22 sfjro Exp $
+
+o Introduction
+Linux-Vserver (http://linux-vserver.org) is another solution for
+virtualization.
+It doesn't provide hardware emulation, bios emulation nor individual
+kernel for virtual machines, but it provides Virtual Private
+Server(VPS) aka Security Context.
+VPS shares the hardware among the host and other VPS, and runs on a
+host kernel, and finally it provides an individual virtual server.
+A root filesystem for VPS is a normal directory or mount-point, unlike
+QEMU's fs-image file.
+If you can admit sharing everything under OS among VPSs and the host,
+it is recommended to use aufs in order to reduce the disk usage for
+common system files.
+
+./patch/vserver.patch in aufs is originally written and posted to ML
+by Wilhelm Meier. Additionally, he gave a comment on this document.
+
+
+o Scenario
+- virtual server 1
+  Services:	public HTTP only
+  IP Address:	192.168.1.101
+- virtual server 2
+  Services:	public FTP only
+  IP Address:	192.168.1.102
+- host
+  Services:	only SSH for internal administration
+  IP Address:	192.168.1.9
+  misc:		build /srv/plain for both of vs1 and vs2, as an aufs
+		readonly branch.
+		/srv/plain is the common base dir for vs1 and vs2,
+		including package management.
+		build /srv/vs[12].rw as an aufs readwrite branch.
+		mount /var/lib/vservers/vs[12] as aufs.
+		+ /var/lib/vservers/vs1 = /srv/vs1.rw + /srv/plain
+		+ /var/lib/vservers/vs2 = /srv/vs2.rw + /srv/plain
+
+
+o Prepare the host
+- install plain Debian Etch.
+- install the necessary packages.
+# aptitude install linux-image-2.6.18-5-vserver-686 \
+	linux-headers-2.6.18-5-vserver-686 util-vserver debootstrap \
+	ssh cvs patch gcc sudo bzip2
+- set sudo by visudo, if necessary.
+- make SSH to accept on host only, by editing /etc/ssh/sshd_config.
+  ListenAddress 192.168.1.9
+- configure your boot loader for vmlinuz-2.6.18-5-vserver-686.
+- reboot with the kernel vmlinuz-2.6.18-5-vserver-686.
+
+
+o Install aufs to host
+- download aufs source files.
+
+- build and install aufs module.
+$ patch -p0 < ./patch/vserver.patch
+patching file fs/aufs/vfsub.h
+$ make -s -f local.mk
+  Building modules, stage 2.
+
+- install aufs module.
+
+
+o Build the common directory, /srv/plain
+- install plain Debian Etch to /srv/plain
+$ cd /srv
+$ sudo mkdir plain vs1.rw vs2.rw
+$ sudo debootstrap etch ./plain http://ftp.debian.org/debian
+I: Retrieving Release
+I: Retrieving Packages
+	:::
+I: Base system installed successfully.
+
+- setup the common issues
+  + vs1 and vs2 must be described in /etc/hosts.
+  + disable some init scripts around the management for a hardware, as
+    vserver-debiantools package does.
+  + /srv/plain/etc/hostname is dummy. it will be overrode by
+    /srv/vs[12].rw/etc/hostname later.
+  + in this sample, the packages are handled or centralized on host.
+  + disable IPv6 in proftpd, if necessary (on unnecessary).
+$ cd /srv/plain
+$ sudo cp -p --parents /etc/apt/sources.list /etc/hosts .
+$ sudo chroot .
+# passwd
+# echo plain > /etc/hostname
+# tzconfig
+	:::
+# for link in klogd hwclock.sh setserial urandom networking umountfs halt reboot mountvirtfs mountall.sh mountnfs.sh ifupdown
+> do update-rc.d -f $link remove
+> done
+# aptitude update
+# aptitude upgrade
+# aptitude install apache2 proftpd
+# aptitude clean
+# /etc/init.d/proftpd stop
+# echo UseIPv6 off >> /etc/proftpd/proftpd.conf
+# exit
+
+- customize apache2 and proftpd services anyway you like here. but
+  remember, you need to specify IP address to every service in
+  linux-vserver, instead of wildcard (0.0.0.0).
+
+
+o Build VPS root directory, /var/lib/vservers/vs[12]
+- build VPS
+$ sudo vserver vs1 build -m skeleton --hostname vs1 --interface eth0:192.168.1.101/24
+$ sudo vserver vs2 build -m skeleton --hostname vs2 --interface eth0:192.168.1.102/24
+
+- append these lines to /etc/fstab on host, in order to mount the root
+  directory for VPSs automatically at boot time.
+none  /var/lib/vservers/vs1      aufs defaults,br:/srv/vs1.rw:/srv/plain 0 0
+/home /var/lib/vservers/vs1/home ext3 defaults,bind,ro                   0 0
+none  /var/lib/vservers/vs2      aufs defaults,br:/srv/vs2.rw:/srv/plain 0 0
+/home /var/lib/vservers/vs2/home ext3 defaults,bind,rw                   0 0
+
+- and mount them
+$ sudo mount -a
+
+
+o Setup VPSs
+- set their hostname.
+
+- on vs1,
+  + configure apache2 to start automatically.
+  + disable proftpd.
+$ sudo chroot /var/lib/vservers/vs1
+# echo vs1 > /etc/hostname
+# echo 'NO_START=0' >> /etc/default/apache2
+# echo 'RUN=no' >> /etc/default/proftpd
+# exit
+
+- on vs2,
+  + configure proftpd to listen to vs2 only.
+$ sudo chroot /var/lib/vservers/vs2
+# echo vs2 > /etc/hostname
+# echo DefaultAddress vs2 >> /etc/proftpd/proftpd.conf
+# exit
+$
+
+- start them on boot automatically.
+# echo default > /etc/vservers/vs1/apps/init/mark
+# echo default > /etc/vservers/vs2/apps/init/mark
+
+- you can setup the resource limit, scheduling policy or something for
+  every VPS, via /etc/vservers/vs[12].
+  cf. http://www.nongnu.org/util-vserver/doc/conf/configuration.html
+
+- you can customize the services here too. but it is useful to
+  centralize every management on /srv/plain.
+
+- it is recommended to centralize every system administration to the
+  host, including package management, in order to reduce the disk
+  usage for common system files.
+  the file you setup individually will become independent and has no
+  influences from the common dir /srv/plain. for example, if you
+  install a package on vs1 by a generic package management tool or
+  linux-vserver specific command, all files related to package
+  management will be copied-up to /srv/vs1.rw. if you manage packages
+  on /srv/plain later, you may make yourself confused .
+
+- reboot your system, the host.
+
+
+o Test
+- check VPSs
+$ sudo vserver-stat
+CTX   PROC    VSZ    RSS  userTIME   sysTIME    UPTIME NAME
+0       34  29.3M   9.9M   0m03s20   0m04s44   0m29s82 root server
+49152    6 149.3M  10.5M   0m00s00   0m00s00   0m13s79 vs1
+49153    3  12.5M   2.7M   0m00s00   0m00s00   0m13s80 vs2
+
+- check the all services (from another system.)
+$ for i in 9 101 102
+> do
+>	j=192.168.1.$i
+>	echo $j
+>	ssh $j hostname
+>	wget http://$j
+>	ftp $j
+> done
+192.168.1.9
+jro@192.168.1.9's password:
+YouHostName
+ftp: connect: Connection refused
+ftp> ^D
+192.168.1.101
+ssh: connect to host 192.168.1.101 port 22: Connection refused
+16:26:56 URL:http://192.168.1.101/apache2-default/ [44/44] -> "index.html" [1]
+ftp: connect: Connection refused
+ftp> ^D
+192.168.1.102
+ssh: connect to host 192.168.1.102 port 22: Connection refused
+Connected to 192.168.1.102.
+220 ProFTPD 1.3.0 Server (Debian) [192.168.1.102]
+Name (192.168.1.102:jro): ^D
+Login failed.
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> 221 Goodbye.
+$
+
+
+Enjoy!

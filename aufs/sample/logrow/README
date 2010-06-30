@@ -1,0 +1,29 @@
+
+Logrow -- expand the size of the mounted loopback block device
+J. R. Okajima
+
+# $Id: README,v 1.1 2008/11/17 01:59:40 sfjro Exp $
+
+Some of the linux filesystems can grow its size with being mounted by a
+special tool. For example, the patched EXT2 and the native XFS.
+While the filesystem supports growing its size, the loopback block
+device doesn't. This patch, logrow-2.6.xx.patch, and a utility,
+logrow.c, expands the size of the loopback device.
+If you specify its backend file, then the utility expands it too.
+You don't have to unmount it.
+
+It may be useful for aufs users who wants to use the loopback as a
+writable branch.
+
+- apply the patch to your kernel
+- make the logrow executable
+  you may want to change KDIR variable in Makefile
+- read test.sh
+- and you will know how to use it
+
+
+Enjoy!
+
+# Local variables: ;
+# mode: text;
+# End: ;

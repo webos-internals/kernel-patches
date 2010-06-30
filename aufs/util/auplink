@@ -1,0 +1,166 @@
+#!/bin/sh
+
+# Copyright (C) 2005-2009 Junjiro Okajima
+#
+# This program, aufs is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+# $Id: auplink,v 1.19 2009/01/26 06:24:38 sfjro Exp $
+
+tmp=/tmp/$$
+set -eu
+#set -x; echo $0 $@
+
+EEcho() # str
+{
+	echo $0: $@ 1>&2
+}
+
+f=/etc/default/aufs
+. $f
+
+Usage()
+{
+	cat <<- EOF 1>&2
+	usage: $0 aufs_mount_point list|cpup|flush
+	'list' shows the pseudo-linked inode numbers and filenames.
+	'cpup' copies-up all pseudo-link to the writeble branch.
+	'flush' calls 'cpup', and then "mount -o remount,clean_plink=inum"
+	and remove the whiteouted plink.
+	EOF
+	exit 1
+}
+
+Find() # dir [ find_args ]
+{
+	dir="$1"
+	shift
+	find "$dir" -xdev -noleaf $@
+}
+
+List()
+{
+	sed -e 's/^\([0-9]*\) .*$/-o -inum \1/' |
+	xargs -n 200 |
+	cut -c3- |
+	while read args
+	do Find "$mntpnt" \( $args \) $@
+	done
+}
+
+Cpup()
+{
+	List \( \( -type l -fprint0 $tmp.slink \) \
+		-o ! -type l -fprint0 $tmp.other  \)
+
+	# do nothing but update something harmless
+	# in order to make it copyup
+	xargs -r0 touch -ac -r $tmp.other < $tmp.other
+	xargs -r0 aulchown < $tmp.slink
+}
+
+test $# -eq 2 || Usage
+SetDir mntpnt "$1"
+
+do_flush=0
+f=${AUPLINK_CONFIG:-/etc/default/auplink}
+if [ -r $f ]
+then
+	. $f
+	for i in $FLUSH
+	do
+		test "$i" = "$mntpnt" -o "$i" = "ALL" || continue
+		do_flush=1
+		break
+	done
+fi
+case $2 in
+cpup|flush) test $do_flush -eq 0 && exit 0;;
+esac
+
+mnt_opts=$(MntOpts "$mntpnt") || :
+si=
+eval $(echo "$mnt_opts" |
+	tr ',' '\n' |
+	grep '^si=')
+test ! "$si" && EEcho no such aufs "$mntpnt" && exit 1
+
+epilog()
+{
+	err=$?
+	trap - EXIT
+	rm -f $tmp $tmp.*
+	exit $err
+}
+trap epilog EXIT
+
+si_dir=/sys/fs/aufs/si_$si
+if [ -r $si_dir/br0 ]
+then
+	cd $si_dir
+	ls -1 br* |
+	cut -c3- |
+	sort -n |
+	sed -e 's/^/br/' |
+	xargs -rn 200 cat
+	cd $OLDPWD
+else
+	echo "$mnt_opts" |
+	tr ',' '\n' |
+	sed -e 's/\\/\\\\/g' |
+	egrep '^(dirs=|br:)' |
+	tr ':' '\n'
+fi |
+egrep '=rw(|\+nolwh)$' |
+sed -e 's/=rw$//' -e 's/=rw+nolwh$//' |
+while read wbr
+do
+	d=`echo $wbr/${AUFS_WH_PLINKDIR}`
+	# -printf '%n %p\n'
+	test -d "$d" && Find "$d" -maxdepth 1 ! -type d -printf '%n\t%p\n'
+done |
+while read nlink pname
+do
+	inum=`basename "$pname" | cut -f1 -d.`
+	echo $inum $nlink "$pname"
+done > $tmp
+test -s $tmp || exit 0
+
+# debug
+#mount -o remount,list_plink "$mntpnt"
+
+case $2 in
+list)
+	cut -f1 -d' ' $tmp | tr '\n' ' '
+	echo
+	List < $tmp
+	;;
+cpup)
+	Cpup < $tmp
+	;;
+flush)
+	#echo -n Flushing pseudo-links on "$mntpnt"...
+	Cpup < $tmp
+
+	# all are copied-up, and then remove all pseudo-links.
+	# todo: atomic...
+	mount -in -o remount,clean_plink "$mntpnt"
+	cut -f3- -d' ' $tmp | xargs -r rm
+	# debug
+	#mount -o remount,list_plink "$mntpnt"
+	#echo done.
+	;;
+*)
+	Usage;;
+esac

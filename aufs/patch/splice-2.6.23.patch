@@ -1,0 +1,74 @@
+
+Actually, these systemcalls or inode operations were introduced in linux-2.6.17.
+But I don't think there exists an application issuces such new systemcalls,
+and aufs decided not to support them in linux-2.6.17.
+In linux-2.6.23, sendfile inode operation was removed and aufs becomes having to
+support splice oprations.
+
+In other words, this patch is for linux-2.6.23 and later. Aufs doesn't support
+splice related systemcalls before 2.6.23.
+
+Index: include/linux/splice.h
+===================================================================
+RCS file: /ext1/sysadm/transparent/repository/linux-2.6.23-rc6/include/linux/splice.h,v
+retrieving revision 1.1
+retrieving revision 1.3
+diff -u -p -r1.1 -r1.3
+--- include/linux/splice.h	12 Sep 2007 16:27:22 -0000	1.1
++++ include/linux/splice.h	14 Sep 2007 03:42:28 -0000	1.3
+@@ -70,4 +70,10 @@ extern ssize_t splice_to_pipe(struct pip
+ extern ssize_t splice_direct_to_actor(struct file *, struct splice_desc *,
+ 				      splice_direct_actor *);
+ 
++extern long do_splice_from(struct pipe_inode_info *pipe, struct file *out,
++			   loff_t *ppos, size_t len, unsigned int flags);
++extern long do_splice_to(struct file *in, loff_t *ppos,
++			 struct pipe_inode_info *pipe, size_t len,
++			 unsigned int flags);
++
+ #endif
+Index: fs/splice.c
+===================================================================
+RCS file: /ext1/sysadm/transparent/repository/linux-2.6.23-rc6/fs/splice.c,v
+retrieving revision 1.1
+retrieving revision 1.3
+diff -u -p -r1.1 -r1.3
+--- fs/splice.c	12 Sep 2007 16:25:07 -0000	1.1
++++ fs/splice.c	14 Sep 2007 03:42:27 -0000	1.3
+@@ -943,8 +943,8 @@ EXPORT_SYMBOL(generic_splice_sendpage);
+ /*
+  * Attempt to initiate a splice from pipe to file.
+  */
+-static long do_splice_from(struct pipe_inode_info *pipe, struct file *out,
+-			   loff_t *ppos, size_t len, unsigned int flags)
++long do_splice_from(struct pipe_inode_info *pipe, struct file *out,
++		    loff_t *ppos, size_t len, unsigned int flags)
+ {
+ 	int ret;
+ 
+@@ -964,13 +964,14 @@ static long do_splice_from(struct pipe_i
+ 
+ 	return out->f_op->splice_write(pipe, out, ppos, len, flags);
+ }
++EXPORT_SYMBOL(do_splice_from);
+ 
+ /*
+  * Attempt to initiate a splice from a file to a pipe.
+  */
+-static long do_splice_to(struct file *in, loff_t *ppos,
+-			 struct pipe_inode_info *pipe, size_t len,
+-			 unsigned int flags)
++long do_splice_to(struct file *in, loff_t *ppos,
++		  struct pipe_inode_info *pipe, size_t len,
++		  unsigned int flags)
+ {
+ 	int ret;
+ 
+@@ -990,6 +991,7 @@ static long do_splice_to(struct file *in
+ 
+ 	return in->f_op->splice_read(in, ppos, pipe, len, flags);
+ }
++EXPORT_SYMBOL(do_splice_to);
+ 
+ /**
+  * splice_direct_to_actor - splices data directly between two non-pipes
