@@ -1,0 +1,410 @@
+
+Aufs version 1 -- Another Unionfs
+http://aufs.sf.net
+Junjiro Okajima
+
+# $Id: README.aufs1,v 1.1 2009/02/23 07:52:22 sfjro Exp $
+
+
+0. Introduction
+----------------------------------------
+In the early days, aufs was entirely re-designed and re-implemented
+Unionfs Version 1.x series. After many original ideas, approaches,
+improvements and implementations, it becomes totally different from
+Unionfs while keeping the basic features.
+Recently, Unionfs Version 2.x series begin taking some of same
+approaches to aufs's.
+Unionfs is being developed by Professor Erez Zadok at Stony Brook
+University and his team.
+If you don't know Unionfs, I recommend you becoming familiar with it
+before using aufs. Some terminology in aufs follows Unionfs's.
+
+Bug reports (including my broken English), suggestions, comments
+and donations are always welcome. Your bug report may help other users,
+including future users. Especially the bug report which doesn't follow
+unix/linux filesystem's semantics is important.
+
+
+1. Features
+----------------------------------------
+- unite several directories into a single virtual filesystem. The member
+  directory is called as a branch.
+- you can specify the permission flags to the branch, which are 'readonly',
+  'readwrite' and 'whiteout-able.'
+- by upper writable branch, internal copyup and whiteout, files/dirs on
+  readonly branch are modifiable logically.
+- dynamic branch manipulation, add, del.
+- etc... see Unionfs in detail.
+
+Also there are many enhancements in aufs, such as:
+- keep inode number by external inode number table
+- keep the timestamps of file/dir in internal copyup operation
+- seekable directory, supporting NFS readdir.
+- support mmap(2) including /proc/PID/exe symlink, without page-copy
+- whiteout is hardlinked in order to reduce the consumption of inodes
+  on branch
+- do not copyup, nor create a whiteout when it is unnecessary
+- revert a single systemcall when an error occurs in aufs
+- remount interface instead of ioctl
+- maintain /etc/mtab by an external shell script, /sbin/mount.aufs.
+- loopback mounted filesystem as a branch
+- kernel thread for removing the dir who has a plenty of whiteouts
+- support copyup sparse file (a file which has a 'hole' in it)
+- default permission flags for branches
+- selectable permission flags for ro branch, whether whiteout can
+  exist or not
+- export via NFS.
+- support <sysfs>/fs/aufs.
+- support multiple writable branches, some policies to select one
+  among multiple writable branches.
+- a new semantics for link(2) and rename(2) to support multiple
+  writable branches.
+- a delegation of the internal branch access to support task I/O
+  accounting, which also supports Linux Security Modules (LSM) mainly
+  for Suse AppArmor.
+- nested mount, i.e. aufs as readonly no-whiteout branch of another aufs.
+- copyup-on-open or copyup-on-write
+- show-whiteout mode
+- show configuration even out of kernel tree
+- no glibc changes are required.
+- and more... see aufs manual in detail
+
+Aufs is in still development stage, especially:
+- pseudo hardlink (hardlink over branches)
+- allow a direct access manually to a file on branch, e.g. bypassing aufs.
+  including NFS or remote filesystem branch.
+- refine xino and revalidate
+- pseudo-link in NFS-exporting
+- reorder the branch index without del/re-add.
+- permanent xino files
+- truncating xino files, epscially on TMPFS in linux-2.6.26 and later
+- an option for refreshing the opened files after add/del branches
+- 'move' policy for copy-up between two writable branches, after
+  checking free space.
+- ioctl to manipulate file between branches.
+- and documentation
+
+
+2. Download
+----------------------------------------
+CVS tree is in aufs project of SourceForge.
+Here is simple instructions to get aufs source files. It is recommended to
+refer to the document about CVS on SourceForge.
+	$ mkdir aufs.wcvs
+	$ cd aufs.wcvs
+	$ cvs -d:pserver:anonymous@aufs.cvs.sourceforge.net:/cvsroot/aufs login
+	(CVS password is empty)
+	$ cvs -z3 -d:pserver:anonymous@aufs.cvs.sourceforge.net:/cvsroot/aufs co aufs
+
+In order to update files after the first checkout,
+	$ cd aufs.wcvs/aufs
+	$ cvs update
+Do not forget -A option for 'cvs update' if you have ever 'cvs update' with
+specifying a file version.
+
+In order to see what the difference between two versions (two dates) is,
+	$ cd aufs.wcvs/aufs
+	$ cvs diff -D20061212 -D20061219
+
+Usually I am updating CVS tree on every Monday.
+I always try putting the stable version in CVS, so you can try CVS
+instead of SourceForge File Release. And every changes are summarized
+and reported to aufs-users at lists.sourceforge.net ML. I'd like to
+recommend you to join this ML.
+
+(UPDATE)
+----------------------------------------------------------------------
+Monday CVS release for AUFS1 ended in January 2009.
+Instead AUFS2 began. The version of aufs2 is released by SourceForge
+File Release. There is no public CVS tree for aufs2 since I am
+developing it in my local GIT tree. Someday I hope there will be a
+public GIT tree.
+----------------------------------------------------------------------
+
+(UPDATE)
+----------------------------------------------------------------------
+Kidnly one of aufs user, the Center for Scientific Computing and Free
+Software (C3SL), Federal University of Parana offered me a public GIT
+tree space.
+
+See README.aufs2.
+----------------------------------------------------------------------
+
+
+3. Configuration and Compilation
+----------------------------------------
+Aufs is being developed and tested on linux-2.6.16 and later.
+You need the correct environment to build a kernel module. Generally
+it is an environment which your kernel was built.
+The aufs source files are under ./fs/aufs or ./fs/aufs25, which are
+for linux-2.6.16 - 2.6.24, and linux-2.6.25 and later respectively.
+Aufs makefile refers the files which are generated by linux build
+system.
+If you are unsure that you got the correct environment, then I
+recommend you to built your kernel by yourself. If it succeeds, you've
+got the correct environment.
+
+Currently aufs configuration is written in ./Kconfig.in. You can
+generate the real ./fs/aufs/Kconfig file by make(1). And follow the
+instructions which will be produced by make(1). The built
+./fs/aufs/Kconfig depends upon the kernel version.
+Before you build ./fs/aufs/Kconfig, you need to configure your kernel,
+since this build refers to linux/include/version.h and
+include/linux/utsrelease.h. Execute these commands before generating
+Kconfig if necessary.
+	$ cd /your/linux/kernel/source
+	$ make menuconfig
+	$ make include/linux/version.h include/linux/utsrelease.h
+and execute
+	$ cd aufs.wcvs/aufs
+	$ rm fs/aufs/Kconfig
+	$ make -f local.mk kconfig
+
+The local.mk searches your kernel build path by
+	KDIR = /lib/modules/$(shell uname -r)/build
+If you are cross-compiling the aufs module, try
+	$ make KDIR=/your/kernel/build/path -f local.mk kconfig
+If you link aufs statically, the generated Kconfig will help you.
+
+Also you can use ./local.mk to compile aufs as a module by simply,
+	$ make -f local.mk
+or
+	$ make KDIR=/your/kernel/build/path -f local.mk
+
+The default configuration is written in ./local.mk too, they will work
+for you in most cases. You can edit this file and change the
+configuration for your aufs module.
+If you don't want to change the ./local.mk, then create a new file
+./priv_def.mk and write the definitions your aufs configuration. The
+./local.mk includes ./priv_def.mk if it exists.
+When you configure aufs by modifying ./local.mk (or ./priv_dev.mk),
+leave it blank/unset when you disable an aufs configuration, instead
+of setting 'n.'
+
+The aufs build system may refer some kernel source files for some
+macros or internal functions which are not declared in their header
+files. It depends upon the configuration whether these files will be
+referred or not.
+Even if you don't have these source files in your build environment,
+aufs can be built safely, but works less efficiently in some cases.
+
+There is a contributed Makefile for aufs users. You might want to try
+it. Check
+http://sourceforge.net/mailarchive/forum.php?thread_name=9c4865a10707241831r189f9646n5f2c4a9c303797d1%40mail.gmail.com&forum_name=aufs-users
+and see the attachment.
+
+Currently, CONFIG_DEBUG_PROVE_LOCKING (in linux kernel) is not
+supported since MAX_LOCKDEP_SUBCLASSES is too small for a stackable
+filesystem. You need to increase the value of MAX_LOCKDEP_SUBCLASSES
+macro in include/linux/lockdep.h, for example 12UL or 16UL, when you
+enable CONFIG_DEBUG_PROVE_LOCKING.
+
+When you test the performance, it is recommended to disable
+CONFIG_AUFS_DEBUG. It is enabled by default for the feature test.
+
+Since aufs supports several versions of linux kernel, it uses the
+condition like this,
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 18)
+On the other hand, some distributions modify their kernel by their own
+patches. For example, just a piece of code is brought from v2.6.18 and
+merged into a distribution kernel which calls itself as v2.6.17.
+Finally, the conditions in aufs will not work correctly.
+You may or may not find them when you compile aufs.
+You need to modify aufs source code for 'custom-version' kernel
+(cf. patch/ubuntu-edgy.patch).
+
+
+o Patches
+There are several patches for linux kernel, in order to use aufs.
+All of them are not necessary essentially, but in some cases you need
+them. It is up to your environment and aufs usage.
+All these patches are just for exporting a kernel internal function to
+modules. If the function was already declared as extern and you link
+aufs statically to your kernel, then you don't need such patch. If the
+function was not extern and you want the feature, you need to apply
+the patch.
+When you apply a patch, you need to enable the corresponding aufs
+configuration.
+All these patches are under CVS_TREE/aufs/patch.
+
+- ecryptfs-2.6.27.patch
+  For linux-2.6.27 and later.
+  When you use ecryptfs as an aufs branch, this patch is required.
+  It fixes some ecryptfs original bugs. Some will be merged into
+  mainline, others are still in discussion. So this patch is temporary
+  one.
+- sec_perm-2.6.24.patch
+  For linux-2.6.24 and later.
+  When you compile aufs as a module and enable CONFIG_SECURITY, this
+  patch is required.
+- splice-2.6.23.patch
+  For linux-2.6.23 and later.
+  When you use splice(2) (sendfile(2) in linux-2.6.23 and later), or
+  loopback-mount an fs-image file in aufs, this patch is
+  required. Aufs doesn't support splice(2) in linux-2.6.22 and
+  earlier.
+  If unionfs patch v2.3 or later is applied to your kernel, then you
+  don't need this patch.
+- put_filp.patch
+  For linux-2.6.19 and later.
+  When you compile aufs as a module and use a filesystem which operates
+  'atomic_open', for instance NFSv4, as an aufs branch filesystem, this
+  patch is required.
+- lhash.patch
+  For linux-2.6.19 and later till linux-2.6.21.
+  When you use NFS as an aufs branch filesystem, this patch is required.
+- lhash-2.6.22.patch
+  Same above, but this patch is for linux-2.6.22 and later.
+- fsync_super-2.6.16.patch
+  For linux-2.6.16 and later.
+  When you compile aufs as a module, apply this patch and enable a
+  configuration, aufs tries flushing everything for branch filesystems
+  which are not marked as 'rr' or 'rr+wh' at umount or remount time.
+- fsync_super-2.6.19.patch
+  Same above, but this patch is for linux-2.6.19 and later.
+- deny_write_access.patch
+  For linux-2.6.17 and later.
+  When you compile aufs as a module, applied this patch and enabled a
+  configuration, a minor security enhancement will be available at
+  execve(2).
+  You can omit this if you don't care the writing to a running
+  executable on a lower branch filesystem which was invoked through
+  aufs.
+- ksize.patch
+  For linux-2.6.22 and earlier.
+  When you compile aufs as a module and applied this patch, an
+  optimization inside aufs will be available at adding or deleting a
+  branch filesystem. You can omit this if you don't care the aufs
+  performance.
+
+Additionally, there are patches for aufs which will be necessary when
+you use non-standard kernel modules or patches. Some of them have been
+tested by several people, but not all.
+See also the comments in the patches.
+- ubuntu-2.6.22-14.46.patch
+  For Ubuntu kernel
+  (http://archive.ubuntu.com/ubuntu/pool/main/l/linux-source-2.6.22/
+  linux-source-2.6.22_2.6.22-14.46_all.deb) which is modified a lot by
+  ubuntu people.
+- ubuntu-2.6.24-5.8.patch
+  For http://archive.ubuntu.com/ubuntu/pool/main/l/linux/
+  linux-source-2.6.24_2.6.24-5.8_all.deb.
+- ubuntu-edgy.patch
+  For Ubuntu Edgy kernel which calls itself as 2.6.17, while its
+  umount_begin() interface has arguments of 2.6.18.
+- rt-compat.patch
+  For realtime patch (http://www.kernel.org/pub/linux/kernel/projects/rt).
+- vserver.patch
+  For linux-vserver module (http://linux-vserver.org).
+- openvz_028stab039.1.patch
+  For openvz module (http://openvz.org).
+  If you enable both of CONFIG_MAGIC_SYSRQ and CONFIG_AUFS_DEBUG, then
+  aufs module regists Magic SysRq-A key by default. But the openvz may
+  already regist the same key. In this case, you will fail loading aufs.
+  Finally you may need to specify the aufs module parameter 'sysrq=X' (X
+  is other than A).
+
+
+4. Usage
+----------------------------------------
+After 'make',
+	$ man -l ./aufs.5
+	# install -m 500 -p mount.aufs umount.aufs auplink aulchown \
+		auchk /sbin (recommended)
+	# install -m 644 -p etc_default_aufs /etc/default/aufs (recommended)
+	# echo FLUSH=ALL > /etc/default/auplink (recommended)
+	# insmod ./aufs.ko
+	$ mkdir /tmp/rw /tmp/aufs
+	# mount -t aufs -o dirs=/tmp/rw:${HOME}=ro none /tmp/aufs
+
+Also you may want to copy ./aufs.ko to
+/lib/modues/YourKernelVersion/kernel/fs/aufs/aufs.ko and run "depmod -a"
+or something.
+
+If you don't install aufs helper script or don't setup
+/etc/default/auplink, you should always set 'noplink' aufs mount option.
+If you are familiar with Unionfs Version 1.x series and want to use
+unionctl(8), you can try the sample unionctl script under sample/
+directory.
+
+Here is another example.
+
+	# mount -t aufs -o br:/tmp/rw:${HOME}=ro none /tmp/aufs
+	or
+	# mount -t aufs -o br:/tmp/rw none /tmp/aufs
+	# mount -o remount,append:${HOME}=ro /tmp/aufs
+
+If you disable CONFIG_AUFS_COMPAT in your configuration, you can remove the
+default branch permission '=ro' since '=rw' is set to the first branch
+only by default.
+
+	# mount -t aufs -o br:/tmp/rw:${HOME} none /tmp/aufs
+
+Then, you can see whole tree of your home dir through /tmp/aufs. If
+you modify a file under /tmp/aufs, the one on your home directory is
+not affected, instead the same named file will be newly created under
+/tmp/rw. And all of your modification to the file will be applied to
+the one under /tmp/rw. This is called the file based Copy on Write
+(COW) method.
+Aufs mount options are described in the generated ./aufs.5.
+
+Additionally, there are some sample usages of aufs which are a
+diskless system with network booting, and LiveCD over NFS.
+See ./sample/diskless in detail.
+
+
+5. Contact
+----------------------------------------
+When you have any problems or strange behaviour in aufs, please let me
+know with:
+- /proc/mounts (instead of the output of mount(8))
+- /sys/fs/aufs/* (if you have them)
+- /sys/module/aufs/*
+- linux kernel version
+  if your kernel is not plain, for example modified by distributor,
+  the url where i can download its source is necessary too.
+- aufs version which was printed at loading the module or booting the
+  system, instead of the date you downloaded.
+- configuration (define/undefine CONFIG_AUFS_xxx, or plain local.mk is
+  used or not)
+- kernel configuration or /proc/config.gz (if you have it)
+- behaviour which you think to be incorrect
+- actual operation, reproducible one is better
+- mailto: aufs-users at lists.sourceforge.net
+
+Usually, I don't watch the Public Areas(Bugs, Support Requests, Patches,
+and Feature Requests) on SourceForge. Please join and write to
+aufs-users ML.
+
+
+6. Acknowledgements
+----------------------------------------
+Thanks to everyone who have tried and are using aufs, especially who
+have reported a bug or any feedback.
+
+Tomas Matejicek(slax.org) made a donation (much more than once).
+Dai Itasaka made a donation (2007/8).
+Chuck Smith made a donation (2008/4, 10 and 12).
+Henk Schoneveld made a donation (2008/9).
+Chih-Wei Huang, ASUS, CTC donated Eee PC 4G (2008/10).
+Francois Dupoux made a donation (2008/11).
+
+Thank you very much.
+Donations are always, including future donations, very important and
+helpful for me to keep on developing aufs.
+If you have a plan to develop or customize linux, feel free to ask me
+a job with some donations or payments.
+
+
+7.
+----------------------------------------
+If you are an experienced user, no explanation is needed. Aufs is
+just a linux filesystem module. take a glance at ./local.mk,
+aufs.5, and Unionfs.
+
+
+Enjoy!
+
+# Local variables: ;
+# mode: text;
+# End: ;

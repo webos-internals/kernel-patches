@@ -1,0 +1,204 @@
+#!/bin/sh -
+
+# Copyright (C) 2005-2009 Junjiro Okajima
+#
+# This program, aufs is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+# $Id: mount.aufs,v 1.24 2009/01/26 06:24:45 sfjro Exp $
+
+#
+# The main purpose of this script is updating /etc/mtab and calling auplilnk.
+# This script is highly depending on mount(8) in util-linux-2.12p package.
+# TODO: rewrite in C.
+# TODO: updating mtab for bind-mount is not fully supportetd.
+#
+
+tmp=/tmp/$$
+set -eu
+#set -x; echo $0 $@
+
+EEcho() # str
+{
+	echo $0: $@ 1>&2
+}
+
+f=/etc/default/aufs
+. $f
+
+PATH=/usr/bin:/usr/sbin:/bin:/sbin
+export PATH
+
+########################################
+# mount(8) always passes the arguments in this order
+
+dev="$1"
+SetDir mntpnt "$2"
+shift 2
+
+do_update=1
+verbose=0
+test "$1" = "-n" && do_update=0 && shift
+test "$1" = "-v" && verbose=1 && shift
+test "$1" = "-o" || { EEcho Bad arg. "$@"; exit 1; }
+shift
+
+epilog()
+{
+	err=$?
+	trap - EXIT
+	rm -f $tmp $tmp.*
+	exit $err
+}
+trap epilog EXIT
+
+echo "$@" | tr ',' '\n' > $tmp.new_opts
+remount=
+fgrep -v remount $tmp.new_opts > $tmp || :
+diff -q $tmp.new_opts $tmp > /dev/null ||
+{
+	mv $tmp $tmp.new_opts
+	remount="remount,"
+}
+
+f=/etc/mtab
+test ! -r $f -o \( $do_update -eq 1 -a ! -w $f \) &&
+{
+	EEcho ${f}: Permission denied
+	exit 1
+}
+
+proc_mounts=/proc/$$/mounts
+test ! -e $proc_mounts && proc_mounts=/proc/mounts
+test \( $do_update -eq 1 -o $verbose -eq 1 \) -a ! -r $proc_mounts &&
+{
+	EEcho ${f}: Permission denied.
+	exit 1
+}
+
+# force passing vfs common options
+vfspat="^((a|)sync|group|_netdev|(no|)(atime|dev|exec|mand|suid)|r[ow]|dirsync)$"
+old_opts=
+> $tmp.old_opts
+if [ ! "$remount" = "" ]
+then
+	old_opts=$(MntOpts "$mntpnt") || :
+	echo "$old_opts" |
+	tr ',' '\n' |
+	{ egrep -v "$vfspat" || :; } > $tmp.old_opts
+	test ! -s $tmp.old_opts &&
+	{
+		EEcho "$mntpnt" is not mounted
+		exit 1
+	}
+	si=
+	eval $(grep '^si=' $tmp.old_opts)
+	test ! "$si" && EEcho no such aufs "$mntpnt" && exit 1
+
+	si_dir=/sys/fs/aufs/si_$si
+	if [ -r $si_dir/br0 ]
+	then
+		cd $si_dir
+		{
+			ls -1 br* |
+			cut -c3- |
+			sort -n |
+			sed -e 's/^/br/' |
+			xargs -n 200 sed -e 's/^/:/' |
+			tr -d '\n' |
+			sed -e 's/^/br/'
+			echo # last newline
+		} >> $tmp.old_opts
+		cd $OLDPWD
+		#cat $tmp.old_opts; #rm -f $tmp $tmp.*; exit
+	fi
+fi
+
+real_opt=$(comm -13 $tmp.old_opts $tmp.new_opts | tee $tmp | paste -s -d, -)
+real_opt="${remount}${real_opt}"
+test "$real_opt" = "" &&
+{
+	EEcho bad arg "$@"
+	exit 1
+}
+#echo ${real_opt}; exit
+
+test "$remount" &&
+egrep -q '^((add|ins|append|prepend|del)[:=]|(mod|imod)[:=][^,]*=ro|(noplink|ro)$)' $tmp &&
+auplink "$mntpnt" flush
+rm -f $tmp $tmp.*
+trap - EXIT
+
+########################################
+# actual mount operation
+
+#set -x
+set +e
+mount -in -t aufs -o "$real_opt" "$dev" "$mntpnt"
+err=$?
+set -e
+#set +x
+
+new_mtab=$(FindMntEnt "$mntpnt") || :
+test ! "$new_mtab" &&
+{
+	EEcho bad $proc_mounts
+	exit 1
+}
+#new_opts=$(echo "$new_mtab" | cut -f4 -d' ')
+new_opts=$(MntOpts "$mntpnt") || :
+#set +x
+if [ $do_update -eq 1 -a \( "$mntpnt" = / -o "$mntpnt" = /etc \) ]
+then echo "$new_opts" | tr ',' '\n' | grep -q '^ro$' && do_update=0
+fi
+test $do_update -eq 0 -a $verbose -eq 0 && exit $err
+
+########################################
+
+e_dev=$(echo "$dev" | Esc -e)
+e_mntpnt=$(echo "$mntpnt" | Esc -e)
+e_new_opts=$(echo "$new_opts" | Esc -e)
+digits=$(echo "$new_mtab" | rev | cut -f-2 -d' ' | rev)
+new_mtab="$e_dev $e_mntpnt aufs $e_new_opts $digits"
+#echo "$new_mtab"
+
+if [ $do_update -eq 1 ]
+then
+	lock_pid=/etc/mtab~$$
+	lock=/etc/mtab~
+	mtab_tmp=/etc/mtab.aufs.tmp
+
+	touch $lock_pid
+	ln $lock_pid $lock
+	rm $lock_pid
+
+	if [ "$old_opts" = "" ]
+	then
+		{ cat /etc/mtab; echo "$new_mtab"; } |
+		dd of=$mtab_tmp 2> /dev/null
+	else
+		tac /etc/mtab |
+		awk -v new="$new_mtab" -v mntpnt="$e_mntpnt" '
+		!done && $2 == mntpnt && $3 == "aufs" {print new; done = 1; next}
+		{print}
+		' | tac > $mtab_tmp
+	fi
+
+	mv $mtab_tmp /etc/mtab
+	rm $lock
+fi
+
+test $err -eq 0 -a $verbose -eq 1 &&
+echo "$dev" on "$mntpnt" type "aufs" \("$new_opts"\)
+exit $err

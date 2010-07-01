@@ -1,0 +1,2796 @@
+
+History of aufs
+Junjiro Okajima
+
+# $Id: History,v 1.107 2009/01/26 06:25:23 sfjro Exp $
+
+Note:
+- the described dates are all in JST.
+- CVS handles UTC as its timezone.
+- all these descriptions should be archived in the ML on sourceforge,
+  since I always post there and let users know. But sometimes archiving
+  failed. this is the main reason to begin writing this file.
+
+----------------------------------------------------------------------
+
+20090126
+- bugfix: copyup/down i_flags except S_DEAD and S_PRIVATE.
+  + new function au_cpup_attr_flags().
+- bugfix: stop copyup-on-open when aufs is mounted as readonly, reported
+  by Yuri Chislov.
+  + reject or warn such combination.
+  + make verify_opts() global.
+  + verify wrong combination of options even if the changes are made on
+    VFS options only.
+- bugfix: remove clearing error code in a nested error path.
+- bugfix: trimming the first '-o' after concatinating.
+- temporary support for linux-2.6.28 (untested).
+- begin supporting ecryptfs in linux-2.6.27 and later (temporary)
+  + new patch ecryptfs-2.6.27.patch.
+  + new function au_test_ecryptfs().
+  + handle it similar to NFS due to vfsmount.
+  + prohibit xino files on ecryptfs.
+- minor optimazation: call au_sbr() instead of au_abr_perm() and
+  au_sbr_sb().
+- sample/uloop: support for linux-2.6.27, reported by Jordi Pujol.
+  + replace kill_proc() by kill_pid().
+  + set ctl.ready.pid in kernel space, stop setting it in user space.
+  + convert the type of pid member in struct ulo_ctl_ready into struct pid*.
+- declare copyright 2005-2009.
+
+20081208
+- bugfix(completed): stop recursive si lock, reported by Louis Rilling,
+  refine the readdir call from NFSD entirely.
+  + temporary si unlock/lock in au_lkup_by_ino() and decode_by_path().
+  + new function si_nfsd_read_lock().
+  + rename struct au_decode to struct au_nfsd_si_lock.
+  + in readdir(), unlock all except fi write-lock and call
+    lockdep_off/on().
+  + stop checking si lock in au_fvdir_cache().
+  + remove struct au_nfsd_readdir_pid.
+  + remove struct au_nfsd_pid.
+  + remove au_nfsd_do_read_lock(), au_nfsd_read_lock() and
+    di_nfsd_read_lock_parent().
+  + remove si_nfsd_pid member.
+  + remove si_nfsd_pid_{,un}reg() and au_nfsd_test_si_lock().
+  + remove ii_nfsd_readdir member and au_nfsd_readdir_alloc().
+  + remove au_nfsd_readdir_{alloc,free,reg,unreg,test}().
+  + remove au_decode_{,un}lock().
+  + remove si_hin_wq and si_nfsd_pid member.
+  + remove au_hin_wq_{init,wake}().
+  + support the hierarchy of pin3.
+  + revert the big aufs lock.
+- bugfix: mutex lock for the lower inode while updating the aufs inode
+  attributes.
+- allow flushing no-wait-task even if the current process is NFSD.
+- minor enhancement: for NFSD, convert -EBUSY into -ESTALE.
+- make silly_{,un}lock() before linux-2.6.27 only. in linux-2.6.27 and
+  later, read-lock si and ii inconditionally.
+- print the opened files too.
+- remove the unused functions au_nfsd_lockdep_off/on().
+
+20081201
+- bugfix: set PINNED flag unconditionally in au_ren_pin(), regression on
+  20081020.
+- bugfix: re-initialize gparent array explicitly in au_ren_pin().
+- bugfix: in robr mode, support the multi-threaded library call,
+  reported by Julien Bonjean.
+- bugfix: support freeing inodes at anytime, reported by Stefanik Gabor.
+- bugfix: in linux-2.6.27 and later, some LSM doesn't support some MAY_
+  bits and need to drop them before calling security_inode_permission(),
+  reported by "fd".
+- bugfix: mis-used the filename variable $f.
+- bugfix(still working): stop recursive si lock, reported by Louis
+  Rilling.
+  + append a parameter au_decode for au_lkup_by_in(),
+    decode_by_dir_ino() and decode_by_path().
+  + call au_hin_wq_init() and initialize a new member.
+  + call generic au_dbg_{,un}reg() from au_dbg_[sdi]i_{,un}reg().
+  + initialize a new member si_nfsd_pid.
+  + make si lock functions wrapping new debug functions and to call
+    au_nfsd_test_si_lock().
+  + new functions au_decode_{,un}lock().
+  + new functions au_hin_wq_{init,wake}().
+  + new functions si_nfsd_pid_{,un}reg().
+  + a new function au_nfsd_test_si_lock().
+  + new members si_hin_wq and si_nfsd_pid.
+  + new structure au_decode.
+  + a new structure au_nfsd_pid.
+  + print lock informations in sysrq_sb().
+  + remove lockdep_{on,off}().
+  + rename the prefix of si lock functions to si_do_.
+  + replace si write_lock() call in postproc() by
+    wait_event(si write_trylock()).
+  + replace the structure au_dbg_lock_di by a new generic structure
+    au_dbg_lock.
+- support PPC64 (or PPC) which doesn't export the symbol empty_zero_page
+  in linux-2.6.25 (untested).
+- add a debug feature for si/ii lock.
+  + new enumerators AuDbgLock_[SI]I_LOCK{ING,ED}.
+  + new debug functions au_dbg_lock{ing,ed}_[si]i_{,un}reg().
+  + call new debug functions au_dbg_lock{ing,ed}_ii_{,un}reg().
+  + call new debug function au_dbg_locked_si_reg().
+- remove many unlikely() macros in order to improve the cpu usage, but
+  it doesn't mean that aufs runs faster.
+- minor enhancement: remove the temporary files when an error happened.
+- minor enhancement: detect the remount flag earlier.
+
+20081124
+skipped
+
+20081117
+- bugfix: the dir inode may remain without the corresponding dentry,
+  regression on 20080929, reported by James.
+- bugfix: initilize i_op for special inodes, regression on 20080804,
+  reported by Kris Warkentin.
+- bugfix: use the passed mount option flags insted of the currently set
+  flags at remounting.
+  + pass the setting flag to opt_add() and verify_opts().
+  + remove the flag parameter from au_opts_parse().
+  + store the setting flag in struct au_opts.
+- bugfix: support the non-printable characters in filename.
+- bugfix: stop dropping the passed vfs mount options.
+- introduce two new mount options sum/nosum for statfs(2). sum returns
+  the total number of blocks/inodes of all branches.
+  + print the option in aufs_show_options().
+  + new function au_add_till_max() and au_statfs_sum().
+- new sample logrow.
+- minor enhancement: stop decrementing the reference to kboject in
+  xino_do_trunc().
+- minor enhancement: stop incrementing and decrementing the reference to
+  kboject in xino_try_trunc().
+- make nodlgt/nodirperm1/noshwh availble even if their configuration is
+  disabled.
+- use %z when printing size_t/ssize_t.
+- stop small kamlloc() in au_match_ull().
+- new shell library aufs.shlib for /etc/default/aufs.
+- use /etc/default/aufs.
+- stop calling /sbin/mount.aufs helper and updating /etc/mtab.
+
+20081110
+skipped
+
+20081103
+- refine the patches to support NFS branch, based upon the patches from
+  Jeff Mahoney.
+  + when aufs is compiled as a module, both of fs/aufs and fs/aufs25
+    requires put_filp.patch to support NFSv4. the patch is unnecessary
+    to support NFSv2/v3.
+  + support intent.open for the filesystem which are decided by a new
+    function au_test_fs_intent(), currently NFSv4 only.
+  + separate the test for availability of NFSv4 branch.
+  + replace the argument 'perm' by 'br' for au_fake_intent().
+  + new automatic configuration CONFIG_AUFS_BR_NFS_V4.
+  + new function au_put_filp().
+  + new function au_test_unsupported_nfs4() and au_test_fs_intent().
+  + new function au_test_nfs4().
+- define WARN_ONCE() macro for compatibility.
+- minor enhancement: debugging hinotify.
+
+20081027
+- bugfix: NFS exporting and udba=inotify caused deadlock, make knfsd not
+  to wait for the completion of all queued tasks, reported by Louis
+  Rilling.
+  + remove AuLock_FLUSH flag.
+  + stop waiting in case of knfsd.
+- bugfix: deadlock for changing the attributes of the root dir on
+  readonly aufs mount, reported by Chih-Wei Huang.
+- bugfix: unlock the aufs iinfo in error case.
+- bugfix: suppress the lockdep message, reported by Louis Rilling,
+  regression on 20080929.
+- bugfix: stop updating /etc/mtab when remounting the chroot-ed aufs as
+  readonly.
+- minor bugfix: show the 'pass' number correctly.
+- minor enhancement: support namespace.
+- a note about the block size returned by stat(2) and statfs(2).
+- split some macros for whiteout.
+  + AUFS_BASE_NAME	for AUFS_WH_BASENAME
+  + AUFS_PLINKDIR_NAME	for AUFS_WH_PLINKDIR
+  + AUFS_TMPDIR_NAME	for AUFS_WH_TMPDIR
+  + AUFS_WH_BASENAME	--> AUFS_WH_BASE
+
+20081020
+- begin supporting linux-2.6.27.
+- bugfix: race condition in rename(), fix the locking order of
+  s_vfs_rename_mutex, reported by Louis Rilling.
+  + introduce a new flag VFS_RENAME for au_pin.
+  + new abstract function vfsub_is_rename_mutex_locked().
+  + test the lock for debugging.
+- bugfix: temporary unlock the whiteout-ed lower inode when cpup to keep
+  the internal locking order.
+- bugfix: suppress the lockdep messages, reported by Louis Rilling,
+  regression on 20080929.
+- minor enhancement: protect the link count of the pseudo-link.
+  + add a parameter to au_cpup_attr_all() and au_cpup_attr_nlink().
+- minor enhancement: replace simple_strtoull() by strict_strtoull().
+- a note about the link count of the UDBAed pseudo-link.
+
+20081013
+- bugfix: support the failure of adding a branch.
+  + test br_mnt in au_br_do_free().
+  + move initializing br_mnt, br_xino, br_count earlier in au_br_init().
+  + keep the wh base dentries NULL.
+- bugfix: support the failure of registering pseudo-link.
+  + test the broken pseudo-link in au_cpup_single().
+- bugfix: support the failure of registering pseudo-link.
+- minor enhancement: introduce a lock-free approach for root dinfo/iinfo
+  (still testing).
+  + stop locking root dinfo/iinfo in aufs_getattr().
+  + customize the checking of lock for debugging.
+  + stop locking root dinfo/iinfo in aufs_show_options(), au_show_brs()
+    and aufs_statfs().
+  + comment out the note about statvfs(3) in FUSE.
+- minor enhancement: FUSE d_revalidate always return 0 for negative
+  dentries.
+- remove the warning of unexpected parent-child relationship.
+
+20081006
+- bugfix: restore lockdef_off/on(), a regression on 20080922.
+- bugfix: check if the destroying inode is dead when maintaining the
+  inode generation.
+- bugfix: when the inode/dentry was still cached, check its generation.
+- support mnt_want/drop_write() in linux-2.6.26 and later.
+  + introduce the bit flags and the branch index to struct au_pin, and
+    change the parameter for au_pin functions.
+  + introduce the bit flag for crazy locks for rename(2).
+  + new inlined functions au_br_want/drop_write().
+  + new abstract functions au_mnt_want/drop_write().
+  + convert the parameter 'dentry' for clean_wh(), au_whdir_clean() and
+    au_whdir(), into 'path.'
+  + convert the parameter 'nfsmnt' of au_wh_init() into 'h_mnt.'
+- add a note about openvz and sysrq, reported by Mitsuru SHIMAMURA.
+- add a note about the size of xigen file.
+- minor optimization: skip the actual xib truncation when the file size
+  is small enough.
+- convert si_xigen_lock and si_xigen_next into a single atomic_t.
+- always downgrade iinfo rw_sem too.
+- use struct au_spl instead of spinlock + list.
+- new tiny functions au_spl_add/del().
+- call au_spl_add/del() instead of spin_lock/unlock() + list_add/del().
+- (fs/aufs only) convert mntput() + dput() into path_release().
+- (fs/aufs only) move free_sbinfo() from super.c to sbinfo.c as
+  au_si_free().
+- (fs/aufs only) move alloc_sbinfo() from super.c to sbinfo.c as
+  au_si_alloc().
+- rename sysaufs_sbi_init() to sysaufs_si_init().
+
+20080929
+- bugfix: NFSD issues another operation during filesystem's readdir(),
+  and it may cause a deadlock in aufs. check the current context is in
+  readdir().
+  + new member ii_nfsd_readdir in struct au_iinfo.
+  + new structure au_nfsd_readdir_pid.
+  + new functions au_nfsd_readdir_(alloc|free|reg|unreg),
+    au_nfsd_do_read_lock(), au_nfsd_read_lock() and
+    di_nfsd_read_lock_parent().
+  + new function di_nfsd_read_lock_parent().
+  + new abstract function au_nfsd_read_lock().
+  + in aufs_encode_fh(), support the in-readdir status by
+    au_nfsd_read_lock().
+  + in aufs_d_revalidate(), when the dentry is the readdir-ed itself and
+    cannot get the write-lock, returns 'invalid' and forces re-lookup.
+  + in aufs_getattr(), support the in-readdir status by
+    au_nfsd_read_lock().
+  + in aufs_lookup(), support the in-readdir status by
+    di_nfsd_read_lock_parent().
+  + free ii_nfsd_readdir in au_iinfo_fin().
+  + stop calling lockdep_off/on().
+- bugfix: under heavy load the dead inode might be re-used because of
+  the race condition between S_DEAD flag and some lock-free oprations.
+  force 'must-new' inode in some cases.
+  + add a parameter 'must_new' for au_new_inode().
+  + set S_DEAD flag in aufs_unlink() and aufs_rmdir().
+  + set S_DEAD flag in aufs_rename().
+  + test the S_DEAD flag in reval_inode().
+- bugfix: force nosubtreecheck for a branch.
+- new helper script 'auchk' which behaves like 'fsck' for aufs branch.
+- replace the automatic configuration CONFIG_AUFS_HIN_OR_FUSE by
+  CONFIG_AUFS_GETATTR, and support nfs branch too.
+  + rename hin_or_fuse.c to getattr.c.
+  + always force the real getattr operation for nfs branch.
+- new debug configuration CONFIG_AUFS_DEBUG_LOCK.
+  + show the lock status when MagicSysRq key is pressed.
+  + new member si_dbg_lock in struct au_sbinfo.
+  + new functions au_dbg_(locking|locked)_di_(reg|unreg),
+    au_dbg_lock_ii_(reg|unreg).
+- refine some functions au_wkq_run(), au_wkq_wait() and au_wkq_nowait().
+  + move au_wkq_wait() from wkq.h to wkq.c.
+- test the kernel thread instead of trylock.
+  + new function au_test_nowait_wkq().
+- revise au_nwt_done() simply.
+- test the kernel thread instead of trylock.
+- use ZERO_PAGE().
+  + for older version, new abstract functions au_zp_alloc/free().
+- new generic structure au_splhead and au_spl_init() for it.
+- insert minor debug functions mutex_destroy() and au_rwsem_destroy().
+  + new debug macro au_rwsem_destroy().
+
+20080922
+- bugfix: support an illegal whiteout, reported by Hercinger Viktor.
+- bugfix: support the write to the hardlink with had being removed with
+  its parent dir.
+- bugfix: stop clearing xino when the inode is pseudo-linked.
+- new file /etc/default/aufs for some shell scripts, and c2sh.c for
+  building it.
+- a note about the new entry <sysfs>/fs/aufs/si_*/xigen for inode
+  generation.
+- a note about the consistency of aufs after a system crash.
+- enhance the writable NFS branch in udba=inotify mode, ignore the
+  IN_DELETE by d_delete() in nfs_namre().
+- new function au_dbg_sleep_jiffy() and a macro for it.
+- append '?' to the parent dir name.
+
+20080915
+- bugfix: rewrite the code for exporting aufs via NFS, triggered by the
+  bug report from Louis Rilling (my local tests are completed).
+  + abandon using anonymous dentries.
+  + clear xigen too in au_xino_clr().
+  + extract a part of sysaufs_sbi_xino() and make a new function
+    sysaufs_sbi_xi().
+  + initialize the aufs inode generation in
+    aufs_read_inode()/au_iget_locked().
+  + introduce a new member ii_higen for struct au_iinfo, stop reusing
+    the lower inode generation as an aufs inode generation.
+  + introduce a new xino (unlinked) file called xigen with some
+    functions for it, au_xigen_inc(), au_xigen_new(), au_xigen_set() and
+    au_xigen_clr().
+  + introduce a new member si_xgen, si_xigen_lock and si_xigen_next for
+    struct au_sbinfo.
+  + introduce /sys/fs/aufs/si_*/xigen and sysaufs_sbi_xigen() for it.
+  + make xino_fread(), xino_fwrite() and au_xino_create2() global.
+  + move au_init_export_op() from super.h to export.c and rename
+    au_export_init().
+  + move Au_LOFF_MAX from xino.c to branch.h.
+  + new function au_lkup_by_ino().
+  + remove struct append_name and append_name().
+  + replace the lower inode number and generation in NFS handle by aufs
+    inode generation.
+  + reset the aufs inode generation in aufs_destroy_inode().
+  + return 0 as FILEID_ROOT for the aufs root inode at encoding, and 99
+    for others.
+  + set xigen too in au_xino_set().
+  + test IS_DEADDIR() at decoding.
+  + test the aufs inode generation at decoding.
+  + to decode by path, use aufs path instead of branch path. support the
+    longer path (PAGE_SIZE).
+- bugfix: reset the dentry member in au_pin grand parent.
+  + a new function au_pin_do_set_dentry().
+- refine the condition to skip the actual vfs_getattr() (still testing).
+- move the structure path definition from i_op.c to vfsub.h for
+  compatibility.
+- remove an unused member issamedir from struct au_link_args.
+
+20080908
+- bugfix: return a correct error, reported by Louis Rilling (still
+  testing).
+- possible bugfix: stop locking the dir in call_rmdir_whtmp() for to
+  support nfsd.
+- bugfix: abondon the operation when udba occured in call_rmdir_whtmp().
+- rename .wh..wh.plink to .wh..wh.plnk.
+- rename .wh..wh.tmp to .wh..wh..tmp.
+- mention about aufs helper scripts, reported by Oliver Welter.
+- support udba case, h_inode may not be a dir anymore (still testing).
+- skip the test for the detecing when udba=none is specified.
+- append all 'nowait' task to the list in sbinfo, and the next aufs
+  operation should wait for their completion.
+  + rename au_nwt_dec() to au_nwt_done().
+  + remove au_nwt_inc() and increment the counter in au_wkq_nowait().
+  + reinit_br_wh() for whiteout base which calls au_nwt_done().
+  + move au_wkq_nowait() from wkq.h to wkq.c.
+  + fill struct au_nowait_task regardless CONFIG_AUFS_HINOTIFY.
+  + xino_do_trunc() for xino.
+  + postproc() for hinotify.
+- detect the udba case in au_do_pin() and return an error.
+  + new member do_verify for struct au_pin1.
+- revise the test for overlapped branch.
+  + add some debug prints in do_test_overlap(), test_overlap_loopback()
+    and test_overlap().
+  + call test_overlap() eariler.
+- extract a part of aufs_getattr() as a new function au_h_dget_any().
+
+20080901
+- vserver-2.6.22.19-vs2.2.0.7.patch replaces the old vserver.patch.
+- bugfix: support modifying a file which was unlinked with its parent
+  dir.
+  + introduce a new flag AuCpup_KEEPLINO and stop clearing the xino at
+    copyup and for psuedo-link.
+  + copyup the removed file with removed its parent to a new whiteout-ed
+    dir .wh..wh.tmp in au_cpup_wh().
+  + keep the parent dir write-locked while calling
+    au_ready_to_write_wh() from au_ready_to_write(), and in
+    au_lock_and_icpup().
+  + support the case of gp->dentry is null.
+  + get/put the h_dir in struct au_pin.
+- bugfix: check the return value of au_test_and_cpup_dirs().
+- bugfix: lock everything by au_pin() before au_sio_cpup_simple().
+- introduce a new struct au_wbr to collect the members for a writable
+  branch.
+  + a new whiteout-ed tmp dir.
+  + rename free_branch() to au_br_do_free().
+  + rename init_br_wh() to au_br_init_wh().
+  + add a parameter 'perm' to alloc_addbr(), and allocate the new
+    structure au_wbr.
+  + extract a part of au_br_init() and make a new function
+    au_wbr_init().
+  + allocate and initialize au_wbr in au_br_mod().
+  + rename AuBr_<perm> to AuBrPerm_<perm>.
+  + rename br_wh_<lock func> to wbr_wh_<lock func>.
+  + rename clean_plink() to au_whdir_clean().
+  + rename plink_dir() to au_whdir().
+  + make a whiteout-ed tmp dir from au_wh_init().
+- minor optimization: introduce a new abstraction au_hin_di_reinit() and
+  re-init d_fsdata when CONFIG_AUFS_HINOTIFY is enabled.
+- minor optimization: when the file is pseudo-linked, skip the actual
+  operation (still testing).
+- support large page size at copyup.
+- rename refresh_file_by_inode() to au_file_refresh_by_inode().
+- make au_cpup_wh() static.
+- backport from fs/aufs25, simply minimize the differences.
+  + replace EXTRA_CFLAGS by ccflags-y.
+  + dummy noinline_for_stack macro.
+  + new struct au_xino_file.
+
+20080825
+- bugfix: remove AUFS_FAKE_DM for linux-2.6.24 and earlier, reported by
+  Oliver Welter and Louis Rilling.
+- bugfix: stop locking the parents of both of src/dst dentries.
+  + revert the type of au_pin() and au_do_pin(), and they can return an
+    error.
+  + remove the parameter 'locked' from au_cp_dirs(), au_cpup_dirs() and
+    au_test_and_cpup_dirs().
+  + remove the parameter 'locked' from au_wr_dir_need_wh().
+  + remove the parameter 'locked' from au_cpdown_dirs().
+  + call au_pin() from au_cp_dirs().
+  + move the temporary unlock and re-lock from au_cpup_before_link() to
+    aufs_link().
+  + remove the flag LOCK_SRCDIR flag.
+  + handle them with one parent locked, if necessary unlock it and lock
+    both of them in aufs_rename().
+- bugfix: re-init d_fsdata for UDBA.
+- bugfix: testing the re-initialized d_fsdata for UDBA.
+- bugfix: support the isolated lower inode for UDBA.
+- bugfix: support the dying lower inode for UDBA.
+- bugfix: support the branch permission 'rw+nolwh'.
+- minor optimization: new function au_igrab() which is a simplified
+  version of VFS:igrab().
+- minor optimization: alloc/free the i/o buffer and zero-ed buffer every
+  time in au_copy_file(), support the large page-sizes, remove the
+  global var 'au_zp'.
+- testing the condition under heavey UDBA load.
+- add a note about plink for who didn't install aufs helper scripts.
+- enhance the error handling in ulohttp.
+
+20080818
+- enhance how to generate Kconfig with checking.
+- enhance the error handling for the failure of creating xino file.
+- begin supporting s390x architecture (untested), reported by Bastian
+  Blank and Julian Andres Klode.
+  + new macro CONFIG_AUFS_INO_T_64.
+  + convert 'u64' by 'unsigned long long.'
+  + type cast 'ino_t' into 'unsigned long' at printing.
+  + type cast 's64' into 'long long' at printing.
+  + add a condition 'CONFIG_AUFS_MAGIC_SYSRQ && CONFIG_HW_CONSOLE' for
+    au_dbg_blocked().
+- remove 'local' keyword for the posix shell compliance, patched by
+  Julian Andres Klode.
+- put the brackets around the omittable parameter, patched by Julian
+  Andres Klode.
+
+20080811
+- bugfix: test the whiteouted inode.
+- bugfix: reset ATTR_FILE when copyup happend.
+- minor optimization: use a zeroed page, reverting the last ci.
+- begin supporting linux-2.6.27-rc1-mm1, abstract
+  security_inode_permission() by vfsub_security_inode_permission().
+- begin supporting linux-2.6.27-rc1-mm1, make aufs_permission() and
+  h_permission() 2.6.27 specific.
+- refine the note about fuse branch, the known broblem can happen
+  regardless create=mfs.
+- update the URL for realtime patch.
+- new debug function au_dbg_iattr().
+- new debug macro AuDbgIAttr().
+
+20080804
+- bugfix: the Kconfig path in a message, reported by carl parker.
+- bugfix: do not call au_br_nfs_lockdep_off() from free_branch(), which
+  were made in last ci.
+- minor optimization: remove the full struct nameidata from
+  aufs_permission().
+- minor optimization: move setting inode operations from
+  aufs_read_inode()/au_iget_locked() to set_inode() and alloc_root().
+- begin supporting linux-2.6.27-rc1-mm1 (testing).
+  + the parameters for permission operation.
+  + abstract security_inode_permission().
+  + the parameters for symlink operation.
+- support tmpfs in linux-2.6.26 and later whose sb magic definition was
+  moved to magic.h.
+- some notes for copy-on-open, using ULOOP, copyup/down and excluding a
+  dir from aufs.
+- describe more about kconfig, reported by carl parker.
+
+20080728
+- bugfix: deadlock in rename(2), au_cp_dirs(), reported by Cyril
+  Brulebois, Klaus Knopper and Martin Tscholak.
+- bugfix: support copied-up and unlinked entry in au_lock_and_icpup().
+- bugfix: test nfs at mounting.
+- editing failure in last ci, forgot initializing si_xino_def_br.
+- enhance hinotify, implement getattr operation.
+  + new configuration AUFS_HIN_OR_FUSE.
+  + new file hin_or_fuse.c.
+  + move aufs_getattr() from br_fuse.c to hin_or_fuse.c.
+- minor optimization, abstract si_xino_def_br.
+  + new abstract functions au_xino_def_br() and au_xino_def_br_set().
+- minor optimization: share an allocated buffer between i/o buffer and
+  struct iattr.
+- abondon using a zeroed-page which were introduced recently.
+
+20080721
+- the main purpose of this release is backporing from fs/aufs25 to fs/aufs.
+- backpot from fs/aufs25.
+  + add some checkings for handling options, rename au_opt_test_dlgt()
+    to au_test_dlgt(), rename au_opt_test_dirperm1() to
+    au_test_dirperm1().
+  + disable AuFillVdir_SHWH when CONFIG_AUFS_SHWH is disabled.
+  + do not set inotify for whiteouted dirs (SHWH mode)
+  + drop bits for file write on ro branch in au_fake_intent().
+  + enhancement for CONFIG_4KSTACKS, allocate a large structure
+    dynamically in au_wkq_run() instead of stack.
+  + extract a part of au_br_add() as a new function au_br_init().
+  + extract a part of au_br_mod() as a new function
+    au_br_mod_files_ro().
+  + extract a part of au_cpup_wh() as a new function au_do_cpup_wh().
+  + extract a part from au_ready_to_write() as a new function
+    au_ready_to_write_wh().
+  + extract a part from decode_by_path() and make it a new funciton
+    au_build_path().
+  + extract a part of h_d_revalidate() as a new function
+    au_do_h_d_reval().
+  + extract a part of read_vdir() and make it a new static function
+    au_do_read_vdir().
+  + ignore errors from seq_file output functions.
+  + make au_{add,sub}_nlink() static inlined.
+  + minor optimization: compare the read buffer with a zeroed page to
+    detect a hole in a file. this may be reverted in the future since
+    this optimization consumes one memory page.
+  + minor optimization in is_sb_shared().
+  + move kfree() outside of a spinlock.
+  + move from vfsub.h to vfsub.c, vfsub_args_init(), vfsub_filp_open(),
+    vfsub_path_lookup(), vfsub_lookup_one_len() and
+    vfsub__lookup_hash().
+  + new debugging macros FroceShwh and ForceBrs.
+  + pin the hierarchy on lower branch and new ignore scheme for inotify,
+    many functions in many files.
+  + prefix 'au_' to nhash/vdir functions.
+  + print sb identifier.
+  + reduce the stack usage.
+  + remove obsoleted debug lines.
+  + remove the unused GFP_TEMPORARY macro.
+  + rename AuTestAnon() to au_test_anon() and make it function.
+  + remove au_h_[fdi]ptr(), rename au_h_[fdi]ptr_i() to au_h_[fdi]ptr().
+  + remove obsoleted debug lines.
+  + remove aufs_fallocate().
+  + remove #ifdef conditions for superblock magic number macros.
+  + split do_rename() into several static functions.
+  + stop grepping to get some supreblock magic numbers, instead check
+    them by local priv.mk.
+  + test the dead dentry in lookup_wlock_by_name().
+- bugfix: support the pseudo-link in au_lock_and_icpup().
+- fix typo, reported by Eric Thibodeau.
+- call au_verify_parent() from reinit_br_wh().
+- clear the unnecessary dlgt flag in au_sio_cpup_single() and
+  au_sio_cpup_simple().
+- simplify by passing vfsub_args to cpup_iattr(), cpup_regular(),
+  au_copy_file(), au_do_cpup_regular(), cpup_entry(), au_cpup_single(),
+  au_cpup_simple() and au_do_cpup_wh().
+- simplify by passing vfsub_args to au_copy_file().
+- simplify by passing vfsub_args to clean_wh(), clean_plink() and
+  plink_dir().
+- simplify by passing vfsub_args to au_copy_file().
+- extract a part of au_br_mod() as a new function au_br_mod_files_ro().
+- unset noinline_for_stack to au_do_lookup().
+- minor optimization by swapping if-else block.
+- unset noinline_for_stack to au_ren_or_cpup(), au_ren_del_whtmp(),
+  au_ren_diropq() and do_rename().
+- remove #ifdef conditions for superblock magic number macros.
+- simplify by new functions au_br_nfs_lockdep_off/on().
+- reduce the stack usage.
+
+20080714
+- two bugfixes(pinning and dlgt) and local tests for them are completed.
+- bugfix (fs/aufs25 only, currently): pin the hierarchy on lower branch
+  and new ignore scheme for inotify (completed).
+  + adjust the lock subclass in au_ren_pin_init().
+  + change the dinfo lock subclass in au_test_and_cpup_dirs() from
+    PARENT2 to PARENT.
+  + change the lock subclass from AuLsc_I_PARENT2 to AuLsc_I_CHILD.
+  + change the lock subclass from AuLsc_I_PARENT to AuLsc_I_CHILD.
+  + change the name of a lock subclass NEW to NEW_CHILD.
+  + do not set inotify for whiteouted dirs (SHWH mode).
+  + ignore a dead child dentry.
+  + ignoring inotify events for creating/removing the default xino
+    files, introduce new member si_xino_def_br.
+    * reset si_xino_def_br when the removed branch is added again in
+        au_br_add().
+    * unset si_xino_def_br when the branch is deleted in au_br_del().
+  + ignore the old whiteout when it was moved.
+  + initialize dinfo lock by AuLsc_DI_CHILD instead of AuLsc_DI_PARENT.
+  + lock iinfo in xino_do_trunc().
+  + make the type of au_pin() and au_do_pin() void. this fix may be
+    reverted since a tiny bug can cause a deadlock.
+  + remove a function au_hi_lock().
+  + remove a member unpinned from struct au_link_args.
+  + remove a parameter parent from au_xino_create().
+  + remove dlgt test in au_wkq_run(), with this fix the fix for dlgt is
+    completed too.
+  + replace the inode lock subclass AuLsc_I_PARENT2 by AuLsc_I_CHILD in
+    au_whtmp_rmdir().
+  + restore the function au_hin_resume().
+  + revert the inotify watch when an error occured.
+  + set ignore info at re-initializing whiteout for a branch.
+  + set ignore info in an error case in au_do_cpup_regular().
+  + set noinline_for_stack to cpup_regular() and au_do_cpup_regular().
+  + simplify vfsub_create(), vfsub_symlink(), vfsub_mknod(),
+    vfsub_mkdir(), vfsub_link(), vfsub_rename(), vfsub_rmdir(),
+    vfsub_write_k() and vfsub_splice_from().
+  + switch the inode lock subclass in au_cp_dirs(), AuLsc_I_PARENT2 and
+    AuLsc_I_PARENT.
+  + verify the child-parent relationship in call_rmdir_whtmp().
+- bugfix: replace "${TgtPath}/Kconfig" by "aufs/Kconfig", reported and
+  patched by Paulius Zaleckas.
+- bugfix: prepend CONFIG_ to ccflags-$(AUFS_WORKAROUND_FUSE).
+- minor optimization: compare the read buffer with a zeroed page to
+  detect a hole in a file. this may be reverted in the future since this
+  optimization consumes one memory page.
+- minor optimization in is_sb_shared().
+- replace MmTree macro by CONFIG_AUFS_UNIONFS22_PATCH and
+  CONFIG_AUFS_UNIONFS23_PATCH.
+- remove MmTree macro.
+- kmalloc() some large structures in au_dpri_sb() (completed).
+  + replace GFP_NOFS by GFP_ATOMIC.
+
+20080707
+- new scheme to pin the hierarchy on lower branch (introduced in last
+  Monday release) is still in testing phase. after its completions, the
+  fix will be backported to fs/aufs (linux-2.6.24 and earlier).
+- some other bugfixes are made in this release. they will be backported
+  to fs/aufs too when I have time.
+- bugfix (fs/aufs25 only, currently): pin the hierarchy on lower branch
+  and new ignore scheme for inotify (still testing).
+  + add a prefix 'au_' to struct link_args, cpup_before_link() and
+    cpup_or_link().
+  + aufs_link() allocates some large variables dynamically.
+  + au_do_pin() never returns until all locks and verifications are
+    completed.
+  + call au_pin() from lock_hdir_create_wh() instead of several manual
+    lockings.
+  + call au_pin utility functions from aufs_unlink() and aufs_rmdir().
+  + call di_downgrade_lock() from aufs_write(), aufs_splice_write(),
+    aufs_mmap() and aufs_fsync_nondir().
+  + make au_do_unpin() global.
+  + make au_pin_gp() as CONFIG_AUFS_HINOTIFY local.
+  + move au_unpin() from i_op.c to inode.h and make it inlined.
+  + move au_unpin_gp() from i_op.c to hinotify.c.
+  + new inline functions au_pin_do_set_parent_lflag(),
+    au_pin_set_parent_lflag() and au_pin_set_gparent_lflag().
+  + refine au_cpup_before_link() by using au_pin/unpin().
+  + rename lsc_i to lsc_hi.
+  + remove some parameters frome rename functions by passing struct
+    au_ren_args.
+  + rename struct rename_args to au_ren_args, add some members to reduce
+    the stack size.
+  + simplify aufs_d_revalidate() by write_lock + downgrade_lock.
+  + simplify au_hi_lock() by removing some parameters.
+  + simplify do_coo() and au_ready_to_write() by removing some
+    variables.
+  + simplify lock_hdir_create_wh(), aufs_unlink() and aufs_rmdir() by
+    removing some variables.
+  + simplify lock_hdir_lkup_wh(), add_simple(), struct au_link_args,
+    au_cpup_or_link() and aufs_mkdir() by removing some variables.
+  + simplify struct au_icpup_args, au_lock_and_icpup() and
+    aufs_setattr() by removing/adding some members.
+  + split do_rename() into some small functions.
+- bugfix (fs/aufs25 only, currently): lock child dentry first in
+  aufs_lookup(), and unlock the parent as soon as possible.
+  this fix will be backported to fs/aufs too.
+- bugfix (fs/aufs25 only, currently): stop locking child inode in
+  reval_inode().
+  this fix will be backported to fs/aufs too.
+- bugfix (fs/aufs25 only, currently): revert the timestamps of the
+  parent dir at flushing pseudo-links.
+  this fix will be backported to fs/aufs too.
+- declare copyright 2005-2008 in all files, because I was told it should
+  be done per software instead of per file even in the files which I
+  didn't change this year.
+- enhancement for CONFIG_4KSTACKS, allocate a large structure
+  dynamically in au_wkq_run() instead of stack.
+- minor optimization, use unsigned long long pointer for testing a hole
+  in a file.
+- call kzalloc() instead of kmalloc() + memset(,0,).
+- unset noinline_for_stack to epilog(), lock_hdir_lkup_wh() and
+  au_cpup_or_link().
+- unset noinline_for_stack to cpup_regular() and au_do_cpup_regular().
+- unset noinline_for_stack to decode_by_dir_ino().
+- reduce the stack size.
+
+20080630
+- bugfix (fs/aufs25 only, currently): pin the hierarchy on lower branch
+  and new ignore scheme for inotify (still debugging).
+  under heavy i/o (including rename(2)), aufs may misunderstand
+  the child-parent relationship. new structure au_pin locks both parent-
+  child and verifies them.
+  additionally, when udba=inotify is specified, aufs sets inotify watch
+  internally for the parent (and grand parent) dir in cache, and ignores
+  the events triggered by aufs internal activity. this was done by
+  locking the lower dir and setting 0 to the event mask for the lower
+  dir, but it might ignore the event fired by other process, for example
+  write(2) to the lower file.
+  the new method stops setting 0 to the mask, and ignores the event made
+  by aufs only.
+  this fix is not backported to fs/aufs yet since it is still
+  debugging. so the old behaviour is taken on the older kernels.
+  people will call it crazy due to many locks.
+  + add a parameter au_pin to au_ready_to_write(), and it doesn't lock
+    iinfo nor dinfo.
+  + add a parameter bindex to au_wh_init().
+  + add a parameter bindex to epilog().
+  + add a parameter dir to do_revert().
+  + add a parameter dst_parent to au_sio_cpup_single().
+  + add a parameter dst_parent to cpup_entry() and au_cpup_single(), and
+    set ignore info.
+  + add a parameter hdir and replace h_dst by dst and bindex of
+    cpup_iattr(), and set ignore info.
+  + add a parameter hdir to au_copy_file().
+  + add a parameter hdir to au_cpdown_attr().
+  + add a parameter hdir to cpup_regular() and au_do_cpup_regular().
+  + add a parameter hdir to vfsub_sio_notify_change().
+  + add a parameter hinode to au_dtime_store() and struct au_dtime.
+  + add a parameter parent to au_sio_cpup_single().
+  + add a parameter pin to lock_hdir_lkup_wh().
+  + add list, pid, handled events to struct au_hinode.
+  + add new inline functions vfsub_lock_rename_mutex(),
+    vfsub_unlock_rename_mutex() and au_verify_parent().
+  + add parameters dlgt and hdir to clean_wh(), clean_plink() and
+    plink_dir().
+  + append a lock subclass id AuLsc_DI_PARENT4 and
+    di_read/write_lock_parent4().
+  + append a new lock subclass id AuLsc_DI_PARENT4.
+  + append a new lock subclass id AuLsc_I_(PARENT|CHILD)[34].
+  + aufs_fsync_dir() and aufs_readdir() unlock both dinfo and iinfo.
+  + aufs_read(), aufs_write(), aufs_splice_read(), aufs_splice_write(),
+    aufs_mmap(), aufs_poll(), aufs_fsync_nondir() and aufs_fasync()
+    unlock both dinfo and iinfo.
+  + call au_dbg_hin_list() from call_rename(), vfsub_rename(),
+    call_rmdir(), vfsub_rmdir(), call_write_k(), vfsub_write_u(),
+    vfsub_write_k(), call_splice_from() and vfsub_splice_from().
+  + call au_pin() from do_coo().
+  + call au_pin/unpin() from au_lock_and_icpup() and aufs_setattr().
+  + call au_pin/unpin() from lock_hdir_lkup_wh(), add_simple(),
+    aufs_link() and aufs_mkdir().
+  + call vfsub_ignore(), vfsub_unignore() and au_dbg_hin_list() from
+    call_create(), call_symlink(), call_mknod(), call_mkdir(),
+    call_link(), vfsub_create(), vfsub_symlink(), vfsub_mknod(),
+    vfsub_mkdir() and vfsub_link().
+  + call vfsub_unignore() from call_write_k(), vfsub_write_u() and
+    vfs_write_k() when vfs_write() returns 0.
+  + convert the parameter dir of do_unlink_wh() to hdir.
+  + convert the parameter dir of vfsub_sio_mkdir() and vfsub_sio_rmdir()
+    to hdir.
+  + convert the parameter h_dentry of au_whtmp_ren() to dentry, remove
+    the parameter noself from au_whtmp_ren().
+  + convert the parameter h_dentry of au_whtmp_ren() to dentry.
+  + convert the parameter h_dir of au_wh_unlink_dentry() to struct
+    au_hinode, and remove the parameter dir.
+  + convert the type of au_test_subdir struct dentry* from int.
+  + move AuInMask from hinotify.c to hinode.h.
+  + new bit-flags VFSLOCK and PINNED.
+  + new functions au_do_pinned_h_parent(), au_do_unpin(), au_unpin(),
+    au_unpin_gp(), au_do_pin(), au_pin_init() and au_pin().
+  + new functions au_hin_list_del() and au_dbg_hin_list() for debugging.
+  + new functions au_hin_test_ignore() and au_dbg_hin_list().
+  + new functions au_pin_init(), au_pin(), au_do_pin(), au_unpin(),
+    au_unpin_gp(), au_do_pinned_hdir(), au_do_pinned_h_parent(),
+    au_do_pinned_parent(), au_do_pinned_h_dir(), au_pin_do_set_parent(),
+    au_pin_do_set_h_dir(), au_pinned_hdir(), au_pinned_hgdir(),
+    au_pinned_h_parent(), au_pinned_parent(), au_pinned_gparent(),
+    au_pinned_h_dir(), au_pinned_h_gdir(), au_pin_set_parent(),
+    au_pin_set_gparent(), au_pin_set_h_dir() and au_pin_set_h_gdir().
+  + new functions au_ren_pin_init(), au_ren_fake_pin(), au_ren_pin4(),
+    au_ren_pin3(), au_ren_pin(), au_ren_unlock() and au_ren_lock().
+  + new members h_locked[], gparent[], pin[], ign[], and vargs in struct
+    rename_args.
+  + new structures au_pin1 and au_pin.
+  + remove AuCacheX() macro.
+  + remove au_do_hdir_lock(), au_hdir_unlock(), au_hdir_lock_rename(),
+    au_hdir_unlock_rename(), au_hdir_lock() and au_hdir2_lock().
+  + remove au_hdir[2]_lock/unlock(), and replace them by
+    mutex_lock/unlock().
+  + remove au_hdir_lock/unlock_rename() and replace them by
+    au_ren_lock/unlock().
+  + remove au_hgdirs().
+  + remove au_hin_nignore.
+  + remove the parameter dir from au_wh_create().
+  + remove the parameter dir from unlink_wh_name().
+  + remove the parameter inode from del_wh_children().
+  + remove the parameter noself from au_whtmp_ren().
+  + remove the parameters inode and noself from au_whtmp_kick_rmdir().
+  + remove the parameters inode and noself from au_whtmp_rmdir() and
+    au_whtmp_kick_rmdir().
+  + remove the parameters inode and noself from au_whtmp_rmdir().
+  + remove the unused functions au_hin_ignore() and au_hin_unignore().
+  + remove vfsub_ign_inode().
+  + rename au_reval_and_lock_finfo() to au_reval_and_lock_fdi() since it
+    becomes to lock dinfo and iinfo in addition to finfo.
+  + rename ctl_hinotify() to au_hin_ctl() and make it global, new inline
+    function au_hin_suspend(), remove suspend_hinotify() and
+    resume_hinotify() macros.
+  + rename ctl_hinotify() to au_hin_ctl() and make it global, new inline
+    function au_hin_suspend().
+  + reorder the parameters of link_or_create_wh().
+  + replace hin_ignore array by spinlock and list in struct au_hinotify.
+  + replace the parameter dlgt of au_do_cpup_symlink(), vfsub_symlink(),
+    au_h_create(), vfsub_mkdir(), vfsub_mknod() and vfsub_link() by
+    vfsub_args.
+  + replace the parameter dlgt of au_h_create() and vfsub_create() by
+    vargs.
+  + replace the parameter dlgt of au_h_create(), vfsub_symlink(),
+    vfsub_mknod(), vfsub_link(), vfsub_unlink() and vfsub_mkdir() by
+    vargs.
+  + replace the parameter dlgt of au_h_create().
+  + replace the parameter dlgt of vfsub_create() by vargs.
+  + replace the parameter dlgt of vfsub_create(), vfsub_symlink(),
+    vfsub_mknod(), vfsub_mkdir() and vfsub_link() by vargs.
+  + replace the parameter dlgt of vfsub_link() by vargs.
+  + replace the parameter dlgt of vfsub_mkdir() by vargs.
+  + set ignore info for both of parent and grand parent dir in
+    au_dtime_revert().
+  + set ignore info in add_simple(), cpup_or_link(), aufs_link() and
+    aufs_mkdir().
+  + set ignore info in au_copy_file().
+  + set ignore info in au_cpup_wh().
+  + set ignore info in au_wh_init().
+  + set ignore info in au_whtmp_ren().
+  + set ignore info in au_whtmp_rmdir().
+  + set ignore info in aufs_unlink().
+  + set ignore info in clean_wh(), clean_plink() and plink_dir().
+  + set ignore info in do_rename().
+  + set ignore info in do_unlink_wh().
+  + set ignore info in link_or_create_wh().
+  + set ignore info in vfsub_sio_mkdir(), vfsub_sio_rmdir(),
+    vfsub_sio_notify_change() and call_unlink().
+  + stop touching the lock of dinfo and iinfo in refresh_file_by_inode().
+  + use au_pin in cpup_before_link().
+  + a new debug print macro au_dbg_blocked().
+- bugfix (fs/aufs25): revert resetting xinoe->ino when noxino option is
+  specified, regression on 2008/06/02.
+- bugfix (fs/aufs, fs/aufs25): a race condition between rename(2) and
+  others, linux-2.6.19 and later.
+  + call d_move() from aufs_rename().
+  + set FS_RENAME_DOES_D_MOVE to fs_flags.
+- bugfix (fs/aufs, fs/aufs25): select CONFIG_AUFS_SPLICE_PATCH
+  automatically when CONFIG_AUFS_UNIONFS23_PATCH is enabled on
+  linux-2.6.23 and later, reported by Barry Kauler.
+  + add a note about unionfs patch v2.3 in the splice patch section.
+- possible bugfix (fs/aufs, fs/aufs25): convert all GFP_TEMPORARY and
+  GFP_KERNEL into GFP_NOFS.
+- prohibit sysfs and procfs branch (fs/aufs, fs/aufs25)
+  + append SYSFS_MAGIC value.
+  + new function au_unsupported_fs().
+- kmalloc() some large structures in au_dpri_sb() (still testing).
+- kmalloc() some large structures in aufs_setattr().
+- kmalloc struct completion in au_wkq_run().
+- set noinline_for_stack to cpup_or_link().
+- set noinline_for_stack to epilog() and lock_hdir_lkup_wh().
+- set noinline_for_stack for decode_by_dir_ino() and decode_by_path().
+- unset noinline_for_stack to dump_opts(), verify_opts().
+- unset noinline_for_stack for au_do_cpup_symlink() and au_do_cpup_wh().
+- unset noinline_for_stack to simple_reval_dpath().
+- unset noinline_for_stack for aufs_decode_fh().
+- make au_cpup_simple() and au_cpup_single() static.
+
+20080623
+skipped
+
+20080616
+- bugfix (fs/aufs, fs/aufs25): introduce a new mutex to prevent a new
+  inode number for hardlinks under different parnet dir from a race
+  condition.
+  + (fs/aufs25) a new structure au_xino_file.
+- bugfix (fs/aufs, fs/aufs25): support an error case of opening a dir.
+- bugfix (fs/aufs, fs/aufs25): support a race condition between open and
+  unlink/rmdir.
+- bugfix: struct kset should be a dynamic object.
+- enhance CONFIG_AUFS_STAT, an abstraction by au_wkq_max_busy_init().
+- a note about procfs and sysfs.
+- remove some unnecessary code.
+- a new debug macro, ForceBrs.
+
+20080609
+- bugfix: #if condition for CONFIG_AUFS_UNIONFS22_PATCH and mm tree.
+- bugfix in DLGT mode (fs/aufs, fs/aufs25)
+  + clear dlgt flag in vfsub_sio_{mk,rm}dir().
+  + new function vfsub_sio_notify_change().
+  + remove dlgt flag for au_cpdown_attr().
+- (fs/aufs, fs/aufs25) enhance a writable nfs branch, forcing
+  generic_permission() for dir write.
+
+20080602
+- new configuration CONFIG_AUFS_UNIONFS2[23]_PATCH to support
+  unionfs-patched kernel, since several users think it is a problem of
+  aufs (of course it is not actually).
+  + new abstract macros for splice functions.
+  + new abstract function vfsub_copy_inode_size(), move it from cpup.c
+    to vfsub.h.
+- begin implementing xinodir option (unfinished).
+- bugfix (fs/aufs, fs/aufs25): reset the error value in
+  refresh_file_by_inode().
+- bugfix (fs/aufs, fs/aufs25): DLGT mode, reported by Ulrich Holeschak.
+  + test the flag only in au_opts_{mount,remount}() and au_remount_fs()
+    by au_opt_test().
+- bugfix (fs/aufs, fs/aufs25): DLGT mode, delegated access may make
+  another delegation from aufsd (still testing).
+- (fs/aufs, fs/aufs25) more safe and sure getattr for fuse.
+- rename au_opt_test_{dlgt,dirperm1}() by au_test_{dlgt,dirperm1}() for
+  DLGT mode.
+- frobnicate sbinfo ptr value.
+- remove si_list, use the list in kset instead.
+- minor and simple revised refresh_file().
+
+20080526
+- begin supporting 2.6.26-rc2-mm1.
+  + ->umount_begin() will not be called since a condition is added in
+    VFS. aufs used this operation to maintain the internal vfsmount
+    pointer and it becomes impossible now.
+    * make some features ('nowait' workqueue job and xino truncation)
+      independent from vfsmount pointer, except export.c.
+    * new abstract functions au_mnt_reset() and au_mnt_init().
+   (2.6.26-rc2-mm1)
+    * unset aufs_umount_begin() in super.c.
+    * rename au_mntcache_get() by au_mnt_get() and move it from sbinfo.c
+      to export.c. au_mnt_get() doesn't cache the vfsmount pointer but
+      searches it dynamically.
+    * aufs_put_super() calls aufs_umount_begin().
+   (2.6.25)
+    * still uses -> umount_begin().
+  + new function au_fsstack_copy_inode_size() to support the new unionfs
+    patch in -mm tree.
+  + new macros for splice functions to support the new unionfs patch in
+    -mm tree.
+  + remove get_xip_page() operation.
+- produce an error message when an incorrect option is passed, suggested
+  by Jorgen P. Tjerno.
+- remove individual 'depends on AUFS' and 'default n', reviewed by Jan
+  Engelhardt for -mm version.
+- correct English, 'have a negative impact to the performance', reviewed
+  by Jan Engelhardt for -mm version.
+- new automatic internal configuration AUFS_HIN_OR_DLGT, reviewed by Sam
+  Ravnborg for -mm version.
+- add 'help' text to the automatic internal configurations, reviewed by
+  Jan Engelhardt for -mm version.
+- revert tab in the generated Kconfig.
+- ccflags-y instead of EXTRA_CFLAGS, reviewed by Sam Ravnborg for -mm
+  version.
+- unveil a new function au_ready_to_write_wh() extracted a part from
+  au_ready_to_write().
+- d_path() never return NULL.
+- convert '//' comment style into '/* */'
+- convert '%L' into '%ll'.
+- remove some lines for local test and debugging.
+
+20080519
+- (fs/aufs, fs/aufs25) bugfix: assign the return value of realloc and
+  update the pointer, reported and patched by Mark A. Grondona.
+- (fs/aufs, fs/aufs25) bugfix: a race condition in page fault, reported
+  by Mark A. Grondona.
+  + an explicit lock for lower ->fault() (or ->nopage()).
+  + remove some memory barriers.
+- (fs/aufs25) bugfix: initialize si_sb to support an error case at
+  mount.
+- (auplink script) bugfix: support the case of the module parameter brs
+  is 0.
+- in linux-2.6.24 and later CONFIG_AUFS_FAKE_DM is removed, so always
+  disabled to support MNT_NOEXEC flag for a branch.
+(fs/aufs25)
+- remove /sys/fs/aufs/sbi and replace /sys/fs/aufs/sbi_* by
+  /sysfs/aufs/si_*.
+  + ignore 'si=' parameter at remount.
+  + print si= in /proc/mounts as an identifier.
+- remove /sys/fs/aufs/sbi_*/mntpnt1.
+(fs/aufs)
+- create a /sys/fs/aufs/si_* symlink for compatibility.
+  + ignore 'si=' parameter at remount.
+  + print si= in /proc/mounts as an identifier.
+- add some tips from users.
+- the return value of inotify_rm_watch() has less meaning.
+- replace BKL by local spinlock.
+- ignore an error returned by seq_file.
+- support an erro case in re-setting xino.
+- add a note about 'brs' module parameter.
+
+20080512
+- (fs/aufs, fs/aufs25) bugfix: first lookup for nfs branch didn't
+  work. this bug was born on 20071001 since I began supporting
+  atomic-open in nfsv4. reported by Joshua Swink.
+- (fs/aufs, fs/aufs25) possible bugfix: memory barrier for vma->vm_file.
+- protect si_mntcache by BKL (temporari ci).
+- revert the test BKL in ->umount_begin().
+- stop locking root dentry when it is unnecessary.
+- replace simple si_read_lock(sb, !AuLock_FLUSH) by
+  si_noflush_read_lock(sb).
+- add a note about statvfs(3) for fuse branch.
+- add some tips
+
+20080505
+- rename si_mnt to si_mntcache, and a new accessor au_mntcache_get()
+  (unfinished).
+  + remove au_update_mnt().
+  + unset si_mntcache in aufs_umount_begin().
+  + replace struct super_block in struck au_wkinfo by struct vfsmount.
+- new internal configuration CONFIG_AUFS_LOCAL which enables/disables
+  /sys/fs/aufs/config.
+- (fs/aufs) reverse the order of mntput/dput(), dput() first.
+- minor optimization: add an argument for sysaufs_brs_del/add().
+- call kfree() outside of spin-lock region.
+- rename si_tmp_sb by si_sb.
+- revert an unnecessary error handling made in 20080421.
+- replace local nameidata by a simple flag.
+- call path_get() instead of a sequnce of dget() + mntget().
+- extract a part of h_d_revalidate() as a new function
+  au_do_h_d_reval().
+- try noinline_for_stack for some functions.
+
+20080428
+- (fs/aufs, fs/aufs25) bugfix: ignore an event for a being removed inode.
+- introduce a kobject to manage the lifetime of sbinfo, based upon a
+  patch from Jeff Mahoney.
+  + remove CONFIG_AUFS_SYSAUFS from fs/aufs25.
+  + compile sysaufs.c unconditionally.
+  + new file sysfs.c depending on CONFIG_SYSFS
+  + new sysaufs_br_init() depends on CONFIG_SYSFS and initilizes members
+    for it.
+  + new members for sysfs.
+  + new function sysaufs_si_init()
+  + new flag AuSi_FAILED_INIT to tell au_si_free() a failure.
+  + new member si_kobj independent from CONFIG_SYSFS.
+  + new configuration CONFIG_AUFS_STAT for fs/aufs25.
+  + new structures au_sbi_attr, au_sbi_ops and au_sbi_ktype.
+  + remove functions sysaufs_br_free/init/get/put().
+  + remove functions sysaufs_sbi_free/init/get/put/add/del().
+  + remove structures sysaufs_sbinfo/br.
+  + move the xino-initialization part from au_br_add() to au_br_init().
+  + move free_sbinfo() from super.c to sbinfo.c as au_si_free().
+  + move alloc_sbinfo() from super.c to sbinfo.c as au_si_alloc().
+  + move most part from sysaufs.c to a new file sysfs.c.
+  + call sysaufs_brs_add() from aufs_get_sb().
+  + au_xino_br() takes branch as its argument
+- stop exporting all vars, export some necessary vars only.
+- assign immediate values for superblock magic numbers, and check them
+  by my local priv.mk.
+- simple rename.
+  + hidden_*			h_*
+  + au_h_dptr_i()		au_h_dptr()
+- optimize by eliminating some auto-vars.
+- extract a part of au_cpup_wh() as a new function au_do_cpup_wh().
+- use nlink functions which are defined in fs.h.
+- disable AuFillVdir_SHWH when CONFIG_AUFS_SHWH is disabled.
+- extract a part from read_vdir() as a new funtion au_do_read_vdir().
+- extract a part from au_xino_write() as a new function
+  au_xino_do_write().
+- check NFS for default path.
+
+20080421
+- begin supporting linux-2.6.25 by ./fs/aufs25. now ./fs/aufs supports
+  linux-2.6.16 - 2.6.24.
+  + pass the real value of vfsmount* for dentry_open().
+  + remove iget_locked() and ->read_inode(), and replace them by a new
+    function au_iget_locked().
+  + drop IN_DELETE_SELF and IN_MOVE_SELF from hinotify events.
+  + the type of 'ino' parameter is always u64.
+  + support struct path in nameidata.
+  + replace path_release() by path_put().
+  + replace vfsub_i_lock/unlock_*() by mutex_lock/unlock_*().
+  + replace subsystem by kobject.
+  + use struct kobj_attribute for show/store operations.
+  + remove LINUX_VERSION_CODE conditions.
+  + remove D_CHILD macro.
+  + remove au_cpup_attr_blksize().
+  + remove DEFAULT_POLLMASK.
+  + remove a lock test in ->fsync().
+  + remove au_parser_pattern_t typedef.
+  + remove AuOpt_DefExtra2 macro.
+  + remove au_subsys_to_kset().
+- add a note about nfs-exporting aufs in linux-2.6.23 and later.
+- add a note about the case which rename(2) returns EXDEV.
+- refine sysaufs_br_alloc() and rename sysaufs_br_init().
+- refine au_opt_test() and introduce a new body function
+  au_opt_do_test() which checks DLGT and DIRPERM1.
+- test Mask_COO/UDBA in au_opt_set().
+- extract a part of au_br_add() as a new function au_br_init().
+- extract two parts of cpup_entry() as new functions
+  au_do_cpup_regular() and au_do_cpup_symlink().
+- extract a part of decode_by_path() as a new function
+  au_build_path().
+- move au_add/sub_nlink() from dir.c to dir.h and make inlined.
+- move au_name_hash() from dir.h to vdir.c.
+- move them from vfsub.h to vfsub.c and make inlined.
+  + vfsub_args_init(), vfsub_filp_open(), vfsub_path_lookup(),
+    vfsub_lookup_one_len(), vfsub__lookup_hash()
+- new macros SysaufsSb_PREFIX/NAMELEN, and name member.
+- rename simply.
+  + au_h_iptr_i()		au_h_iptr()
+  + au_h_fptr_i()		au_h_fptr()
+  + au_fill_de()		au_vdir_fill_de()
+  + nhash_test_known_wh()	au_nhash_test_known_wh()
+  + nhash_append_wh()		au_nhash_append_wh()
+  + nhash_new()			au_nhash_new()
+  + nhash_del()			au_nhash_del()
+  + nhash_init()		au_nhash_init()
+  + nhash_move()		au_nhash_move()
+  + nhash_fin()			au_nhash_fin()
+  + nhash_test_longer_wh()	au_nhash_test_longer_wh()
+  + AuTestAnon()		au_test_anon()
+- use fs_stack.h.
+
+20080415
+- bugfix: in dlgt mode, statfs(2)/df(1) didn't work, reported by
+  Ulrich Holeschak.
+
+20080414
+- remove dlgt.h and robr.h.
+- bugfix: pass DIR flag only to di_write_lock2_child().
+- revert 'struct au_opts' with bit-fields to 'unsigned int' with
+  bit-shift.
+  + extract a part of aufs_show_options() and make a new function
+    au_show_wbr_create().
+  + new enum AuWbrCreate/Copyup_Def.
+  + new function au_mntflags().
+  + new functions au_opt_test_dlgt/dirperm1().
+  + new macros AuOptMask_COO/UDBA and au_opt_set_coo/udba().
+  + new macros AuOpt_DefExtra1/2 and AuOpt_Def.
+  + new macros au_opt_test/set/clr().
+  + new member si_wbr_create/copyup and rename au_si_flags to
+    si_mntflags.
+  + re-define and disable bits for HINOTIFY, SHWH and DLGT.
+  + remove au_opts_flags_def().
+  + renama Verbose() to AuVerbose() and pass a boolean as its first
+    argument.
+  + replace AuFlag() by au_opt_test().
+  + replace AuFlagSet() by au_opt_set/clr() or immediate assginment.
+  + replace au_need_dlgt/dirperm1() by au_opt_test_dlgt/dirperm1()
+  + replace Print() by AuBool().
+  + replace PrintStr() by AuStr().
+  + stop resetting xino-flag when an error occured.
+  + stop storing the given flags except udba.
+- move a debug part from super.c to debug.c as au_debug_sbinfo_init().
+- move debug routines from module.c to debug.c as au_debug_init().
+- move au_robr_safe_file() and au_robr_reset_file() from robr.h to
+  file.h.
+- move au_security_inode_permission() from dlgt.h to inode.h.
+- move au_test_robr_wh() and au_test_robr_shwh() from robr.h to whout.h.
+- move au_test_trunc_xino() and au_test_unique_ino() from super.h to
+  branch.h.
+- move au_lkup_one_dlgt() from dlgt.h to dentry.h.
+- move br_rdonly() from branch.c to branch.h as an inline function
+  named au_br_rdonly().
+- move cache_alloc/free functions from module.h to hinotify.c.
+- move initializing sysaufs_brs from module.c to sysaufs.h.
+- move si_sa inside CONFIG_AUFS_SYSAUFS block.
+- move them from dinfo.c to dentry.h and make inlined.
+  + au_dbstart(), au_dbend(), au_dbwh(), au_dbdiropq(), au_h_dptr(),
+    au_set_dbstart(), au_set_dbend(), au_set_dbwh(), au_hdput(),
+    au_update_digen().
+- move them from finfo.c to file.h and make inlined.
+  + au_fbstart(), au_fbend(), au_fvdir_cache(), au_h_fptr(),
+    au_set_fbstart(), au_set_fbend(), au_set_fvdir_cache(),
+    au_update_figen().
+- move them from iifno.c to inode.h and make inlined.
+  + ibstart(), ibend(), ivdir(), au_hi_wh(), au_h_iptr(), itoid_index(),
+    set_ibend(), set_ivdir(), aufs_hiput().
+- move them from sbinfo.c to super.h and make inlined.
+  + stosi(), sbend(), au_sigen()
+- convert au_inotify_init() from macro to inline function.
+- make sysaufs_init() an inlined function.
+- make au_show_brs() static.
+- new automatic configuration CONFIG_AUFS_BR_XFS.
+- optimize the hole-check loop.
+- remove au_notify_change_events() which was added in the last ci by
+  mistake.
+- remove unused code lines.
+- remove DbgDlgt and dbg_dlgt_init/fin().
+- refine sysaufs_sbinfo_alloc()	as sysaufs_sbi_init().
+- rename simply.
+  + aufs_cachep[]		au_cachep[]
+  + aufs_cond			au_cond
+  + aufs_deblk_t[]		au_vdir_deblk_t[]
+  + aufs_hiput()		au_hiput()
+  + au_alloc_whname()		au_wh_name_alloc()
+  + au_append_plink()		au_plink_append()
+  + au_free_whname()		au_wh_name_free()
+  + au_half_refresh_plink()	au_plink_half_refresh()
+  + au_list_plink()		au_plink_list()
+  + au_lkup_plink()		au_plink_lkup()
+  + au_lock/unlock_sbilist()	au_sbilist_lock/unlock()
+  + au_put_plink()		au_plink_put()
+  + au_test_debug()		au_debug_test()
+  + au_test_diropq()		au_diropq_test()
+  + au_test_plink()		au_plink_test()
+  + au_test_wh()		au_wh_test()
+  + au_unlink_wh_dentry()	au_wh_unlink_dentry()
+  + br_add()			au_br_add()
+  + br_count()			au_br_count()
+  + br_del()			au_br_del()
+  + br_get()			au_br_get()
+  + br_hinotifyable()		au_br_hinotifyable()
+  + br_linkable_wh()		au_br_linkable_wh()
+  + br_mod()			au_br_mod()
+  + br_put()			au_br_put()
+  + br_rdonly()			au_br_rdonly()
+  + br_whable()			au_br_whable()
+  + br_writable()		au_br_writable()
+  + CacheFuncs()		AuCacheFuncs()
+  + create_diropq()		au_diropq_create()
+  + dbdiropq()			au_dbdiropq()
+  + dbend()			au_dbend()
+  + DbgRcntDec()		AuDbgRcntDec()
+  + DbgRcntInc()		AuDbgRcntInc()
+  + DbgRcntInit()		AuDbgRcntInit()
+  + dbstart()			au_dbstart()
+  + dbtail()			au_dbtail()
+  + dbtaildir()			au_dbtaildir()
+  + dbtail_generic()		au_dbtail_generic()
+  + dbwh()			au_dbwh()
+  + dtodi()			au_di()
+  + fbend()			au_fbend()
+  + fbstart()			au_fbstart()
+  + find_bindex()		au_find_index()
+  + find_brindex()		au_br_index()
+  + free_branches()		au_br_free()
+  + ftobr()			au_fbr()
+  + ftofi()			au_fi()
+  + fvdir_cache()		au_fvdir_cache()
+  + hdir2_lock()		au_hdir2_lock()
+  + hdir_lock/unlock()		au_hdir_lock/unlock()
+  + hdir_lock/unlock_rename()	au_hdir_lock/unlock_rename()
+  + hdput()			au_hdput()
+  + hidden_*			h_*
+  + hintent_put()		au_hintent_put()
+  + ibend()			au_ibend()
+  + ibstart()			au_ibstart()
+  + init_wh()			au_wh_init()
+  + itohi()			au_hi()
+  + itoid_index()		au_ii_br_id()
+  + itoii()			au_ii()
+  + ivdir()			au_ivdir()
+  + kick_rmdir_whtmp()		au_whtmp_kick_rmdir()
+  + lkup_wh()			au_wh_lkup()
+  + lkup_whtmp()		au_whtmp_lkup()
+  + new_br_id()			au_new_br_id()
+  + readf_t			au_readf_t
+  + ReadLockFunc()		AuReadLockFunc()
+  + remove_diropq()		au_diropq_remove()
+  + rename_whtmp()		au_whtmp_ren()
+  + rmdir_whtmp()		au_whtmp_rmdir()
+  + rmdir_whtmp_free_args()	au_whtmp_rmdir_free_args()
+  + RWLockFuncs()		AuRWLockFuncs()
+  + RwMustAnyLock()		AuRwMustAnyLock()
+  + RwMustNoWaiters()		AuRwMustNoWaiters()
+  + RwMustReadLock()		AuRwMustReadLock()
+  + RwMustWriteLock()		AuRwMustWriteLock()
+  + rw_dgrade_lock()		au_rw_dgrade_lock()
+  + rw_init_nolock()		au_rw_init_nolock()
+  + rw_init_wlock()		au_rw_init_wlock()
+  + rw_init_wlock_nested()	au_rw_init_wlock_nested()
+  + rw_read_lock()		au_rw_read_lock()
+  + rw_read_lock_nested()	au_rw_read_lock_nested()
+  + rw_read_trylock()		au_rw_read_trylock()
+  + rw_read_unlock()		au_rw_read_unlock()
+  + rw_write_lock()		au_rw_write_lock()
+  + rw_write_lock_nested()	au_rw_write_lock_nested()
+  + rw_write_trylock()		au_rw_write_trylock()
+  + rw_write_unlock()		au_rw_write_unlock()
+  + sbend()			au_sbend()
+  + sbr_count()			au_sbr_count()
+  + sbr_id()			au_sbr_id()
+  + sbr_mnt()			au_sbr_mnt()
+  + sbr_perm()			au_sbr_perm()
+  + sbr_put()			au_sbr_put()
+  + sbr_sb()			au_sbr_sb()
+  + sbr_whable()		au_sbr_whable()
+  + set_dbdiropq()		au_set_dbdiropq()
+  + set_dbend()			au_set_dbend()
+  + set_dbstart()		au_set_dbstart()
+  + set_dbwh()			au_set_dbwh()
+  + set_fbend()			au_set_fbend()
+  + set_fbstart()		au_set_fbstart()
+  + set_fvdir_cache()		au_set_fvdir_cache()
+  + set_hi_wh()			au_set_hi_wh()
+  + set_h_dptr()		au_set_h_dptr()
+  + set_h_dptr_i()		au_set_h_dptr_i()
+  + set_h_fptr()		au_set_h_fptr()
+  + set_h_iptr()		au_set_h_iptr()
+  + set_ibend()			au_set_ibend()
+  + set_ibstart()		au_set_ibstart()
+  + set_ivdir()			au_set_ivdir()
+  + SimpleLockRwsemFuncs()	AuSimpleLockRwsemFuncs()
+  + SimpleRwsemFuncs()		AuSimpleRwsemFuncs()
+  + SimpleUnlockRwsemFuncs()	AuSimpleUnlockRwsemFuncs()
+  + simple_create_wh()		au_wh_create()
+  + sio_diropq()		au_diropq_sio()
+  + stobr()			au_sbr()
+  + stosi()			au_sbi()
+  + struct aufs_branch		struct au_branch
+  + struct aufs_de		struct au_vdir_de
+  + struct aufs_dehstr		struct au_vdir_dehstr
+  + struct aufs_destr		struct au_vdir_destr
+  + struct aufs_dinfo		struct au_dinfo
+  + struct aufs_finfo		struct au_finfo
+  + struct aufs_hdentry		struct au_hdentry
+  + struct aufs_hdintent	struct au_hdintent
+  + struct aufs_hfile		struct au_hfile
+  + struct aufs_hinode		struct au_hinode
+  + struct aufs_hinotify	struct au_hinotify
+  + struct aufs_hin_ignore	struct au_hin_ignore
+  + struct aufs_iinfo		struct au_iinfo
+  + struct aufs_ndx		struct au_ndx
+  + struct aufs_nhash		struct au_nhash
+  + struct aufs_rwsem		struct au_rwsem
+  + struct aufs_sbinfo		struct au_sbinfo
+  + struct aufs_vdir		struct au_vdir
+  + struct aufs_wh		struct au_vdir_wh
+  + struct rmdir_whtmp_args	struct au_whtmp_rmdir_args
+  + struct xino_entry		struct au_xino_entry
+  + struct xino_file		struct au_xino_file
+  + sysaufs_sbinfo_add()	sysaufs_sbi_add()
+  + sysaufs_sbinfo_del()	sysaufs_sbi_del()
+  + sysaufs_sbinfo_free()	sysaufs_sbi_free()
+  + sysaufs_sbinfo_get()	sysaufs_sbi_get()
+  + sysaufs_sbinfo_put()	sysaufs_sbi_put()
+  + union aufs_deblk_p		union au_vdir_deblk_p
+  + writef_t			au_writef_t
+  + WriteLockFunc()		AuWriteLockFunc()
+  + xib_trunc()			au_xib_trunc()
+  + xino_br()			au_xino_br()
+  + xino_clr()			au_xino_clr()
+  + xino_create()		au_xino_create()
+  + xino_create2()		au_xino_create2()
+  + xino_def()			au_xino_def()
+  + xino_new_ino()		au_xino_new_ino()
+  + xino_read()			au_xino_read()
+  + xino_set()			au_xino_set()
+  + xino_set_br()		au_xino_set_br()
+  + xino_set_xib()		au_xino_set_xib()
+  + xino_trunc()		au_xino_trunc()
+  + xino_write()		au_xino_write()
+  + xino_write0()		au_xino_write0()
+
+20080407
+- add some articles from users in personal mail.
+  If you don't want to list your name here, write to me.
+- bugfix: update inode->i_ctime after unlink().
+- bugfix: update inode->i_ctime after rename().
+- consolidate '#ifdef's.
+  + automatic configuration for internal use, AUFS_BR_NFS and
+    AUFS_MAGIC_SYSRQ.
+  + temporary and limited support for NFS branch in linux-2.6.19 and
+    earlier.
+  + new files br_nfs.c, br_xfs.c, br_fuse.c, dlgt.c, hin_or_dlgt.c and
+    robr.c.
+  + new files dlgt.h and robr.h.
+  + move sbilist from module.[ch] to sysaufs.[ch].
+  + move au_sbilist_del() from super.h to sysaufs.h.
+  + move au_test_branch() from debug.c to sysrq.c. (temporary)
+  + move aufs_sysrq_key from module.[ch] to sysrq.[ch].
+  + move au_test_robr_wh() and au_test_robr_shwh() to robr.[ch].
+  + move safe_file() and reset_file() to robr.[ch], and rename
+    au_robr_*().
+  + move au_fake_intent(), au_hin_after_reval(), au_lkup_hash() from
+    dentry.c to br_nfs.c and dentry.h.
+  + move hintent_put(), au_find_h_intent(), au_h_intent() and
+    au_set_h_intent() from dinfo.c to br_nfs.c and dentry.h.
+  + move vfsub_events_notify_change(), vfsub_ign_hinode(),
+    vfsub_ignore() and vfsub_unignore() from vfsub.c to hinotify.c.
+  + move macros for kmem_cache creation from module.c to module.h.
+  + move au_hin_nignore and create/delete of kmem_cache from module.c
+    to hinotify.c
+  + move call_permission(), vfsub_permission(), call_create(),
+    vfsub_create(), call_symlink(), vfsub_symlink(), call_mknod(),
+    vfsub_mknod(), call_mkdir(), vfsub_mkdir(), call_link(),
+    vfsub_link(), call_rename(), vfsub_rename(), call_rmdir(),
+    vfsub_rmdir(), call_read_k(), vfsub_read_u(), vfsub_read_k(),
+    call_write_k(), vfsub_write_u(), vfsub_write_k(), call_readdir(),
+    vfsub_readdir(), call_splice_to(), vfsub_splice_to(),
+    call_splice_from(), vfsub_splice_from(), call_getattr() and
+    vfsub_getattr() from vfsub.c to hin_or_dlgt.c.
+  + move call_security_inode_permission() to dlgt.c.
+  + move au_update_fuse_h_inode() from vfsub.c to br_fuse.c.
+  + move aufs_getattr() from i_op.c to br_fuse.c.
+  + move au_h_rdev() from vfsub.c to br_xfs.c.
+  + new abstract functions au_lkup_one_dlgt() and au_br_nfs_h_intent().
+  + new abstract functions dlgt_cred_store() and dlgt_func().
+  + new abstract function au_security_inode_permission().
+  + new abstract functions au_lock/unlock_sbilist() and au_sbilist_add().
+  + new abstract function vfsub_notify_change_dlgt() and
+    vfsub_statfs_dlgt().
+  + new function au_hin_destroy_cache().
+  + refine au_wh_ino() simply.
+  + remove an internal macro AuMagicSysRq.
+  + remove CONFIG_AUFS_HINOTIFY simply.
+  + rename an internal macro intent() to au_dbg_h_intent().
+  + revise AuNoNfsBranch and move from aufs.h to branch.h.
+  + si_list depends upon CONFIG_AUFS_SYSAUFS.
+  + aufs Makefile explicitly refers .config or include/linux/auto.conf
+    under kernel build tree.
+- add a note about the maximum filename length.
+- move au_test_ro(), au_test_perm() and au_test_perm_sio() from misc.[ch]
+  to inode.[ch], and rename them to au_test_h_perm*().
+- rename au_test_perm_sio() to au_test_h_perm_sio().
+- rename au_test_perm() to au_test_h_perm().
+
+20080331
+- unveil CONFIG_AUFS_SHWH.
+- re-write sysfs interface based upon a patch by Jeff
+  Mahoney. (testing)
+  + todo: support files larger than PAGE_SIZE.
+  + remove CONFIG_AUFS_SYSFS_GET_DENTRY_PATCH.
+  + remove sysfs_get_dentry.patch
+  + move au_sbilist_mtx and au_sbilist from sysaufs.c to module.c, and
+    make them module-global.
+  + move au_each_sb() from sysaufs.c to sysrq.c.
+  + move au_subsys_t and au_subsys_to_kset() from aufs.h to sysaufs.h.
+  + remove /sys/fs/aufs/brs, introduce /sys/fs/aufs/sbi/brN.
+  + new function au_sbilist_del().
+  + add an argument to free_sbinfo().
+  + remove sysaufs_notify_remount().
+  + remove make_xino() and au_si_ops.
+  + extract function for MagicSysRq from debug.c and create a file
+    sysrq.c
+  + support CONFIG_MAGIC_SYSRQ in linux-2.6.18 and later.
+  + new internal macro AuMagicSysRq to support MagicSysRq.
+  + remove old garbages entirely.
+- consolidate routines for CONFIG_AUFS_ROBR.
+  + move au_test_nested() from branch.h to super.h.
+  + new functions au_test_robr_wh() and au_test_robr_shwh().
+  + rename init_lvma() to au_robr_lvma_init().
+- consolidate routines for CONFIG_AUFS_FAKE_DM.
+  + new functinos au_lock_nd() and au_unlock_nd().
+  + arrange silly_lock() and silly_unlock().
+  + arrange au_fake_dm(), au_fake_dm_release() and au_h_create().
+  + arrange aufs_show_options(), and it always return non-error.
+- stop compiler warning.
+
+20080324
+- bugfix: udba=inotify, reported by Klaus Fuerstberger (still testing).
+  + replace struct completion by wait-queue, since struct completion
+    is not re-usable.
+  + flush postproc.
+  + warn when a mount-point dir is udba-removed.
+  + in case of copy-up, clear the xino for lower copyup-src. because
+    it prevents aufs from refreshing the inode number which is
+    udba-ed.
+  + skip readdir for udba-removed dir.
+  + stop setting ignore counter for udba-removed dir.
+  + clear xino for udba-removed entry.
+  + stop locking inode in postproc.
+- begin re-writing sysfs interface based upon a patch by Jeff
+  Mahoney. (still working)
+  + rename si_sysaufs member to si_sa.
+  + rename sysaufs_add/del() to sysaufs_sbinfo_add/del().
+  + new function sysaufs_sbinfo_put(), sysaufs_sbinfo_alloc().
+  + new structure sysaufs_br.
+  + new function find_sb_lock2(), config_show(), stat_show(),
+    mnt_show(), debug_show(), debug_store(), xino_show(),
+    mntpnt_show(), sysaufs_br_read(), sysaufs_br_free(),
+    sysaufs_br_alloc(), sysaufs_br_get(), sysaufs_br_put(),
+    sysaufs_brs_add(), sysaufs_brs_del(), sysaufs_sbinfo_free(),
+    sysaufs_sbinfo_alloc(), sysaufs_sbinfo_get(),
+    sysaufs_sbinfo_put().
+  + new entry /sys/fs/(aufs)/mnt, /sys/fs/(aufs)/mnt_XXXX/{xino,mntpnt,brN}.
+  + move the declaration for sysaufs from super.h to sysaufs.h.
+- replace left/right quotation mark and apostrophe by groff macro,
+  pointed out by Julian Andres Klode.
+- replace left/right quotation mark, apostrophe and hyphen/minus-sign
+  by groff macro, pointed out by Julian Andres Klode.
+- remove non posix compliant keyword 'local', patched by Julian Andres
+  Klode.
+- add some notes for udba=inotify.
+
+20080317
+- bugfix: in case of testing super-io, stop forcing permission-check
+  for nfs branch, reported by Bruno Cesar Ribas.
+  + extract a part of forcing permission check from au_test_perm(),
+    and create a new function au_test_perm_sio().
+- bugfix: support a previous failure of setting inotify.
+- bugfix: stop illegal resetting hinotify().
+- begin tranforming a well-behaviour for sysfs.
+- add a how-to document about shwh option from Michael Towers.
+- revert an unnecessary part of last ci.
+- remove an unnecessary flag which was added in last ci.
+
+20080310
+- bugfix: support complex whiteout/diropq case, when an existed upper
+  entry is not a directory, skip the test for diropq, reported by
+  Michael Towers.
+- bugfix: a race condition between UDBA and aufs.
+  + check inode generation too
+  + update file generation too
+  + merge updating generations of dentry and inode, remove
+    hin_iigen(), rename hin_digen_tree() to hin_gen_tree(), rename
+    hin_digen_by_inode() to hin_gen_by_inode(), rename
+    hin_digen_by_name() to hin_gen_by_name().
+  + use the flag in sbinfo to represent UDBA occurred.
+  + new function hin_attr() to support fuse.
+  + use big aufs write lock in postproc(). this is the biggest change.
+  + add a flag for big aufs write lock.
+- new sample for VMware and aufs.
+- a new configuration CONFIG_AUFS_SHWH and new options shwh/noshwh
+  (still testing).
+  + add some parameters to nhash_append_wh().
+  + add some members to struct aufs_wh.
+  + new function au_shwh_init_wh().
+  + pass the latest mount flags to au_opts_parse().
+  + print it in /proc/mounts.
+  + new function au_flag_test_shwh().
+  + extract a function au_ino() from fillvdir().
+  + new functions au_wh_ino() and au_handle_shwh().
+- tested on 64bit environment.
+- support plink option at exporting via NFS.
+- support huge number of pseudo-links.
+- reduce #ifdef in source files.
+  + define an empty AuNoNfsBranchMsg macro.
+  + new functions au_test_nested() and au_test_unsupported_nfs()
+  + a new function au_test_inotify()
+- remove unnecessary alignment attribute for struct rename_args.
+- remove unnecessary au_iigen_inc().
+- new entry under sysfs for debugging.
+
+20080303
+skipped
+
+20080226
+- bugfix: misplaced #ifdef condition for splice(2), regression in the
+  last ci, reported by Tomas M.
+
+20080225
+- bugfix: revert the changes about mmap handling in 20080211, but
+  handles fuse individually.
+  + remove reiser4.patch.
+- bugfix: support ftruncate(2) (completed).
+- support fallocate(), actually aufs doesn't implement it as many
+  other filesystems do, reported by Yair Yarom.
+- new feature to try flushing branches at remount/umount time.
+  + new configuration CONFIG_AUFS_FSYNC_SUPER_PATCH.
+  + new patches fsync_super-2.6.xx.patch.
+- describe the ML in a warning, reported by Yair Yarom.
+- move some inline functions from vfsub.h to vfsub.c as un-inlined.
+
+20080218
+- new mount option 'dirperm1', still testing.
+- new aufs patch for reiser4fs.
+- bugfix: free hd->hd_intent_list, reported by Jan-Marek Glogowski.
+- bugfix: support ftruncate(2) (uncompleted).
+- copyup a file immediately at being mmap()ed which was opened with
+  FMODE_WRITE flag.
+- stop resetting f_mapping field for a file on tmpfs in linux-2.6.22
+  and earlier, since older tmpfs doesn't implement readpage operation.
+- check the file mapping at modifying branch mode.
+- stop updating f_ra field.
+- replace bit-fields by immediate bit operation.
+  + struct au_cpup_flags
+  + struct aufs_ndx
+  + struct au_do_lookup_args
+  + a field in struct aufs_sbinfo.
+  + struct test_empty_arg
+  + a struct in union hin_job.
+  + struct au_wr_dir_args.
+  + struct revert_flags
+  + struct rename_args
+  + struct vfsub_args.
+  + struct au_opts.
+  + struct au_cpdown_dir_args
+  + struct au_diropq_flags
+  + struct au_wkinfo
+  + struct au_wkq_flags
+- reduce 'unlikely' compiler macro.
+- new macros for lock flags.
+- new macros for hinode flags.
+
+20080211
+- bugfix: reset f_mapping for memory mapped files.
+  + new function au_vm_ops().
+  + reset f_mapping in mmap().
+  + use f_mapping->host instead of f_dentry->d_inode in sync().
+- enable AUFS_SUPER_MAGIC.
+- test discarding cached fuse info.
+- use f_mapping->host instead of f_dentry->d_inode in sync() for
+  debugging.
+- replace memcpy() by simple assignment.
+- stop resetting f_ra.
+- new functions write_begin() and write_end() for debugging in linux-2.6.24.
+- stop lockdep warning in kmalloc().
+- new function au_test_tmpfs().
+
+20080204
+- bugfix: the type of lowers may be different from the uppers,
+  reported by Michael Towers.
+- bugfix: ignore inotify event only when udba=inotify is set.
+- bugfix: a race condition between udba and aufs (completed).
+  + new debug macro AuDbgSleep_UdbaRace
+  + change the type of hdir_lock_rename().
+  + new function au_may_add() and au_may_del().
+  + new function au_may_ren().
+  + describe about EIO.
+- bugfix: aufs Makefile refers some kernel sources, depending upon its
+  configuration. support the case of they do not exist, reported by
+  Michael Towers.
+- new patch for ubuntu-2.6.24, patch/ubuntu-2.6.24-5.8.patch.
+- a new macro, a threshold of a warning for pseudo-link.
+
+20080128
+- bugfix: support for lazy unmount on linux-2.6.18 and later, reported
+  by Jorgen P. Tjerno.
+- bugfix: a race condition between udba and aufs (unfinished).
+- debugging a race condition between udba and aufs.
+
+20080121
+- new sample chroot-ed/jail environment using aufs.
+- bugfix: consolidate make targets for parallel build (make -j3),
+  reported and tested by Tommy[D] and mike.
+- bugfix: ignore an inotify event for the grand parent dir timestamps.
+- bugfix: stop a race condition between hardlinks under different parents.
+- bugfix: define a dummy macro for linux-2.6.17 and earlier.
+- support XFS in linux-2.6.24(-rcN)
+  + copyup s[ug]id-ed entry.
+- describe a note about hardlinks of FUSE and udba=none.
+- describe two contributions for lhash patch.
+- begin debugging UDBA race condition.
+- refine aufs magic number.
+
+20071217
+- bugfix: macro pitfall, block local variable name.
+- support XFS in linux-2.6.24(-rcN).
+  + retrieve the device number.
+  + obtain XFS_SB_MAGIC.
+  + test fstype.
+
+20071210
+- bugfix: AUFS_LHASH_PATCH depends on AUFS_FAKE_DM = n, reported by
+  Russell Harmon and Heinrich Rebehn.
+- bugfix: a xino-truncation thread must not wait for other threads.
+- add a note about setting 'n.'
+- move all the declaration from super.h to branch.h.
+- rename struct xino to xino_entry.
+- rename au_opt_xino_trunc to au_opt_xino_itrunc.
+- preparing new xino files (unfinished).
+
+20071203
+- bugfix: a race in revalidating a dentry, reported by Jason Lunz.
+- bugfix: specifying noxino at mount time, reported by Jason Lunz.
+- bugfix: stop using /tmp/aufsvars.mk (complete fix for last ci).
+- bugfix: stop using /tmp/uloopvars.mk.
+- introduce truncating xino files (experimental), reported by Jason
+  Lunz. it will be removed if nobody is interested.
+  + define TMPFS_MAGIC.
+  + define blkcnt_t type for linux-2.6.16.
+  + new options trunc_xino, notrunc_xino, trunc_xino=<branch path>,
+    and itrunc_xino=<branch index>.
+  + new functions xino_trunc() and au_test_trunc_xino().
+  + new functions xino_do_trunc(), xino_try_trunc() and xino_trunc().
+  + new macros AUFS_XINO_TRUNC_INIT and AUFS_XINO_TRUNC_STEP.
+- introduce new patches, ubuntu-2.6.22-14.46.patch and
+  ubuntu-edgy.patch.
+  + extract a patch for ubuntu-edgy.
+
+20071126
+- begin supporting linux-2.6.24.
+  + introduce CONFIG_AUFS_SEC_PERM_PATCH and a new patch for kernel,
+    sec_perm-2.6.24.patch.
+  + call vfsub_notify_change() twice when the branch is NFS and
+    s[ug]id bit is set to the inode.
+  + the type of an argument for export functions are changed to struct
+    fid.
+  + find_exported_dentry operation is removed.
+  + support noexec mount option for a branch.
+  + ignore mode when clearing s[ug]id bit.
+- introduce a new policy for create, pmfs (parent and then mfs) mode.
+- a new sample for ULOOP driver, ulobdev, which supports generic block
+  device.
+- bugfix: try removing /tmp/aufsvars.mk after becoming useless,
+  reported by Russell Harmon (but it cannot be supported fully).
+- add a note about 'make -f local.mk kconfig'
+
+20071119
+- introduce a new semantics for link(2) and rename(2), and three
+  policies to select one among multiple writable branches (completed).
+  + implement a new create policy 'mfsrr.'
+- bugfix: remove __exit attribute from sysaufs_fin().
+- replace 'hidden_' prefix by 'h_.'
+- refine to support every version of realtime patch.
+
+20071112
+- introduce a new semantics for link(2) and rename(2), and three
+  policies to select one among multiple writable branches (testing).
+  + support atomic_create in round robin mode.
+  + a new function au_wbr() for link(2) and rename(2).
+  + a new policy mfs and mfsrr.
+  + call ->init and ->fin at setting the option.
+  + refine over all.
+  + implement copyup policies.
+- remove an unused parameter of au_dtime_revert().
+- consolidate nameidata for lower branches (uncompleted).
+  + a new function au_dup_nd().
+
+20071105
+- bugfix: memory leak in an error path of handling FMODE_EXEC.
+  + initialize a spinlock in hdentry by new functions
+    au_h_dentry_init() and au_h_dentry_init_all().
+  + free the unused filp.
+  + always copy FMODE_EXEC flag.
+  + refine au_find_h_intent().
+  + refine using a spinlock in hdentry.
+  + open the lower file explicitly when the stored nameidata.intent is
+    empty.
+- bugfix: support inode which has lower inodes unmatching with dentry.
+- introduce a new semantics for link(2) and rename(2), and two
+  policies to select one among multiple writable branches (testing).
+  + a new semantics for link(2) and rename(2) is enabled by default,
+    while it is still testing and the documentation is commented out.
+  + refine copy up/down by adding some parameters.
+  + revise an error message.
+  + new functions au_update_dbrange() and au_update_dbend().
+  + add some members for policies.
+  + new function au_cpdown_dirs().
+  + new functions vfsub_sio_mkdir() and vfsub_sio_rmdir().
+  + implement round-robin policy.
+- support 'tri-state' of lower d_revalidate().
+- enable CONFIG_AUFS_RR_SQUASHFS by default, suggested by Julian
+  Andres Klode.
+- replace 'hiiden_' prefix by 'h_'.
+
+20071030
+- bugfix: introduce a new patch deny_write_access.patch and configuration
+  CONFIG_AUFS_DENY_WRITE_ACCESS_PATCH, reported and tested by Ulrich
+  Holeschak.
+  + leave atomic open and let the lower filesystem handle it even if
+    FMODE_EXEC was specified, and make it deny write access later.
+  + keep the dirty trick to handle FMODE_EXEC in aufs.
+  + refine the trick to handle FMODE_EXEC by checking inode and its
+    mode, but still it is dirty.
+  + call {deny,allow}_write_access() when aufs is linked statically or
+    CONFIG_AUFS_DENY_WRITE_ACCESS_PATCH is enabled.
+- add a note about exporting aufs via NFS.
+
+20071029
+- bugfix(SMP): memory barrier to flush f_mode in case of FMODE_EXEC.
+- the modification on 20071026 was my mistake. it was not a bug. refined
+  it.
+- a new file Tips, some tips for using aufs.
+- introduce two policies to select one among multiple writable
+  branches (unfinished).
+  + new options create_policy and copyup_policy, and handlers for them.
+  + new file wbr_policy.c
+  + re-write some functions to select a writable branch, and move them
+    from branch.c to wbr_policy.c.
+  + new function au_cp_dirs() which is a framework to support copy-up
+    and copy-down.
+  + refine au_cpup_dirs() by au_cp_dirs().
+  + remove find_rw_br().
+  + consolidate several args of au_wr_dir() into single structure with
+    bit fields.
+  + new macros AuWbrCreate() and AuWbrCopyup().
+- refine flags corresponding to mount options
+  + a new structure au_opts_flags.
+  + a new function au_opts_flags_def().
+  + refine br_perm_str(), udba_str() and coo_str() by
+    a new function au_parser_pattern(), and rename them to
+    au_optstr_br_perm(), au_optstr_udba() and au_optstr_coo()
+    respectively.
+  + remove udba_set() and coo_set().
+  + replace au_flag_test() by a new macro AuFlag().
+  + replace au_flag_clr() by a new macro AuFlagSet().
+  + replace au_flag_set() by a new macro AuFlagSet().
+  + refine au_flag_test_udba_inotify().
+  + rename need_dlgt() to au_need_dlgt().
+- minor optimization for new_br_id().
+- re-define FMODE_EXEC for backward compatibility.
+- rename 'hidden_' prefix to 'h_'.
+- use macros in linux/compiler.h. (unfinished)
+- Tomas M made a donation. Thank you very much.
+
+20071026
+- bugfix: mis-typing dentry and src_dentry. totally wrong.
+
+20071022
+- security enhancement or possible bug fix: support FMODE_EXEC and
+  {deny,allow}_write_access() for an executable and put_write_access()
+  for an open file for writing on a branch. for linux-2.6.17 and later.
+- bugfix: replace a direct access to dentry->d_parent by
+  dget_parent().
+- create patch sub directory and move all patches under it, suggested
+  by Julian Andres Klode.
+- support GFP_TEMPORARY which will be introduced into mainline kernel
+  in the future.
+- refine ignoring the internal inotify, completed.
+  + stop using the isdir parameter of au_dtime_revert.
+  + remove unnecessary variable.
+  + stop locking the hidden grand parent dir.
+  + remove a lock for the hidden grand parent dir.
+  + new inode info lock class parent4.
+- replace dget_parent() by a direct access to dentry->d_parent where
+  the inode mutex is locked, in order to get better performance.
+- support debug printing an empty file object.
+- define trivial ilog2 macro to support old kernels.
+
+20071015
+- bugfix: at decoding a nfs handle, in the slowest way which will be
+  invoked after other two method's failure, aufs generates the path
+  for the decode target inode. and there was a bug in generating the
+  path. when the inode is decoded by the two preceding methods, you
+  will not meet this problem. this bug was reported by Luis Carlos
+  Erpen de Bona.
+- bugfix: typo in AUFS_PUT_FILP_PATCH, reported by Sandino Flores Moreno.
+- testing writable nfs branch,
+  + new function au_h_create() replacing au_fake_nd_create() +
+    vfsub_create()
+- rename some symbols,
+  + au_is_nfs()		--> au_test_nfs()
+  + au_is_def_rr()	--> au_test_def_rr()
+  + do_is_overlap()	--> do_test_overlap()
+  + 'hidden_'		--> 'h_'
+  + au_is_subdir()	--> au_test_subdir()
+  + is_overlap_loopback	--> test_overlap_loopback()
+  + is_overlap()	--> test_overlap()
+  + au_is_aufs()	--> au_test_aufs()
+  + sbr_is_whable()	--> sbr_whable()
+  + au_is_debug()	--> au_test_debug()
+  + is_au_wkq()		--> au_test_wkq()
+  + is_anon()		--> AuTestAnon()
+  + au_is_loopback()	--> au_test_loopback()
+  + au_is_fuse()	--> au_test_fuse()
+  + au_is_unique_ino()	--> au_test_unique_ino()
+  + au_is_nfsd()	--> au_test_nfsd()
+- add module prefix to some symbols.
+- replacing si_flags by several bit fields (draft).
+
+20071008
+- bugfix: remove the debug messages for nfsv4, reported by Bertrand D.
+- bugfix: remove BUG_ON macro for debug in verifying mount options.
+- introduce AUFS_SUPER_MAGIC with temporary value.
+- refine ignoring the internal inotify.
+  + remove a parameter of cpup_iattr(), cpup_regular(),
+    au_copy_file(), cpup_entry(), cpup_single(), sio_cpup_single(),
+    cpup_simple(), sio_cpup_simple().
+  + remove au_flags_cpup(), struct cpup_args, cpup_init(), cpup_real_dir().
+  + introduce struct au_cpup_flags.
+- add a module prefix to some symbols.
+- minor (cosmetic level) changes.
+- rename some symbols,
+  + au_init_vdir()	--> au_vdir_init()
+  + au_fin_finfo()	--> au_finfo_fin()
+  + hidden_open()	--> au_h_open()
+  + au_is_mmapped()	--> au_test_mmapped()
+  + au_is_plinked()	--> au_test_plinked()
+  + test_empty()	--> au_test_empty()
+  + au_init_vdir()	--> au_vdir_init()
+  + free_vdir()		--> au_vdir_free()
+  + is_longer_wh()	--> nhash_test_longer_wh()
+  + test_known_wh()	--> nhash_test_known_wh()
+  + append_wh()		--> nash_append_wh()
+  + init_hinotify()	--> au_hin_init()
+  + alloc_hinotify()	--> au_hin_alloc()
+  + free_hinotify()	--> au_hin_free()
+- rename the prefix 'hidden_' to 'h_' for some symbols.
+- call au_hin_free() directly.
+
+20071001
+- bugfix: name collision on ia64, reported and patched by Julian
+  Andres Klode, Daniel Baumann, Otavio Salvador and dann frazier (I
+  replaced si_flags by au_si_flags instead of aufs_si_flags).
+- bugfix: when aufs is linked statically, /tmp/aufsvars.mk is
+  unnecessary, reported by Tapani Raikkonen.
+- support nfsv4 branch with improving nfsv3 branch (still testing)
+  + handle nfsv4 in the same way as nfsv3 by lhash.patch.
+  + CONFIG_AUFS_FAKE_DM must be disabled when using NFS (both nfsv3
+    and v4) as an aufs branch in linux-2.6.19 and later.
+  + CONFIG_AUFS_PUT_FILP and CONFIG_AUFS_LHASH_PATCH must be enabled
+    when using NFS (both nfsv3 and v4) as an aufs branch in
+    linux-2.6.19 and later.
+  + gave up calling generic vfs_path_lookup() because aufs has to
+    unlock the dir mutex temporary which must be unacceptable. and
+    reverting the locking order of br_wh_rwsem in last ci.
+  + support atomic open in nfsv4 in looking-up a whiteout.
+  + support atomic open in nfsv4 at revalidating dentry by keeping a
+    whiteout.
+  + use nameidata for the internal file creation with disabling
+    CONFIG_AUFS_FAKE_DM, new function fake_nd_create().
+  + new macro intent() for wrapping the list in aufs_hdentry.
+  + a new simple wrapper named hintent_put().
+- move the definition of au_subsys_t from sysaufs.h from aufs.h.
+- refine ignoring the internal inotify.
+  + merge hin_ignore cache into hinotify.
+  + revert a parameter of some vfsub functions.
+  + revert the lock for the grand parent dir.
+  + remove unnecessary events in aufs_read() and aufs_splice_read().
+  + lock inotify_mutex at modifying the mask.
+  + new function vfsub_ign_hinode().
+  + add a parameter to dtime_restore().
+  + a new macro init_hinotify() as a simple wrapper.
+  + rename vfsub_init() to vfsub_args_init().
+  + new small function itohi().
+  + a global variable au_hin_nignore.
+  + remove hin_ignore.h introduce in last ci.
+- reduce IMustLock() debug macro with centralizing into vfsub
+  functions.
+- rename au_lkup_args to aufs_ndx.
+- rename is_wh() to au_test_wh().
+- rename is_diropq() to au_test_diropq().
+- support fuse inode attributes in splice(2).
+
+20070924
+- bugfix: whiteout list may be obsoleted while aufs was sleeping,
+  reported by Torsten Luettgert.
+- begin supporting linux-2.6.23, still testing on rc6.
+  + support splice(2).
+  + introduce aufs_fault().
+  + new patches and configurations,
+    * splice-2.6.23.patch + AUFS_SPLICE_PATCH
+    * put_flip.patch + AUFS_PUT_FILP_PATCH
+    * sysfs_get_dentry.patch + AUFS_SYSFS_GET_DENTRY_PATCH
+  + generate an auxiliary makefile /tmp/aufsvars.mk
+  + remove a parameter from kmem_cache_create().
+- begin supporting nfsv4, still testing.
+  + support atomic_lookup and atomic_open.
+  + refine the definition of AuNoNfsBranch, and move from branch.h to
+    aufs.h.
+  + lock br_wh_rwsem before h_dir, since aufs has to release the mutex
+    for h_dir before vfs_path_lookup() and then lock it again.
+  + add an argument to hidden_open() as search-key.
+  + prepend prefix 'au_' to lkup_hash(), lkup_one(), do_lookup() and
+    sio_lkup_one().
+  + introduce au_fake_intent(), au_hin_after_reval() and au_lkup_intent().
+  + add some members to struct lkup_args and set prefix 'au_'.
+- describe about patches.
+- introduce a counter for the internal inotify events to be ignored,
+  unfinished and most of them will be removed soon.
+  + new header file hin_ignore.h.
+  + stop locking the hidden parent dir.
+
+20070917
+- bugfix: according to C99 6.10.3, the behaviour is undefined for
+  preprocessor directive within a macro argument, reported by Al Boldi
+  on linux-fsdevel ML.
+- bugfix: replace the preceding single quotation by backquote,
+  reported by Tomas M.
+- introducing a new patch for openvz, openvz_028stab039.1.patch.
+- preparing to support linux-2.6.23 (unfinished)
+  + new configuration CONFIG_AUFS_SPLICE_PATCH and
+    CONFIG_AUFS_SYSFS_GET_DENTRY_PATCH.
+  + generate an auxiliary makefile /tmp/aufsvars.mk
+  + begin supporting nfsv4, calling new VFS function vfs_path_lookup().
+  + new functions for default nfs export operations.
+  + support splice(2), and sendfile operation is dropped.
+  + support inode operation truncate_range() and fallocate().
+  + the function signature of kmem_cache_create() is changed.
+  + warn about CONFIG_AUFS_SYSFS_GET_DENTRY_PATCH and
+    CONFIG_AUFS_SPLICE_PATCH at compile time.
+  + the parameter of bin_attribute.{read,write}() is changed.
+- new configuration CONFIG_AUFS_RR_SQUASHFS.
+  + rename au_is_rr() to au_is_def_rr() and make it simple.
+  + udf is not set RR by default, suggested by Tomas M.
+- remove a configuration CONFIG_AUFS_ISSUBDIR_PATCH which has less
+  meaning.
+- refine the AUFS_BRANCH_MAX warning message at compile time.
+
+20070910
+- a new sample, linux-vserver.txt.
+
+20070903
+- bugfix: handling whiteout in dlgt mode.
+- bugfix: support umask in dlgt mode.
+- uncomment AUFS_DLGT and dlgt option.
+
+20070827
+no news is good news.
+
+20070820
+- fixing typos, reported by Justin Pryzby.
+- refine au_update_fuse_h_inode(), reported by Tomas M.
+  + stop creating temporary anonymous dentry.
+  + more verbose debug print.
+
+20070813
+- bugfix: force unlinking when CONFIG_AUFS_DLGT is enabled.
+- bugfix: neg to pos by udba case. it is degrade bug which was born on
+  2 July.
+- bugfix: an error code of reval_inode().
+- refine au_update_fuse_h_inode(),
+  + wrapping by vfsub routines.
+  + vfsub wrapper for __lookup_hash() and lookup_one_len().
+  + remove dlgt in h_d_revalidate().
+  + call it from fsync_dir() and aufs_fsync_dir().
+  + call it from aufs_flush(), aufs_mmap(), aufs_sendfile() and
+    aufs_fsync_nondir().
+  + support getattr operation.
+  + call it from hidden_readlink()
+  + stop calling it from au_copy_file().
+  + extract a part of if as a new macro au_is_fuse(), and move it from
+    vfsub.c to super.h.
+  + call it from call_notify_change()
+  + do not support dlgt option.
+  + always ignore the error code.
+  + call it for the target dentry and its parent from
+    do_vfsub_create(), do_vfsub_symlink(), do_vfsub_mknod(),
+    do_vfsub_link(), do_vfsub_rename(), do_vfsub_mkdir(),
+    do_vfsub_rmdir(), do_vfsub_unlink(), do_vfsub_read_u(),
+    do_vfsub_write_u() and do_vfsub_readdir().
+  + call it from do_xino_fwrite().
+  + do not call it from xib_pindex(), xino_new_ino(), xino_read(),
+    xino_create2(), do_xib_restore() and xino_set_xib().
+
+20070806
+- new sample, ULOOP driver and a daemon for http.
+- describe about EXDEV error of rename(2) dir, reported by Jorgen
+  P. Tjerno.
+- stop unnecessary getattr for fuse.
+
+20070730
+- gave up supporting multiple xino files per a branch, which means the
+  limitation of the largest value of inode number remains.
+- introduce CONFIG_AUFS_WORKAROUND_FUSE.
+- support fuse inode at copyup.
+- add a note about user's Makefile, posted by Russell Harmon.
+- add Acknowledgements.
+- more verbose at deleting a branch.
+- warn before processing a large file when CONFIG_AUFS_DEBUG is
+  enabled.
+- refine calling au_update_fuse_h_inode().
+- begin of splice_read(), introducing au_is_loopback().
+- stop using ARRAY_SIZE() macro since sparse warns.
+
+20070723
+- bugfix: sysrq.h requires errno.h when MagicSysRq is disabled,
+  reported by Christian Hoffmann.
+- beginning of a temporary workaround for fuse, make lookup-ed inode
+  attribute reliable.
+- use fs-magic number instead of fs-type string.
+- support larger inode number
+- there is a limitation of the largest value of inode number which
+  will be addressed in the future.
+
+20070716
+- bugfix: cpup whiteout which was called #2 in last ci.
+- begin supporting linux-2.6.22
+  + introduce lhash patch for 2.6.22.
+  + no more ksize.patch.
+- introduce new branch permission 'rr.'
+  + rename au_is_ro() to au_is_rr().
+- introduce new (re)mount option, 'verbose' family, currently for
+  deleting a branch only.
+- support MagicSysRq key for debugging.
+- testing CONFIG_AUFS_ROBR.
+- testing new mount option for 'refreshing opened file'
+  + a generation to branch.
+  + typedef for every generation data.
+  + stop packing branch id and si generation.
+  + return of 'coo' option.
+- discard pre-allocated block for xino bitmap.
+- add a note about unmounting ore remounting root aufs at shutdown
+  time.
+- minor optimization for handling udba=inotify.
+- rename hi_lock_XXX() to vfsub_i_lock_nested().
+- rename hi_unlock() to vfsub_i_unlock().
+- print inotify info for inode.
+- move lock subclasses from hinode.h to vfsub.h.
+
+20070709
+- bugfix: force rewind at re-initializing vdir, reported by Michael
+  Towers, Jorgen P. Tjerno and Sandino Flores Moreno.
+- bugfix: copyup unlinked file.
+  + bug #1, the file may or may not be opened, aufs needs to hold the
+    copied-up temporary dentry, reported by Andreas Baetz.
+  + bug #2, the file may be opened in multiple times.
+  + stop dropping in cpup_regular().
+  + revert AuDebugOn() from temporary WARN_ON().
+  + move cpup_wh_file() in file.c to cpup.c as generic cpup_wh().
+  + print wh_dentry in iinfo.
+  + set wh_dentry in iifno.
+  + call cpup_wh() when the file was removed.
+- bugfix: overflow in multiply, reported by Jorgen P. Tjerno and Alexey
+  Bazhin.
+- bugfix: possible overflow in multiply.
+- si_read/write_lock() supports AuLock_FLUSH which flushes the
+  remaining hinotify handler.
+- maintain the number of 'nowait' tasks.
+- testing where si_read_trylock() should be called.
+- testing CONFIG_AUFS_ROBR
+- ksize.patch will be unnecessary after linux-2.6.22, kzrealloc() calls
+  krealloc().
+- extract a part of inode.h as a new file hinode.h.
+- support lockdep at removing nfs branch.
+- use hi_lock/unlock() for a hidden inodes, instead of i_lock/unlock().
+- rename AUFS_[ID]_[RW]LOCK to AuLock_[ID][RW].
+- rename i_lock/unlock() to vfsub_i_lock/unlock().
+- rename filldir_ino_t to au_filldir_ino_t.
+- rename AUFS_{DEBLK,NHASH}_SIZE to AuSize_{DEBLK,NHASH}.
+- refine the message string.
+- move au_hinotifyq to wkq.h as au_nowait_tasks, new inline functions
+  au_nwt_{init,inc,dec,flush}().
+- move read/writef_t to super.h.
+- rename find_sb_locked() to find_sb_lock().
+- extract a part of this file as vserver.patch.
+- consolidate arguments of do_diropq() as flags.
+- consolidate arguments of au_wkq_run() as flags.
+- testing FaunOS.
+
+20070702
+- bugfix: use SMP-safe atomic_{inc,dec}_return().
+- bugfix: memory barrier after atomic_set().
+- bugfix: make lower dir opaque even if it is empty, to keep xino consistency.
+- introduce external inode number bitmap.
+  + remove backward compatibility atomic_long.
+  + rename xino_init() to xino_br().
+  + move br_xino_{read,write} to si_x{read,write}.
+  + check the unlinked but remaining pseudo-link.
+  + leave xino for the remove file/dir, instead clear them in iinfo.
+  + maintain inode attributes and xino for the rename-target and the
+    lower rename-source.
+  + maintain xino for the removed file.
+  + new options 'trunc_xib' and 'notrunc_xib'
+  + truncate the xino bitmap at deleting a branch by default.
+  + show the bitmap file size in sysfs.
+  + free the bitmap buffer at unmounting.
+- refine hinotify.
+  + wait for the completion of 'notified' tasks at revalidating.
+  + wait for the completion of 'notified' tasks at lookup.
+  + re-construct internal functions.
+  + support clearing xino
+  + maintain digen recursively when a dir was renamed
+  + introduce wait-able 'nowait' task.
+  + stop unnecessary write to xino.
+  + support for whiteouts.
+  + stop unnecessary digen in IN_MOVE_SELF.
+  + leave digen for the renamed dir.
+  + modify the 'broken ino' msg to reflect the problem correctly.
+- describe about the inode number of the directly renamed dir and its
+  warning, which was called incorrectly as 'broken ino' msg.
+- describe about the compilation on a distribution (or customized)
+  kernel.
+- I forgot to mention about /etc/default/auplink
+- rename 'changable' to 'changeable.'
+- warn about aufs specific EXDEV error.
+- define rw_{read,write}_trylock().
+- rename 'au_xxx_opts()' to 'au_opts_xxx().'
+- warn inotify without xino.
+- move need_dlgt() from vfsub.h to to super.h.
+- temporary support for imod option.
+- introduce rt-compat.patch.
+
+20070625
+- bugfix: skip non-aufs files at changing the branch permission,
+  reported by Igor Karasynskyi.
+- bugfix: test isolated inodes too at deleting branch, reported by
+  Tomas M.
+- bugfix: call iput() for the isolated inode on the deleted branch,
+  reported by Tomas M.
+- bugfix: detect newly appeared whiteout which exists on a inserted
+  branch.
+- bugfix: refresh all dentries and inodes when adding/modifying a
+  whiteout-able branch, and deleting a branch.
+- temporary workaround for the inode number 1 on cramfs.
+- note for discontinuous inode numbers.
+- refine option handling and some function arguments.
+- stop firing inotify when rename_whtmp().
+- restore iigen after fired inotify when rename dir.
+- set 0 to bindex explicitly when prepending a branch.
+- testing cpup, xino, MagicSysRq key.
+
+20070618
+- bugfix: declare 'signed char', a portability problem reported by
+  Bertrand D.
+- bugfix: strict branch index check at the first adding, reported by
+  Bertrand D.
+- bugfix: unlink a whiteout under a dir who has a sticky bit, reported
+  by Igor Karasynskyi.
+- warn about overlapped branches when the top-dir is moved.
+- remove unnecessary dget_parent(), restoring a part of last ci.
+- testing 'imod' mount option.
+- add a note about an empty file in cramfs.
+- add a note about swapfile.
+
+20070611
+- testing dir-lock in open(2).
+- describe about the aufs message and errno in the manual, suggested
+  by Just Marc.
+
+20070604
+- the unionctl script is moved from util/ to sample/, and will not be
+  supported any more.
+- bugfix: support the moved root branch.
+- testing is_subdir() kernel internal function.
+
+20070528
+- support unmounting after 'mount --bind', update the internal
+  vfsmount pointer when unmounting after linux-2.6.18.
+- refine overlap-test at adding a branch.
+- refine dentry->d_parent with dget_parent() simply.
+- testing linux-vserver, new abstract function do_vfsub_unlink().
+- rename DEBUG_ON macro to AuDebugOn.
+- add a note about the mode of a directory on the lower branch,
+  suggested by Wolfgang Barth
+- execute mount(8) in a simple way, it depends on its version.
+
+20070521
+- refine the nowait task queuing.
+- flush all the scheduled/nowait tasks at umounting and remounting.
+- support the enqueue error in workqueue.
+
+20070519
+- bugfix: ksize macro without ksize.patch, reported by Wolfgang Barth.
+
+20070514
+- begin supporting 2.6.22.
+- prohibit umount while nowait work is in the generic workqueue,
+  introducing au_mntget/put().
+- rename CONFIG_AUFS_AS_BRANCH to CONFIG_AUFS_ROBR.
+- rename AUFS_WH_LEN to AUFS_WH_PFX_LEN.
+- remove AufsGenOlder/Younger macros.
+- rename is_aufsd() to is_au_wkq().
+- make si_generation int, restoring the last bugfix.
+
+20070509
+- bugfix: stop consuming inode number rapidly.
+
+20070507
+- bugfix: fix the obsolete inodes with d_revalidate. the last
+  temporary bugfix is completed. but this version of aufs consumes
+  inode number rapidly. it will be fixed in a week.
+- refine d_revalidate
+	+ checking new ii_gen
+	+ removing di_reval
+	+ new function au_cpup_igen(), to support inode generation
+	+ make the modified file by UDBA obsoleted by its name and
+	  inode
+	+ resetting xino(temporary fix)
+	+ make si_gen atomic_t
+- forgot to print 'warn_perm' in /proc/mounts.
+
+20070430
+- bugfix: re-use inode->i_generation to support the unexpectedly
+  survived inodes after remount. test lower inodes in
+  hidden_d_revalidate(). simplified postproc() in
+  udba=inotify. introduce an internal generation for aufs_iinfo.
+  reported by Tomas M.
+  it is not finished yet and a hardlink on NFS branch will not work.
+- bugfix: at deleting a branch, revalidate the survived dentries after
+  shrink dcache.
+- bugfix: support the unhashed dentries, but ignore the unreferenced
+  dentries.
+- bugfix: ii_read/write_unlock in an error path, mainly for NFS
+  branch.
+- bugfix: revalidating the opened files after remount, introduce a new
+  function au_hfput().
+- bugfix: maintain the reference of aufs module in case of the no-wait
+  task.
+- introduce <sysfs>/fs/aufs/<mnt_id>/xino, and sysaufs.h. move some
+  declarations from module.h to sysaufs.h. rename del/add_sbilist() to
+  sysaufs_del/add(). refine sysaufs.c simply.
+- CONFIG_AUFS_EXPORT in statically linked aufs depends upon
+  CONFIG_EXPORTFS=y, reported by Sandino Flores Moreno.
+- call dget_parent() instead of accessing dentry->d_parent directly.
+- convert some inline functions for debugging to macros, in order to
+  print the preferable line number in a file.
+- rename nfsd_lockdep_off/on() to au_...().
+- supports IN_UNMOUNT, if it happens there must must be another bug.
+- ignore whiteouted names in revalidating child files.
+- rename init_export_op() to au_init_export_op().
+
+20070423
+- bugfix: file revalidation after rename(tgt), reported by Just Marc.
+- strict inode lock in fsync() before 2.6.17.
+- restore rdcache option, which was dropped by mistake.
+- print the depth of generic workqueue in sysfs/aufs/stat.
+- testing initramfs.
+- still testing udba=inotify.
+- simplified "uid/gid/perm" message.
+- reduce stack space.
+- make aufs_cond available even if CONFIG_LKTR is disabled.
+- revise au_fin_finfo() and si lock.
+- simplified cache function definitions.
+- merge both of wait/nowait works into a single enqueue function.
+- rename wkq_wait() to au_wkq_wait().
+- rename some name hash functions, and two new functions nash_new()
+  and nhash_del().
+	+ init_nhash()	--> nhash_init()
+	+ move_nhash()	--> nhash_move()
+	+ free_nhash()	--> nhash_fin()
+- move au_is_kthread() to wkq.h, and rename to is_aufsd().
+- rename au_init_wkq() to au_wkq_init().
+- rename au_fin_wkq() to au_wkq_fin().
+- rename au_inotify_exit() to au_inotify_fin().
+- rename dbg_dlgt_exit() to dbg_dlgt_fin().
+
+20070416
+- bugfix: introduce dcsub.[ch] to handle dentry cache.
+- bugfix: use readlink(1) to get cwd, in auplink, mount.aufs and
+  unionctl, reported by Torsten Luettgert. Actually, to use readlink
+  was suggested by Tomas M last year.
+- support initramfs.
+- verbose warning message for 'different uid/gid/perm.'
+- still testing udba=inotify.
+- support GFP flags in au_kzrealloc().
+- simplified lock/unlock functions definition by a new macro
+  SimpleRWSem...
+
+20070409
+- introduce new branch attribute "nolwh."
+- refine parsing options at mount/remount time, reported by Sandino
+  Flores Moreno.
+	+ remove whiteout-base and whplink-dir in noplink and br_mod(),
+	  but br_del().
+	+ increment sbinfo generation in a new function
+	  aufs_remount_fs().
+	+ support multiple xino/noxino options in another way.
+	+ force "ro" when unknown branch permission is specified.
+	+ at mount-time, interpret options in this order.
+		* simple flags, except xino/noxino, udba=inotify and dlgt.
+		* branches.
+		* xino/noxino.
+		* udba=inotify.
+		* dlgt.
+	+ at remount-time,
+		* interpret options in the given order left to right,
+		  except dlgt which is disabled in interpreting.
+		* create whiteout-base and whplink-dir if necessary.
+		* dlgt if necessary.
+	+ new functions, clean_wh(), clean_plink(), test_linkable(),
+	  plink_dir().
+- support 64bit environment, reported by Vasily Tarasov.
+- introduce a sample for kprobe.
+- bugfix: do not traverse the sub-mounts under aufs at refreshing
+  cached dirs after remount.
+- bugfix: simultaneous read in 'dlgt' mode, reported and fixed by
+  Ulrich Holeschak.
+- bugfix: LINUX_VERSION_CODE for linux-2.6.16.
+- still testing inotify.
+- support lockdep in nfsd, still testing.
+- minor optimization for dput().
+- new test functions br_writable(), br_whable() and br_linkable_wh(),
+  replacing au_is_whable().
+- do write_lock() in reinit_br_wh().
+- refine updating /sys/fs/aufs/stat.
+- wkq_nowait() calls schedule_work().
+
+20070402
+- bugfix: forgot dput in a error case.
+- introduce wkq_nowait().
+- refine udba=inotify, still testing.
+- extract some functions from sbinfo.c, create a new file plink.c.
+
+20070328
+- bugfix: forgot include one header in misc.h
+
+20070327
+- bugfix: increment sbinfo generation in cases of br_mod() for sensing
+  whiteout, xino/noxino and udba=inotify, too. introducing
+  au_is_whable() and sbr_is_whable(). call au_sigen_inc() from
+  do_opts(), reported by Jorgen P. Tjerno.
+- support sysfs and NFS-exporting, introducing sysaufs.c,
+  CONFIG_AUFS_SYSAUFS, export.c, CONFIG_AUFS_EXPORT and a new module
+  parameter 'brs.'
+- remove AUFS_DEBUG_RWSEM.
+- workaround an application bug when 'dlgt' is specified.
+  generally, read(2) or write(2) may return the value shorter
+  than requested. But many applications don't support it,
+  for example bash.
+- support file gid when 'dlgt' is set.
+- add a note about SMP.
+- add a note about lockdep, still testing.
+- add a note about performance test.
+- convert branch permission bits into an integer.
+- add an branch mode alias 'rowh' which is equivalent to 'ro+wh.'
+- macro functions are converted to inline function.
+- rename some symbols.
+- merge hidden_notify_change() into vfsub_notify_change().
+- convert the type of aufs_nwkq to short, since linux/kernel/params.c
+  prints as '%c' for 'byte'.
+- accounting in workqueue, refine the algorithm of choosing the thread.
+- refined LHASH_PATCH and DLGT condition for lkup_one() and lkup_hash().
+- refine file read/write when 'dlgt' is specified.
+- refine DLGT condition for minor optimization.
+- stop setting the first branch mode to 'rw' by default, when the mount
+  flag is 'ro.'
+
+20070320
+- bugfix: broken df(1)/statfs(2), wrong argument for vfs_statfs().
+
+20070319
+- bugfix: check the maximum number of branches, reported by Tomas M.
+- testing the inode number after the direct rename of a dir.
+- testing new mount option 'dlgt.'
+- testing lockdep.
+- add a new file vfsub.c
+- support O_LARGEFILE at copying-up a regular file, and opening a dir.
+- change some function signature and a global variable name in order
+  to avoid the symbol conflict, one of them was reported by Just Marc.
+	add_nlink(), alloc_dinfo(), alloc_whname(), copy_file(),
+	cpup_attr_all(), cpup_attr_changable(), cpup_attr_nlink(),
+	cpup_attr_timesizes(), dir_roflags, do_open(), file_roflags(),
+	fill_de(), fin_finfo(), fin_wkq(), find_brindex(),
+	find_dbindex(), flags_cpup(), free_whname(),
+	half_refresh_plink(), hi_flags(), iinfo_fin(), iinfo_init(),
+	init_finfo(), init_vdir(), init_wkq(), is_plinked(),
+	list_plink(), new_br_id(), put_plink(), ready_to_write(),
+	refresh_hdentry(), refresh_hinode(), reopen_nondir(),
+	reset_hinotify(), reval_and_lock_finfo(), reval_dpath(),
+	show_br(), sigen(), sigen_inc(), sub_nlink(),
+	test_empty_lower(), test_perm(), unlink_wh_dentry(),
+	update_brange(), update_dbstart(), update_digen(), update_figen().
+
+20070312
+- gave up handling inode S_PRIVATE flag and supporting LSM generally.
+- minor optimization by LOOKUP_DIRECTORY flag.
+- testing NFS-exporting.
+- still testing lockdep.
+- still testing sysfs.
+- add samples for LiveCD over NFS.
+- add a note suggested by Simon Sasburg.
+
+20070305
+- support copyup a 'tail-hole'ed sparse file.
+- still testing lockdep.
+- still testing sysfs.
+
+20070226
+- bugfix: mis-judging the maximum number of branches.
+- bugfix: branch index at '--add --before path', reported and fixed by
+  Fernando A. P. Gomes.
+- refine inotify, a test finished.
+- still testing LSM.
+- begin testing with lockdep, still testing.
+- begin supporting sysfs, still testing.
+- refine the maximum number of branches.
+- add a caution about AUFS_HINOTIFY and AUFS_DEBUG_RWSEM.
+- refine copyup pseudo-link, remove cpup_pseudo_link() function.
+- refine copyup pseudo-link, call test_and_cpup_dirs() and
+  sio_cpup_simple() instead of cpup_pseudo_link().
+- refine copyup pseudo-link, a new function lkup_plink().
+- refine new_inode(), call iget_locked() instead of iget() and test
+  I_NEW.
+- minor optimization, the macro mnt_nfs().
+- remove d_iput() operation.
+- introduce a new member 'si_mnt' and 'si_sb.'
+- change some options for tail(1) and grep(1) in order to support
+  busybox, suggested by Tomas M.
+- introduce two new files, module.h and vfsub.h.
+
+20070219
+- mmap behaviour changed, by removing mmap counter.
+- bugfix: after a branch was changed from RO to RW, the hidden opened file
+  should be closed once.
+- bugfix: when the given mount options are too long, aufs should return an
+  error expectedly, reported by Tomas M.
+- support directory link count.
+- introduce ./Kconfig.in and make target 'kconfig', which will
+  generate ./fs/aufs/Kconfig.
+- introduce configurable amount of branches. but I am afraid you will
+  have to wait for aufs supports sysfs.
+- still testing LSM.
+- refine hidden inotify, still testing. disable udba=inotify temporary while
+  parsing mount options.
+- call vfs_read/write() instead of hidden file operation, in order to support
+  LSM and notify.
+- extract some functions from super.c, and create a new file module.c.
+
+20070212
+- begin supporting a readonly no-whiteout aufs branch of another aufs, still
+  testing.
+- begin supporting exporting aufs via NFS, still testing.
+- begin supporting LSM, still testing.
+- bugfix unionctl: typo or dropped single quotation.
+- bugfix unionctl: support a relative path for --whereis.
+- unionctl aborts when the --whereis argument does not exist.
+
+20070205
+- bugfix: a test in adding a branch, included in a report from
+  Laville Guillaume.
+  check the adding branch to be overlapped or not, even if it is a
+  mount-point.
+- bugfix: unionctl script --whereis option.
+  the action should print the branch path, instead of the given argument, even
+  it has only one argument.
+- begin supporting inode S_PRIVATE flag and CONFIG_SECURITY. still testing.
+- remove all the nested function definition, since some compilers (or their
+  configuration) issue a warning about that.
+
+20070129
+- introduce diropq option.
+  the behaviour of mkdir(2) and rename(2) dir case is changed. now they don't
+  make '.wh..wh..opq' when it is not necessary. this is the default. if
+  you dislike this behaviour and still want to make it always, use
+  'diropq=always' mount option. see the manual in detail.
+- bugfix: make fsync(2) return success when the file is not opened for writing,
+  reported by Martin Walter.
+  I am afraid this behaviour may violate some standards. Checking the
+  behaviour of ext2, aufs decided to return success.
+- rename some functions
+	+ lookup_whtmp() to lkup_whtmp().
+	+ lock_hdir_lookup_wh() to lock_hdir_lkup_wh().
+	+ lookup_wh() to lkup_wh().
+- I forgot update AUFS_VERSION on last Monday and I updated it on
+  Thursday. Sorry for confusion.
+
+20070122
+- introduce a new file History.
+- rename wh.[ch] to whout.[ch].
+- rename some symbols.
+	+ do_cache_alloc()	to aufs_cache_alloc().
+	+ do_cache_free()	to aufs_cache_free().
+	+ dt_hidden_dentry in struct dtime, to dt_h_dentry.
+	+ dtohd()		to h_dptr().
+	+ dtohd_index()		to h_dptr_i().
+	+ dtopd()		to dtodi().
+	+ fi_hidden_vm_ops in struct aufs_finfo, to fi_h_vm_ops.
+	+ ftobr_index()		to ftobr().
+	+ ftohf()		to h_fptr().
+	+ ftohf_index()		to h_fptr_i().
+	+ ftopd()		to ftofi().
+	+ hidden_dentry in struct rmdir_whtmp_arg, to h_dentry.
+	+ hidden_root in struct opt_del, to h_root.
+	+ hidden_root in struct opt_mod, to h_root.
+	+ itohi()		to h_iptr().
+	+ itohi_index()		to h_iptr_i().
+	+ itopd()		to itoii().
+	+ lookup_dentry()	to lkup_dentry().
+	+ lookup_negative()	to lkup_neg().
+	+ lookup_one()		to lkup_one().
+	+ refresh_dentry()	to refresh_hdentry().
+	+ refresh_inode()	to refresh_hinode().
+	+ sbt()			to sbtype().
+	+ set_dtohd_index()	to set_h_dptr().
+	+ set_ftohf_index()	to set_h_fptr().
+	+ set_itohi_index()	to set_h_iptr().
+	+ sio_lookup_one()	to sio_lkup_one().
+	+ stopd()		to stosi().
+
+20070117
+- bugfix i_op.c: uninitialized variable in case of CONFIG_AUFS_FAKE_DM
+  enabled, reported and fixed by Jason Lunz.
+
+20070115
+- support 'security' model, reported and tested by Ulrich Holeschak.
+  you need to disable CONFIG_AUFS_FAKE_DM.
+- introduce umount.aufs script.
+- umount.aufs and mount.aufs scripts calls auplink script when it is needed
+  and configured.
+- auplink script supports /etc/default/auplink configuration.
+- bugfix: a comment in local.mk, reported and fixed by Wilhelm Meier.
+
+20070112
+- Jason Lunz sent a patch which creates linux/fs/aufs/Kconfig.
+
+20070108
+- disable CONFIG_AUFS_COMPAT by default.
+  If you still want to use it, enable it manually. But this configuration will
+  be removed in a few weeks.
+- a new script named auplink, with an executable aulchown and a mount option
+  'clean_plink', are introduced, in order to reproduce all hardlinks on a
+  writable branch.
+- bugfix: full-fix for pseudo-link which was temporary half-fix in last update.
+- bugfix: link instead of copyup for an already pseudo-linked file.
+- bugfix: hide the unnecessary 'remount' option before comm(1) in mount.aufs script.
+
+20061222
+- I found a bug about pseudo-link. It keeps inodes incorrectly, and users may
+  see the deleted inode. The fix will complete next year. Until then,
+  pseudo-link feature and 'plink' mount option are disabled and 'noplink' is
+  the default mount option. It means the the internal behaviour like
+  copy-up will be changed.
+- begin supporting linux-2.6.20.
+- support 'sillyrename' on NFS branch
+- added a sample for diskless machines which uses aufs as root filesystem.
+- CONFIG_AUFS_COMPAT will be removed in a few weeks. The code in case of
+  CONFIG_AUFS_COMPAT=y remains. In detail,
+	+ default branch permission
+	+ warning about wrong mount option
+	+ /proc/mounts shows 'br:' instead of 'dirs='
+	+ .wh.__dir_opaque is replaced by .wh..wh..opq
+- bugfix: on NFS branch, after rename(2) to an existed file, the new named
+  file may refer to the old inode. this fix is not completed and does not
+  support plink option. This is the reason of disabling pseudo-link temporary.
+- bugfix: a pipeline in unionctl script uses 'return', but it just
+  finishes the pipeline and doesn't exit from the function.
+
+20061218
+- discussing with Tomas M, introduced a new action --whereis to unionctl.
+- remove the kernel version from the aufs version string.
+  some people misunderstands that the kernel version in the aufs version
+  string means the supported kernel version. Actually, it is the tested kernel
+  version, as it is described in README.
+- new mount option, warn_perm and nowarn_perm.
+- support the space characters in the paths of mount point and branches.
+- support statfs(2) when the first branch is NFS.
+
+20061211
+- support linux-2.6.19, including NFS branch. you need lhash.patch.
+- in the manual, describe that the white characters, comma, colon in the path
+  are not allowed. suggested by Tomas M.
+- unionctl script, support CONFIG_AUFS_COMPAT. reported and fixed by Tomas M.
+- prepend double wh prefix to tmpname at renaming dir.
+
+20061204
+- mis-detecting CONFIG_BLK_DEV_LOOP.
+- support the cases without /sbin/mount.aufs
+	+ remove si_dupopt.
+	+ compare the xino filename.
+
+20061127
+- bugfix dir->fsync: it may be called with @file being NULL, especially from
+  nfsv4, reported by Klaus Knopper.
+- unionctl script supports --list option, requested by Tomas M.
+
+20061120
+- pseudo-link: update hidden inode pointers by new function d_iput().
+- pseudo-link: stop pseudo-link when the target inode already exists.
+- cpup: restore the inode pointers after cpup whiteout failure.
+- hinotify: restore the counter after rename_whtmp() failure.
+
+20061113
+- bugfix: before 2.6.17, msync(2) calls ->fsync without
+  lock. CONFIG_AUFS_DEBUG failed checking the lock, reported by Wesley Chow.
+- bugfix: link(2), when the link target inode already exists on the target
+  branch, but the target name, aufs_link() failed copyup.
+- bugfix: re-setting xino after setting noxino, aufs failed setting.
+- force noxino when xino_init() returns an error
+- warn only once per 255 times about "too many pseudo links".
+
+20061106
+- support linux-2.6.15, limited. dropped features are:
+	+ plink and noplink mount option
+	+ udba=inotify mount option
+	+ NFS branch
+
+20061023
+- 'anonymous nobody' kindly sent a patch to SF 'Patches' place. The patch
+  is for merging aufs into kernel source tree.
+- begin supporting linux-2.6.19-rc2, unfinished, untested and NFS branch
+  is not supported.
+- gave up supporting read/write to the mmapped file on NFS branch. it
+  seems a bug in linux and it can happen on any filesystem. it will be
+  fixed in linux-2.6.19 or later.
+- new structure aufs_hdentry for hidden dentry.
+- bugfix: at restoring the timestamps of the parent dir when mkdir(2) failed.
+- bugfix: editing miss after parsing options.
+
+20061016
+- introduce new mount option 'udba', support 'udba=inotify' using
+  inotify.
+- describe about udba in aufs.5.
+- remove CONFIG_AUFS_DBA and introduce CONFIG_AUFS_HINOTIFY.
+- remove CONFIG_AUFS_NO_KSIZE and introduce CONFIG_AUFS_KSIZE_PATCH.
+- bugfix: always cpup atime in aufs_read/write.
+- bugfix: support write(2) to mmapped file on NFS branch.
+- bugfix for 2.6.17: umount_begin() may not be called in before
+  linux-2.6.18 kernel, call it from put_super() too.
+
+20061009
+- bugfix: call igrab() before ii_write_unlock() to prevent from destroying
+  inode in half_refresh_plink().
+- bugfix: support the case of the first branch is not writable.
+- testing lookup_whtmp().
+- testing dba.
+- prepare inotify for hidden inodes.
+
+20061002
+- bugfix: discard illegal dentry in case of undefined DBA.
+- CONFIG_AUFS_DBA will be removed after introducing 'dba' mount
+  option.
+- prepare removing inotify.
+- add 'do_xino' parameter to set_itohi_index().
+- support read(2) to mmapped file on nfs.
+
+20060925
+- begin of inotify for hidden inodes.
+  CONFIG_AUFS_DBA (Direct Branch Access) requires CONFIG_INOTIFY.
+  still testing.
+- local macro RwSemMutex for debugging becomes global configuration
+  CONFIG_AUFS_DEBUG_RWSEM.
+- gave up supporting CONFIG_DEBUG_PROVE_LOCKING.
+- read(2) to NFS branch is not supported when the file is mmapped.
+- well-behaved opening a file on NFS branch.
+- refined memory allocation which size is zero.
+
+20060911
+- There might be a bug around kfree() in aufs. CONFIG_DEBUG_SLAB has
+  reported slab corruption once. It is not reproducible but I am still
+  working on.
+- the fstype name is always "aufs" as I have announced.
+- minor optimization by GCC's branch prediction or linux's unlikely macro.
+- introducing plink/noplink mount option.
+
+20060904
+- support pseudo-link. branch and hidden_inode has branch id.
+- rename wq.[ch] to wkq.[ch]. remove wq_nowait().
+- reduce smp memory block which looks unnecessary.
+- two threads (reinit hardlinked wh, and rmdir whtmp) do not use
+  workqueue because of memory leak possibility.
+- begin of aufs_lookup_one_len() and AUFS_MUST_FOLLOW branch flag.
+- remove si_xino_mutex and make si_xino as atomic_long_t.
+- give up DEBUG_PROVE_LOCKING.
+
+20060828
+- bugfix: some mount(8) requires one more argument, reported by Tomas M.
+- bugfix: nopage() accessed incorrect file, reported by Martin Oehler.
+- bugfix: recursive kthread call, new macro is_kthread().
+- bugfix: to copyup a device file requires CAP_MKNOD in rename().
+- bugfix: removing a branch whose path name resembles the former option.
+- tried supporting SMP, but I am not confident. I don't have such machine.
+- xino write passes superio thread, I am afraid it is slower.
+- speed up vdir (minor).
+
+20060823
+- bugfix: macros for 'nested lock' should be compiled under
+  linux-2.6.18 only, reported by Heinrich Rebehn.
+
+20060821
+- introduce a workqueue or a thread pool, replacing superio.
+- hardlinked whiteout.
+- introduce CONFIG_AUFS_DBA (Direct Branch Access).
+- begin supporting linux-2.6.18(-rc4).
+- try DEBUG_PROVE_LOCKING introduced by linux-2.6.18(-rc4).
+
+20060814
+- introduce nested__func__.patch for 'sparse'.
+
+20060807
+- introduce hardlinked whiteouts.
+- support multiple writable branches.
+- bugfix: del branch and cwd (current working directory).
+- implement refresh dirs at remount time.
+- bugfix: '#if' -- '#ifdef' in super.c, reported and fixed by Martin Oehler.
+
+20060731
+- bugfix: revalidating after del branch.
+- bugfix: reset bwh in rename().
+- bugfix: update mount point i_version.
+- bugfix: remount may pass empty string.
+- add EXAMPLES to the manual.
+- bugfix: unionctl script supports a relative path, reported by Tomas M.
+
+20060724
+- support mmap without page-copy.
+
+20060717
+- introduce vdir, virtual or vertical directory, which is a seekable directory.
+- introduce mount.aufs script.
+- bugfix: symlink and device file in cpup_entry().
+- try detecting direct access by its timestamp.
+
+20060703
+- bugfix: new revalidate scheme.
+- simplified permission check.
+- ignore dirwh when the branch is NFS.
+
+2006 Jun
+- start CVS on sourceforge.
+
+2006 May
+- no activities since I joined the Unionfs team.
+
+2006 Apr
+- finish first basic implementation and tests.
+- make an application to sourceforge, as the name of aufs.
+
+2006 Feb
+- start implementing.
+
+2005 Dec
+- start planning and designing personally, the name was junionfs.
+
+2005 Sep
+- got to know Unionfs and start trying it.
+
+2005 Aug
+- got an idea of a stackable filesystem, supposing the old Transparent
+  Filesystem in SunOS.
+
+# Local variables: ;
+# mode: text;
+# End: ;

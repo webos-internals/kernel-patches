@@ -1,0 +1,33 @@
+Ubuntu Edgy (2.6.17-10-*)
+While the kernel in Ubuntu Edgy calls itself as version 2.6.17,
+super_operations.umount_begin() has the interface of
+linux-2.6.18 actually. It means that the code such like,
+	#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,18)
+will never work correctly.
+Aufs tries supporting this version of ubuntu kernel.
+But honestly speaking, I am not an ubuntu user, and didn't test it by myself.
+
+--- fs/aufs/super.c	2007/11/26 02:51:51	1.139
++++ fs/aufs/super.c	2007/11/26 02:47:15	1.138
+@@ -311,8 +311,10 @@ static void au_update_mnt(struct vfsmoun
+ #endif
+ }
+ 
+-#define UmountBeginHasMnt	(LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18))
++#define UmountBeginHasMnt \
++	(LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 18) \
++	|| defined(UbuntuEdgy17Umount18))
+ 
+ #if UmountBeginHasMnt
+ #define UmountBeginSb(mnt)	(mnt)->mnt_sb
+--- fs/aufs/Makefile	2007/10/29 04:48:57	1.43
++++ fs/aufs/Makefile	2007/11/26 02:54:45
+@@ -24,6 +24,8 @@ fuse = $(shell grep '\#.*define.*FUSE_SU
+ EXTRA_CFLAGS += -DFUSE_SUPER_MAGIC=${fuse}
+ endif
+ 
++EXTRA_CFLAGS += -DUbuntuEdgy17Umount18
++
+ ########################################
+ 
+ obj-$(CONFIG_AUFS) += aufs.o

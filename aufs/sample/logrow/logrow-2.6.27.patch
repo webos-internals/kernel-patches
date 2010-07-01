@@ -1,0 +1,68 @@
+Index: linux-2.6.27/drivers/block/loop.c
+===================================================================
+retrieving revision 1.1
+retrieving revision 1.3
+diff -u -p -r1.1 -r1.3
+--- linux-2.6.27/drivers/block/loop.c	7 Nov 2008 13:07:06 -0000	1.1
++++ linux-2.6.27/drivers/block/loop.c	19 Nov 2008 03:42:54 -0000	1.3
+@@ -1137,6 +1137,28 @@ loop_get_status64(struct loop_device *lo
+ 	return err;
+ }
+ 
++static int loop_set_capacity(struct loop_device *lo, struct block_device *bdev)
++{
++	int err;
++	sector_t sec;
++	loff_t sz;
++
++	err = -ENXIO;
++	if (lo->lo_state != Lo_bound)
++		goto out;
++	err = figure_loop_size(lo);
++	if (err)
++		goto out;
++	sec = get_capacity(lo->lo_disk);
++	sz = sec << 9;
++	mutex_lock(&bdev->bd_mutex);
++	bd_set_size(bdev, sz);
++	mutex_unlock(&bdev->bd_mutex);
++
++ out:
++	return err;
++}
++
+ static int lo_ioctl(struct inode * inode, struct file * file,
+ 	unsigned int cmd, unsigned long arg)
+ {
+@@ -1166,6 +1188,9 @@ static int lo_ioctl(struct inode * inode
+ 	case LOOP_GET_STATUS64:
+ 		err = loop_get_status64(lo, (struct loop_info64 __user *) arg);
+ 		break;
++	case LOOP_SET_CAPACITY:
++		err = loop_set_capacity(lo, inode->i_bdev);
++		break;
+ 	default:
+ 		err = lo->ioctl ? lo->ioctl(lo, cmd, arg) : -EINVAL;
+ 	}
+@@ -1311,6 +1336,7 @@ static long lo_compat_ioctl(struct file 
+ 			lo, (struct compat_loop_info __user *) arg);
+ 		mutex_unlock(&lo->lo_ctl_mutex);
+ 		break;
++	case LOOP_SET_CAPACITY:
+ 	case LOOP_CLR_FD:
+ 	case LOOP_GET_STATUS64:
+ 	case LOOP_SET_STATUS64:
+Index: linux-2.6.27/include/linux/loop.h
+===================================================================
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -p -r1.1 -r1.2
+--- linux-2.6.27/include/linux/loop.h	7 Nov 2008 13:05:58 -0000	1.1
++++ linux-2.6.27/include/linux/loop.h	8 Nov 2008 04:47:20 -0000	1.2
+@@ -160,5 +160,6 @@ int loop_unregister_transfer(int number)
+ #define LOOP_SET_STATUS64	0x4C04
+ #define LOOP_GET_STATUS64	0x4C05
+ #define LOOP_CHANGE_FD		0x4C06
++#define LOOP_SET_CAPACITY	0x4C07
+ 
+ #endif
