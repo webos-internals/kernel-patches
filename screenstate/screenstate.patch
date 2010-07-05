@@ -190,7 +190,7 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +	mutex_lock(&screenstate_mutex);
 +	ds2784_getcurrent(&cur);
 +	current_mA=gadget_event_state_current();
-+	if((cur>0) && (current_mA == 0)) {
++	if((cur>0) && (current_mA != 1000)) {
 +		// Assume Touchstone
 +		if(!charging_state) {
 +			charging_state=1;
