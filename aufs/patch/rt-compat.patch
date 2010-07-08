@@ -1,0 +1,315 @@
+Checking RT patch for linux-2.6.23, I found,
+- lock_list_first_entry() and lock_list_next_entry() were changed from
+  'static inline'-ed function to 'global un-inlined'-ed function, and
+  moved from lock_list.h to lock_list.c. They are not exported to kernel
+  modules.
+- lock_list_splice_init() was newly introduced, and it is not exported
+  either.
+
+Finally, you should,,,
+- link aufs statically
+- or, ask Ingo Molar to export them.
+
+
+Index: fs/aufs/branch.c
+===================================================================
+RCS file: /cvsroot/aufs/aufs/fs/aufs/branch.c,v
+retrieving revision 1.67
+diff -u -p -r1.67 branch.c
+--- fs/aufs/branch.c	5 Nov 2007 01:36:26 -0000	1.67
++++ fs/aufs/branch.c	14 Nov 2007 17:16:49 -0000
+@@ -852,6 +852,7 @@ int br_mod(struct super_block *sb, struc
+ 		if (!br_writable(mod->perm)) {
+ 			/* rw --> ro, file might be mmapped */
+ 			struct file *file, *hf;
++			int idx;
+ 
+ #if 1 // test here
+ 			DiMustNoWaiters(root);
+@@ -863,7 +864,8 @@ int br_mod(struct super_block *sb, struc
+ 			 * since BKL (and sbinfo) is locked
+ 			 */
+ 			AuDebugOn(!kernel_locked());
+-			list_for_each_entry(file, &sb->s_files, f_u.fu_list) {
++			idx = au_rt_s_files_lock(sb);
++			au_rt_s_files_loop(file, sb) {
+ 				LKTRTrace("%.*s\n", AuDLNPair(file->f_dentry));
+ 				if (unlikely(!au_test_aufs_file(file)))
+ 					continue;
+@@ -885,6 +887,7 @@ int br_mod(struct super_block *sb, struc
+ 				FiMustNoWaiters(file);
+ 				fi_read_unlock(file);
+ 			}
++			au_rt_s_files_unlock(sb, idx);
+ 
+ 			/* aufs_write_lock() calls ..._child() */
+ 			di_write_lock_child(root);
+Index: fs/aufs/debug.c
+===================================================================
+RCS file: /cvsroot/aufs/aufs/fs/aufs/debug.c,v
+retrieving revision 1.43
+diff -u -p -r1.43 debug.c
+--- fs/aufs/debug.c	12 Nov 2007 01:43:10 -0000	1.43
++++ fs/aufs/debug.c	14 Nov 2007 17:16:49 -0000
+@@ -112,7 +112,7 @@ static int do_pri_inode(aufs_bindex_t bi
+ 	     ntfy,
+ 	     i_size_read(inode), (u64)inode->i_blocks,
+ 	     timespec_to_ns(&inode->i_ctime) & 0x0ffff,
+-	     inode->i_mapping ? inode->i_mapping->nrpages : 0,
++	     inode->i_mapping ? au_mapping_nrpages(inode->i_mapping) : 0,
+ 	     inode->i_state, inode->i_flags, inode->i_generation,
+ 	     l ? ", wh " : "", l, n);
+ 	return 0;
+Index: fs/aufs/misc.h
+===================================================================
+RCS file: /cvsroot/aufs/aufs/fs/aufs/misc.h,v
+retrieving revision 1.38
+diff -u -p -r1.38 misc.h
+--- fs/aufs/misc.h	12 Nov 2007 01:40:06 -0000	1.38
++++ fs/aufs/misc.h	14 Nov 2007 17:16:49 -0000
+@@ -29,6 +29,142 @@
+ #include <linux/version.h>
+ #include <linux/aufs_type.h>
+ 
++
++/* ---------------------------------------------------------------------- */
++
++/*
++ * support for RT patch (testing).
++ * it uses 'standard compat_rw_semaphore' instead of 'realtime rw_semaphore.'
++ * sigh, wrapper for wrapper...
++ */
++
++#ifndef CONFIG_PREEMPT_RT
++
++#define au_rw_semaphore		rw_semaphore
++#define au_init_rwsem		init_rwsem
++#define au_down_read		down_read
++#define au_down_read_nested	down_read_nested
++#define au_down_read_trylock	down_read_trylock
++#define au_up_read		up_read
++#define au_downgrade_write	downgrade_write
++#define au_down_write		down_write
++#define au_down_write_nested	down_write_nested
++#define au_down_write_trylock	down_write_trylock
++#define au_up_write		up_write
++
++static inline int au_rt_s_files_lock(struct super_block *sb)
++{
++	/* nothing */
++	return 0;
++}
++
++static inline void au_rt_s_files_unlock(struct super_block *sb, int idx)
++{
++	/* nothing */
++}
++
++#define au_rt_s_files_loop(pos, sb) \
++	list_for_each_entry(pos, &(sb)->s_files, f_u.fu_list)
++#define au_rt_s_files_loop_break(pos)	do {} while (0)
++
++static inline unsigned long au_mapping_nrpages(struct address_space *mapping)
++{
++	return mapping->nrpages;
++}
++
++#else /* CONFIG_PREEMPT_RT */
++
++#define au_rw_semaphore		compat_rw_semaphore
++#define au_init_rwsem		compat_init_rwsem
++#define au_down_read		compat_down_read
++#define au_down_read_nested	compat_down_read_nested
++#define au_down_read_trylock	compat_down_read_trylock
++#define au_up_read		compat_up_read
++#define au_downgrade_write	compat_downgrade_write
++#define au_down_write		compat_down_write
++#define au_down_write_nested	compat_down_write_nested
++#define au_down_write_trylock	compat_down_write_trylock
++#define au_up_write		compat_up_write
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 23)
++
++static inline int au_rt_s_files_lock(struct super_block *sb)
++{
++	int idx;
++	idx = qrcu_read_lock(&sb->s_qrcu);
++	percpu_list_fold(&sb->s_files);
++	return idx;
++}
++
++static inline void au_rt_s_files_unlock(struct super_block *sb, int idx)
++{
++	qrcu_read_unlock(&sb->s_qrcu, idx);
++}
++
++#define au_rt_s_files_loop(pos, sb) \
++	lock_list_for_each_entry(pos, percpu_list_head(&(sb)->s_files), \
++				 f_u.fu_llist)
++
++#define au_rt_s_files_loop_break(pos) \
++	lock_list_for_each_entry_stop(pos, f_u.fu_llist);
++
++static inline unsigned long au_mapping_nrpages(struct address_space *mapping)
++{
++	return mapping_nrpages(mapping);
++}
++
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 20)
++
++static inline int au_rt_s_files_lock(struct super_block *sb)
++{
++	//barrier_lock(&sb->s_barrier);
++	filevec_add_drain_all();
++	return 0;
++}
++
++static inline void au_rt_s_files_unlock(struct super_block *sb, int idx)
++{
++	//barrier_unlock(&sb->s_barrier);
++}
++
++#define au_rt_s_files_loop(pos, sb) \
++	lock_list_for_each_entry(pos, &(sb)->s_files, f_u.fu_llist)
++
++#define au_rt_s_files_loop_break(pos) \
++	lock_list_for_each_entry_stop(pos, f_u.fu_llist);
++
++static inline unsigned long au_mapping_nrpages(struct address_space *mapping)
++{
++	return mapping->nrpages;
++}
++
++#else
++
++static inline int au_rt_s_files_lock(struct super_block *sb)
++{
++	/* nothing */
++	return 0;
++}
++
++static inline void au_rt_s_files_unlock(struct super_block *sb, int idx)
++{
++	/* nothing */
++}
++
++#define au_rt_s_files_loop(pos, sb) \
++	list_for_each_entry(pos, &(sb)->s_files, f_u.fu_list)
++#define au_rt_s_files_loop_break(pos)	do {} while (0)
++
++static inline unsigned long au_mapping_nrpages(struct address_space *mapping)
++{
++	return mapping->nrpages;
++}
++
++#endif /* LINUX_VERSION_CODE */
++#endif /* CONFIG_PREEMPT_RT */
++
++/* ---------------------------------------------------------------------- */
++
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 18)
+ #define I_MUTEX_QUOTA			0
+ #define lockdep_off()			do {} while (0)
+@@ -48,7 +184,7 @@ typedef unsigned int au_gen_t;
+ /* ---------------------------------------------------------------------- */
+ 
+ struct aufs_rwsem {
+-	struct rw_semaphore	rwsem;
++	struct au_rw_semaphore	rwsem;
+ #ifdef CONFIG_AUFS_DEBUG
+ 	atomic_t		rcnt;
+ #endif
+@@ -71,64 +207,64 @@ struct aufs_rwsem {
+ static inline void rw_init_nolock(struct aufs_rwsem *rw)
+ {
+ 	DbgRcntInit(rw);
+-	init_rwsem(&rw->rwsem);
++	au_init_rwsem(&rw->rwsem);
+ }
+ 
+ static inline void rw_init_wlock(struct aufs_rwsem *rw)
+ {
+ 	rw_init_nolock(rw);
+-	down_write(&rw->rwsem);
++	au_down_write(&rw->rwsem);
+ }
+ 
+ static inline void rw_init_wlock_nested(struct aufs_rwsem *rw, unsigned int lsc)
+ {
+ 	rw_init_nolock(rw);
+-	down_write_nested(&rw->rwsem, lsc);
++	au_down_write_nested(&rw->rwsem, lsc);
+ }
+ 
+ static inline void rw_read_lock(struct aufs_rwsem *rw)
+ {
+-	down_read(&rw->rwsem);
++	au_down_read(&rw->rwsem);
+ 	DbgRcntInc(rw);
+ }
+ 
+ static inline void rw_read_lock_nested(struct aufs_rwsem *rw, unsigned int lsc)
+ {
+-	down_read_nested(&rw->rwsem, lsc);
++	au_down_read_nested(&rw->rwsem, lsc);
+ 	DbgRcntInc(rw);
+ }
+ 
+ static inline void rw_read_unlock(struct aufs_rwsem *rw)
+ {
+ 	DbgRcntDec(rw);
+-	up_read(&rw->rwsem);
++	au_up_read(&rw->rwsem);
+ }
+ 
+ static inline void rw_dgrade_lock(struct aufs_rwsem *rw)
+ {
+ 	DbgRcntInc(rw);
+-	downgrade_write(&rw->rwsem);
++	au_downgrade_write(&rw->rwsem);
+ }
+ 
+ static inline void rw_write_lock(struct aufs_rwsem *rw)
+ {
+-	down_write(&rw->rwsem);
++	au_down_write(&rw->rwsem);
+ }
+ 
+ static inline void rw_write_lock_nested(struct aufs_rwsem *rw, unsigned int lsc)
+ {
+-	down_write_nested(&rw->rwsem, lsc);
++	au_down_write_nested(&rw->rwsem, lsc);
+ }
+ 
+ static inline void rw_write_unlock(struct aufs_rwsem *rw)
+ {
+-	up_write(&rw->rwsem);
++	au_up_write(&rw->rwsem);
+ }
+ 
+ /* why is not _nested version defined */
+ static inline int rw_read_trylock(struct aufs_rwsem *rw)
+ {
+-	int ret = down_read_trylock(&rw->rwsem);
++	int ret = au_down_read_trylock(&rw->rwsem);
+ 	if (ret)
+ 		DbgRcntInc(rw);
+ 	return ret;
+@@ -136,7 +272,7 @@ static inline int rw_read_trylock(struct
+ 
+ static inline int rw_write_trylock(struct aufs_rwsem *rw)
+ {
+-	return down_write_trylock(&rw->rwsem);
++	return au_down_write_trylock(&rw->rwsem);
+ }
+ 
+ #undef DbgRcntInit
+@@ -145,7 +281,7 @@ static inline int rw_write_trylock(struc
+ 
+ /* to debug easier, do not make them inlined functions */
+ #define RwMustNoWaiters(rw)	AuDebugOn(!list_empty(&(rw)->rwsem.wait_list))
+-#define RwMustAnyLock(rw)	AuDebugOn(down_write_trylock(&(rw)->rwsem))
++#define RwMustAnyLock(rw)	AuDebugOn(au_down_write_trylock(&(rw)->rwsem))
+ #ifdef CONFIG_AUFS_DEBUG
+ #define RwMustReadLock(rw) do { \
+ 	RwMustAnyLock(rw); \

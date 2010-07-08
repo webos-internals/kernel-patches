@@ -1,0 +1,166 @@
+
+Tips from aufs users
+Junjiro Okajima
+
+# $Id: Tips,v 1.12 2008/11/17 02:12:17 sfjro Exp $
+
+Here some tips from aufs users which may be useful for other users.
+You can find most of them in the aufs-users ML archive on SourceForge.
+But the archive has some delay...
+Note: The dates below are taken from Date: field of the mail
+      message. It means they are all local timezone.
+
+Any request to add or delete, or comment will be accepted. If you
+don't want to be listed your name here, write to me.
+
+----------------------------------------------------------------------
+
+Subject: handy Makefile for generating patches
+14 Nov 2008, Kris Warkentin posted his Makefile to generate a patch
+against an arbitrary kernel tree.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=491D8821.3050402%40xandros.com&forum_name=aufs-users>
+
+Subject: Re: aufs use-case
+26 Oct 2008, Bruno Cesar Ribas replied to the question "aufs use-case"
+from SEO, Takeshi, and said in Brasil over 10000 netboot terminals are
+using PXE and AUFS.
+<http://sourceforge.net/mailarchive/message.php?msg_name=20081026154905.GA2212%40c3sl.ufpr.br>
+
+Subject: Re: API questions
+23 Oct 2008, Jan-Marek Glogowski posted that LiMux project is using FAI
+and ro NFSv4 NFSroots + aufs tmpfs for rw in order to install their
+Debian-based distribution.
+<http://sourceforge.net/mailarchive/message.php?msg_name=Pine.LNX.4.58.0810231837250.26622%40stud1.fbihome.de>
+
+Subject: Fwd: Null pointer exception
+9 Jun 2008, Chris Engel posted that aufs on his ppc64 SMP NR_CPUS=128
+NUMA Cell kernel working fine and the machine is reported as the world's
+fastest computer.
+<http://sourceforge.net/mailarchive/message.php?msg_name=1e548a3f0806091211m2be6d2b6vcdc31db0ccea1dd6%40mail.gmail.com>
+
+Subject: Re: Diskless netboot with live-initramfs + NFS + aufs
+15 May 2008, Joshua Swink posted his startup script for netboot diskless
+environment.
+<http://sourceforge.net/mailarchive/message.php?msg_name=2665a2eb0805151336v57cc66aagcb9e5f0ef45f6d5%40mail.gmail.com>
+
+Subject: Re: using uloop in Debian Live
+14 May 2008, Jordi Pujol posted his script to mount uloop in a generic
+way.
+<http://sourceforge.net/mailarchive/message.php?msg_name=200805141656.08662.jordipujolp%40gmail.com>
+
+Subject: Re: using uloop in Debian Live
+12 May 2008, Jordi Pujol posted his patch against uloop to support a
+regular file.
+<http://sourceforge.net/mailarchive/message.php?msg_name=200805121827.02229.jordipujolp%40gmail.com>
+
+Subject: Re: Mounting aufs filesystem as root filesystem
+08 May 2008, Luis Carlos Erpen de Bona posted his remote boot schema for
+aufs-root system.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=20080508170111.GA14197%40c3sl.ufpr.br&forum_name=aufs-users>
+
+Subject: Re: Mounting aufs filesystem as root filesystem
+08 May 2008, Tomas M posted his safe shutdown approach for aufs-root
+system.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=48231B66.2030300%40slax.org&forum_name=aufs-users>
+
+Subject: <personal mail>
+31 Mar 2008, Nicholas A. Schembri told me that he wrote a document
+about aufs root filesystem on usb flash and made it public at
+<https://help.ubuntu.com/community/aufsRootFileSystemOnUsbFlash>.
+Also he is using aufs on eeepc with ubuntu.
+
+Subject: Re: Overlay merging, with whiteouts
+11 Mar 2008, Michael Towers sent his document for shwh/noshwh mount
+option.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=47D64998.50607%40web.de&forum_name=aufs-users>
+
+Subject: Re: Does not compile with Ubuntu 2.6.24 (works with 2.6.22)
+19 Jan 2008, Michael Haas sent his updated lhash patch for Ubuntu
+gutsy kernel (and I forwarded it to the ml).
+<http://sourceforge.net/mailarchive/forum.php?thread_name=6762.1200713521%40jrobl&forum_name=aufs-users>
+
+Subject: Re: lhash patch for 2.6.24-rc7
+14 Jan 2008, Michael S. Zick (re)posted his refined lhash patch for
+2.6.24-rc7
+<http://sourceforge.net/mailarchive/forum.php?thread_name=478A7C7D.2010305%40laga.ath.cx&forum_name=aufs-users>
+
+Subject: Fwd: Re: Re: Re: Fwd: pivot_root: Device or resource busy
+24 Oct 2007, Jakub W. Jozwicki posted his patch for realtime patch for
+linux-2.6.23.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=439c8fca.7a12e076.471fbad6.f398c%40o2.pl&forum_name=aufs-users>
+The patch was merged into patch/rt-compat.patch.
+
+Subject: Re: aufs initramfs question
+23 Oct 2007, Philipp Wehrheim posted his script for initramfs.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=1192808392.11101.278.camel%40carlos&forum_name=aufs-users>
+
+Subject: Re: aufs 20071015 not good?
+21 Oct 2007, Jim Garlick posted his patch for Red Hat's EL5
+linux-2.6.18.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=Pine.LNX.4.61.0710191415100.32494%40nine&forum_name=aufs-users>
+
+Subject: <personal mail>
+10 Oct 2007, Luis Carlos Erpen de Bona told me aufs is being used
+widely in their remote boot system at 2,000 schools.
+<http://www.c3sl.ufpr.br/en/projetos_prd.html>
+
+Subject: Re: aufs with 2.6.15 and busybox not working
+6 Oct 2007, Philipp Wehrheim posted that he ran aufs on linux-2.6.15.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=47040B8A.5080008%40gmx.net&forum_name=aufs-users>
+
+Subject: Re: Makefile?
+4 Aug and 26 Nov 2007, Russell Harmon posted his Makefile which supports:
+- build
+- patch
+- install
+- update
+<http://sourceforge.net/mailarchive/forum.php?thread_name=9c4865a10707181414m65d6eee4ge8b5bff89c98a1fd%40mail.gmail.com&forum_name=aufs-users>
+<http://sourceforge.net/mailarchive/forum.php?thread_name=9c4865a10711260559k319546dcibe751e2c916c2359%40mail.gmail.com&forum_name=aufs-users>
+
+Subject: Re: Not all files are deleted
+3 Jul 2007, Philippe Malinge posted a problem of rm(1) in RHEL 4
+(coreutils 5.2.1).
+* SF doesn't archive this mail message.
+
+Subject: A script useful for creating targets for embedded devices
+9 Apr 2007, Sandino Flores Moreno posted his script for embedded
+device.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=30472ef40704092038n34df2c3ao789fbf63a58fa3e%40mail.gmail.com&forum_name=aufs-users>
+
+Subject: <personal mail>
+03 Apr 2007, Ulrich Holeschak told me that 'dlgt' option works
+with AppArmor on SUSE 10.2 Kernel.
+
+Subject: aufs backport to kernel < 2.6.15
+29 Mar 2007, Hans-Peter Jansen posted that he ran aufs on SuSE 9.3
+linux-2.6.11.
+* SF doesn't archive this mail message.
+The patch was merged into aufs source files.
+
+Subject: aufs and vserver
+29 Mar 2007, Wilhelm Meier posted his patch for linux-vserver.
+* SF doesn't archive this mail message.
+The patch was upgraded and placed in CVS_TREE/aufs/patch.
+
+Subject: <personal mail>
+14 Mar 2007, Wilhelm Meier told me he succeeded exporting aufs via
+NFS and using it with over 100 NFS clients.
+
+Subject: Re: Gentoo Ebuild for aufs-20070205 ~x86
+8 Feb 2007, Torsten Kockler posted that he created Gentoo ebuild for
+aufs.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=45CB1C1D.7060702%40fh-kl.de&forum_name=aufs-users>
+
+Subject: [PATCH] Kconfig for in-kernel aufs
+12 Jan 2007, Jason Lunz posted a patch for compiling aufs as part of
+the normal kernel tree.
+* SF doesn't archive this mail message.
+The patch was upgraded and become 'kconfig' target of local.mk.
+
+Subject: Diskless Clients with aufs and fscache
+18 Jan 2007, Wilhelm Meier posted his script for diskless client.
+<http://sourceforge.net/mailarchive/forum.php?thread_name=200701181332.15294.wilhelm.meier%40fh-kl.de&forum_name=aufs-users>
+
+# Local variables: ;
+# mode: text;
+# End: ;

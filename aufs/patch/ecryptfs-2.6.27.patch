@@ -1,0 +1,50 @@
+Index: linux-2.6.27/fs/ecryptfs/inode.c
+===================================================================
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -p -r1.1 -r1.2
+--- linux-2.6.27/fs/ecryptfs/inode.c	19 Dec 2008 03:05:27 -0000	1.1
++++ linux-2.6.27/fs/ecryptfs/inode.c	19 Dec 2008 19:52:26 -0000	1.2
+@@ -430,9 +430,6 @@ out_lock:
+ 	unlock_dir(lower_dir_dentry);
+ 	dput(lower_new_dentry);
+ 	dput(lower_old_dentry);
+-	d_drop(lower_old_dentry);
+-	d_drop(new_dentry);
+-	d_drop(old_dentry);
+ 	return rc;
+ }
+ 
+@@ -444,7 +441,10 @@ static int ecryptfs_unlink(struct inode 
+ 	struct dentry *lower_dir_dentry;
+ 
+ 	lower_dir_dentry = lock_parent(lower_dentry);
++	dget(lower_dentry);
++	atomic_inc(&lower_dentry->d_inode->i_count);
+ 	rc = vfs_unlink(lower_dir_inode, lower_dentry);
++	dput(lower_dentry);
+ 	if (rc) {
+ 		printk(KERN_ERR "Error in vfs_unlink; rc = [%d]\n", rc);
+ 		goto out_unlock;
+@@ -455,6 +455,7 @@ static int ecryptfs_unlink(struct inode 
+ 	dentry->d_inode->i_ctime = dir->i_ctime;
+ 	d_drop(dentry);
+ out_unlock:
++	iput(lower_dentry->d_inode);
+ 	unlock_dir(lower_dir_dentry);
+ 	return rc;
+ }
+@@ -538,8 +539,12 @@ static int ecryptfs_rmdir(struct inode *
+ 	fsstack_copy_attr_times(dir, lower_dir_dentry->d_inode);
+ 	dir->i_nlink = lower_dir_dentry->d_inode->i_nlink;
+ 	unlock_dir(lower_dir_dentry);
+-	if (!rc)
++	if (!rc) {
++		struct inode *inode = dentry->d_inode;
++		inode->i_nlink = ecryptfs_inode_to_lower(inode)->i_nlink;
++		inode->i_ctime = dir->i_ctime;
+ 		d_drop(dentry);
++	}
+ 	dput(dentry);
+ 	return rc;
+ }

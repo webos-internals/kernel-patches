@@ -1,0 +1,39 @@
+To use this patch, you need these things,
+- linux-2.6.18
+- http://download.openvz.org/kernel/branches/2.6.18/028stab039.1/
+	patches/patch-ovz028stab039.1-combined.gz
+- define "EXTRA_CFLAGS += -DVE_028stab039" in aufs/local.mk
+
+As you know, openvz uses simfs to support disk quota or something.
+On my system, /proc/mounts shows,
+	none /vz/private/203 aufs \
+		rw,xino=(deleted)\040/tmp/rw/.aufs.xino,\
+		udba=inotify,br:/tmp/rw=rw:/vz/private/203=ro 0 0
+	/vz/private/203 /vz/root/203 simfs rw 0 0
+
+----------------------------------------------------------------------
+--- fs/aufs/super.c	2007-07-30 13:26:04.000000000 +0900
++++ fs/aufs/super.c	2007-09-10 13:36:48.381447152 +0900
+@@ -29,7 +29,7 @@
+ typedef struct mnt_namespace au_mnt_ns_t;
+ #define au_nsproxy(tsk)	(tsk)->nsproxy
+ #define au_mnt_ns(tsk)	(tsk)->nsproxy->mnt_ns
+-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19)
++#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 19) || defined(VE_028stab039)
+ #include <linux/namespace.h>
+ typedef struct namespace au_mnt_ns_t;
+ #define au_nsproxy(tsk)	(tsk)->nsproxy
+@@ -144,11 +144,13 @@ static int aufs_show_options(struct seq_
+ 			goto out;
+ 		err = 0;
+ 
++#ifndef VE_028stab039
+ #define Deleted "\\040(deleted)"
+ 		m->count -= sizeof(Deleted) - 1;
+ 		AuDebugOn(memcmp(m->buf + m->count, Deleted,
+ 				 sizeof(Deleted) - 1));
+ #undef Deleted
++#endif
+ 	} else
+ 		err = seq_puts(m, ",noxino");
+ 

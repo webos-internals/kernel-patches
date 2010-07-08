@@ -1,0 +1,16 @@
+Index: fs/sysfs/dir.c
+===================================================================
+RCS file: /ext1/sysadm/transparent/repository/linux-2.6.23-rc6/fs/sysfs/dir.c,v
+retrieving revision 1.1
+retrieving revision 1.2
+diff -u -p -r1.1 -r1.2
+--- fs/sysfs/dir.c	12 Sep 2007 16:26:19 -0000	1.1
++++ fs/sysfs/dir.c	12 Sep 2007 16:26:53 -0000	1.2
+@@ -159,6 +159,7 @@ struct dentry *sysfs_get_dentry(struct s
+ 	mutex_unlock(&sysfs_mutex);
+ 	return dentry;
+ }
++EXPORT_SYMBOL(sysfs_get_dentry);
+ 
+ /**
+  *	sysfs_get_active - get an active reference to sysfs_dirent

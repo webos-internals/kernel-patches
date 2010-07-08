@@ -1,0 +1,13 @@
+diff --git a/arch/arm/configs/omap_sirloin_3430_defconfig b/arch/arm/configs/omap_sirloin_3430_defconfig
+index f545100..0d785cc 100644
+--- a/arch/arm/configs/omap_sirloin_3430_defconfig
++++ b/arch/arm/configs/omap_sirloin_3430_defconfig
+@@ -873,7 +873,7 @@ CONFIG_INPUT_MISC=y
+ # CONFIG_INPUT_KEYSPAN_REMOTE is not set
+ # CONFIG_INPUT_POWERMATE is not set
+ # CONFIG_INPUT_YEALINK is not set
+-# CONFIG_INPUT_UINPUT is not set
++CONFIG_INPUT_UINPUT=m
+ CONFIG_HSDL9100_PROX_SENSOR=y
+ CONFIG_LIGHTSENSOR_AMBIENT6200=y
+ CONFIG_INPUT_ACCELEROMETER=y

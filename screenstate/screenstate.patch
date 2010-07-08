@@ -45,9 +45,21 @@ diff -ur linux-2.6.24/drivers/cpufreq/Makefile linux-2.6.24-b/drivers/cpufreq/Ma
  
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
-diff -ur linux-2.6.24-a/drivers/video/omap/lcd_panel.c linux-2.6.24-b/drivers/video/omap/lcd_panel.c
---- linux-2.6.24-a/drivers/video/omap/lcd_panel.c       2010-04-29 23:57:09.000000000 -0400
-+++ linux-2.6.24-b/drivers/video/omap/lcd_panel.c       2010-05-01 00:48:31.000000000 -0400
+diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufreq.h
+--- linux-2.6.24/include/linux/cpufreq.h	2010-04-25 23:00:27.000000000 -0400
++++ linux-2.6.24-b/include/linux/cpufreq.h	2010-04-29 22:27:58.000000000 -0400
+@@ -309,6 +309,9 @@
+ #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
+ extern struct cpufreq_governor cpufreq_gov_userspace;
+ #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_userspace)
++#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE)
++extern struct cpufreq_governor cpufreq_gov_screenstate;
++#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_screenstate)
+ #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND)
+ extern struct cpufreq_governor cpufreq_gov_ondemand;
+ #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
+--- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2010-06-11 17:48:35.000000000 -0400
++++ linux-2.6.24.7-F105/drivers/video/omap/lcd_panel.c	2010-07-04 23:16:07.000000000 -0400
 @@ -31,6 +31,11 @@
  
  #include "lcd.h"
@@ -80,7 +92,7 @@ diff -ur linux-2.6.24-a/drivers/video/omap/lcd_panel.c linux-2.6.24-b/drivers/vi
  	} else {
  		if (params->panel_state == DISPLAY_DEVICE_STATE_OFF) {
  			DPRINTK(" %s:  Panel already off, returning...\n",
-@@ -156,11 +165,16 @@
+@@ -156,6 +165,10 @@
  						DISPLAY_CONTROLLER_STATE_OFF);
  		}
  		params->panel_state = DISPLAY_DEVICE_STATE_OFF;
@@ -91,46 +103,8 @@ diff -ur linux-2.6.24-a/drivers/video/omap/lcd_panel.c linux-2.6.24-b/drivers/vi
  	}
  
  unlock:
- 	mutex_unlock(&params->ops_lock);
- 	release_console_sem();
-+
- }
- 
- static unsigned int panel_get_state(struct lcd_params *params)
-@@ -178,7 +192,17 @@
- 	if (params->bl_dev && params->bl_ops &&
- 	    params->bl_ops->bl_set_brightness) {
- 		params->bl_ops->bl_set_brightness(params->bl_dev, brightness);
-+#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+		// Scale down when on touchstone
-+			if (brightness > 1) {
-+				cpufreq_gov_screenstate_lcdon();
-+			}
-+			else {
-+				cpufreq_gov_screenstate_lcdoff();
-+			}
-+#endif
- 	}
-+
- 	mutex_unlock(&params->ops_lock);
- }
-
-diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufreq.h
---- linux-2.6.24/include/linux/cpufreq.h	2010-04-25 23:00:27.000000000 -0400
-+++ linux-2.6.24-b/include/linux/cpufreq.h	2010-04-29 22:27:58.000000000 -0400
-@@ -309,6 +309,9 @@
- #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
- extern struct cpufreq_governor cpufreq_gov_userspace;
- #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_userspace)
-+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE)
-+extern struct cpufreq_governor cpufreq_gov_screenstate;
-+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_screenstate)
- #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND)
- extern struct cpufreq_governor cpufreq_gov_ondemand;
- #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
-diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers/usb/gadget/gadget_event.c
---- linux-2.6.24-a/drivers/usb/gadget/gadget_event.c    2010-04-29 23:57:09.000000000 -0400
-+++ linux-2.6.24-b/drivers/usb/gadget/gadget_event.c    2010-05-17 19:04:55.000000000 -0400
+--- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24.7-F105/drivers/usb/gadget/gadget_event.c	2010-06-05 11:30:37.000000000 -0400
 @@ -282,6 +282,13 @@
  }
  EXPORT_SYMBOL(gadget_event_power_state_changed);
@@ -145,13 +119,36 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
  static int __init init(void)
  {
  	int ret = 0;
+--- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-06-11 17:48:35.000000000 -0400
++++ linux-2.6.24.7-F105/drivers/w1/slaves/w1_ds2784.c	2010-07-04 16:49:07.000000000 -0400
+@@ -1151,11 +1151,20 @@
+ 	return ds2784_gettemperature_dev(battery_device, ret_temperature);
+ }
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++int ds2784_getcurrent(int *ret_current)
++{
++        if (!battery_device) return -1;
++        return ds2784_getcurrent_dev(battery_device, ret_current);
++}
++EXPORT_SYMBOL(ds2784_getcurrent);
++#else
+ static int ds2784_getcurrent(int *ret_current)
+ {
+ 	if (!battery_device) return -1;
+ 	return ds2784_getcurrent_dev(battery_device, ret_current);
+ }
++#endif
+ 
+ static struct battery_ops ds2784_battery_ops = {
+ 	.get_percent       = ds2784_getpercent,
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24.7-test/drivers/cpufreq/cpufreq_screenstate.c	2010-06-23 21:05:45.000000000 -0400
-@@ -0,0 +1,101 @@
++++ linux-2.6.24.7-F105/drivers/cpufreq/cpufreq_screenstate.c	2010-07-05 10:34:27.000000000 -0400
+@@ -0,0 +1,171 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
-+ *  Modfied by:	marco@unixpsycho.com 
++ *  Marco Benton marco@unixpsycho.com 
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -169,33 +166,94 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
 +#include <linux/types.h>
 +#include <linux/mutex.h>
 +#include <asm/uaccess.h>
++#include <linux/workqueue.h>
 +
 +// Cap min freq capped to 500MHz, undef to set to policy->min
-+//#define SCREENSTATE_CAP_MIN_FREQ 1
-+#undef SCREENSTATE_CAP_MIN_FREQ
++//#define SCREENSTATE_CAP_MIN_FREQ
 +
-+static unsigned int	cpu_is_managed;
++static unsigned int cpu_is_managed=0;
++static unsigned int lcd_state;
++static unsigned int charging_state;
 +
 +int gadget_event_state_current(void);
++static int ds2784_getcurrent(int *ret_current);
++static inline void check_charger(struct work_struct *work);
 +
-+static DEFINE_MUTEX	(screenstate_mutex);
++static DEFINE_MUTEX(screenstate_mutex);
++
++static DECLARE_DELAYED_WORK(dbs_work, check_charger);
++
++static inline void check_charger(struct work_struct *work) {
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	int cur=0,current_mA=0;
++
++	mutex_lock(&screenstate_mutex);
++	ds2784_getcurrent(&cur);
++	current_mA=gadget_event_state_current();
++	if((cur>0) && (current_mA < 500)) {
++		// Assume Touchstone
++		if(!charging_state) {
++			charging_state=1;
++			__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++			printk("screenstate: TS found!\n");
++		}
++	} 
++	else {
++		if(current_mA == 1000) {
++			if(!charging_state) {
++				charging_state=1;
++				__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++				printk("screenstate: 1000mA charger found!\n");
++			}
++		}
++		else {
++			if(charging_state) {
++				charging_state=0;
++				printk("screenstate: charger unplugged!\n");
++				if(lcd_state)
++					__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++			}
++		}
++	}
++	schedule_delayed_work(&dbs_work,1000);
++	mutex_unlock(&screenstate_mutex);
++	return;
++}
 +
 +static int cpufreq_governor_screenstate(struct cpufreq_policy *policy,
 +				   unsigned int event) {
 +
 +	switch (event) {
 +		case CPUFREQ_GOV_START:
++			if(cpu_is_managed) break;
++
 +			cpu_is_managed = 1;
++			lcd_state = 1;
++			charging_state = 0;
++			mutex_lock(&screenstate_mutex);
 +			__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++			schedule_delayed_work(&dbs_work,1000);
++			mutex_unlock(&screenstate_mutex);
++			
 +			break;
 +		case CPUFREQ_GOV_STOP:
 +			cpu_is_managed = 0;
++			lcd_state = 0;
++			cancel_delayed_work(&dbs_work);
 +			break;
 +		case CPUFREQ_GOV_LIMITS:
 +			mutex_lock(&screenstate_mutex);
-+			if(gadget_event_state_current() == 1000)
++			printk("screenstate: policy change\n");
++			if(charging_state)
 +				__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
-+			else __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++			else {
++				if(lcd_state) __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++#ifdef SCREENSTATE_CAP_MIN_FREQ
++				else __cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++#else
++				else __cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
++#endif
++			}
 +			mutex_unlock(&screenstate_mutex);
 +			break;
 +		}
@@ -213,27 +271,36 @@ diff -ur linux-2.6.24-a/drivers/usb/gadget/gadget_event.c linux-2.6.24-b/drivers
 +}
 +
 +static void __exit cpufreq_gov_screenstate_exit(void) {
++	flush_scheduled_work();
 +	cpufreq_unregister_governor(&cpufreq_gov_screenstate);
 +}
 +
 +void cpufreq_gov_screenstate_lcdoff(void) {
 +	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	mutex_lock(&screenstate_mutex);
 +	if(cpu_is_managed) {
++		printk("screenstate: lcd off\n");
 +#ifdef SCREENSTATE_CAP_MIN_FREQ
-+		cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++		__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
 +#else
-+		cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
++		__cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
 +#endif
++		lcd_state = 0;
 +	}
++	mutex_unlock(&screenstate_mutex);
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdoff);
 +
 +void cpufreq_gov_screenstate_lcdon(void) {
 +	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	mutex_lock(&screenstate_mutex);
 +        if(cpu_is_managed) {
-+                if(gadget_event_state_current() != 1000) cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
-+		else cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++		printk("screenstate: lcd on\n");
++                if(!charging_state) __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++		else __cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++		lcd_state = 1;
 +        }
++	mutex_unlock(&screenstate_mutex);
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdon);
 +
