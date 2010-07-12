@@ -1,6 +1,6 @@
-diff -c /srv/preware/build/testing-kernels/uber-kernel-pre/build/src-1.4.5-58/linux-2.6.24/arch/arm/mach-omap3pe/board-nduid.c\~ /srv/preware/build/testing-kernels/uber-kernel-pre/build/src-1.4.5-58/linux-2.6.24/arch/arm/mach-omap3pe/board-nduid.c
-*** /srv/preware/build/testing-kernels/uber-kernel-pre/build/src-1.4.5-58/linux-2.6.24/arch/arm/mach-omap3pe/board-nduid.c~	2010-07-12 12:24:36.763254218 +0930
---- /srv/preware/build/testing-kernels/uber-kernel-pre/build/src-1.4.5-58/linux-2.6.24/arch/arm/mach-omap3pe/board-nduid.c	2010-07-12 12:40:39.800754358 +0930
+diff -c linux-2.6.24/arch/arm/mach-omap3pe/board-nduid.c.orig linux-2.6.24/arch/arm/mach-omap3pe/board-nduid.c
+*** linux-2.6.24/arch/arm/mach-omap3pe/board-nduid.c.orig
+--- linux-2.6.24/arch/arm/mach-omap3pe/board-nduid.c
 ***************
 *** 18,23 ****
 --- 18,24 ----
@@ -24,4 +24,3 @@ diff -c /srv/preware/build/testing-kernels/uber-kernel-pre/build/src-1.4.5-58/li
   	return sizeof(uint32_t) * 6;
   }
 
-Diff finished.  Mon Jul 12 12:41:50 2010
