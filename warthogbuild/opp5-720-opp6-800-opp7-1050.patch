@@ -1,0 +1,332 @@
+diff --git a/arch/arm/mach-omap3pe/Kconfig b/arch/arm/mach-omap3pe/Kconfig
+index d9e8c9d..1ec6228 100644
+--- a/arch/arm/mach-omap3pe/Kconfig
++++ b/arch/arm/mach-omap3pe/Kconfig
+@@ -132,17 +132,29 @@ config OMAP3ES2_VDD1_OPP3
+ 	  Select this option if you want to boot at OPP3.
+ 
+ config OMAP3ES2_VDD1_OPP4
+-	bool "MPU-550Mhz/DSP-396Mhz(OPP4)"
++	bool "MPU-600hz/DSP-396Mhz(OPP4)"
+ 	depends on OMAP3_PM
+ 	help
+ 	  Select this option if you want to boot at OPP4.
+ 
+ config OMAP3ES2_VDD1_OPP5
+-	bool "MPU-625Mhz/DSP-430Mhz(OPP5)"
++	bool "MPU-720Mhz/DSP-430Mhz(OPP5)"
+ 	depends on OMAP3_PM
+ 	help
+ 	  Select this option if you want to boot at OPP5.
+ 
++config OMAP3ES2_VDD1_OPP6
++    bool "MPU-800Mhz/DSP-520Mhz(OPP6)"
++    depends on OMAP3_PM
++    help
++      Select this option if you want to boot at OPP6.
++
++config OMAP3ES2_VDD1_OPP7
++    bool "MPU-1050Mhz/DSP-600Mhz(OPP7)"
++    depends on OMAP3_PM
++    help
++      Select this option if you want to boot at OPP7.
++
+ endchoice
+ 
+ comment "Default VDD2 OPP Level Selection"
+diff --git a/arch/arm/mach-omap3pe/clock.h b/arch/arm/mach-omap3pe/clock.h
+index c8dd0bf..4e314af 100644
+--- a/arch/arm/mach-omap3pe/clock.h
++++ b/arch/arm/mach-omap3pe/clock.h
+@@ -47,9 +47,10 @@
+ #define S125M	125000000
+ #define S250M	250000000
+ #define S500M	500000000
+-#define S550M	550000000
+-#define S625M	625000000
+ #define S600M	600000000
++#define S720M   720000000
++#define S800M   800000000
++#define S1050M	1050000000
+ 
+ /* Macro to enable clock control via clock framework */
+ #define ENABLE_CLOCKCONTROL 1
+diff --git a/arch/arm/mach-omap3pe/clock_tree.h b/arch/arm/mach-omap3pe/clock_tree.h
+index fa76d15..9f06e6c 100644
+--- a/arch/arm/mach-omap3pe/clock_tree.h
++++ b/arch/arm/mach-omap3pe/clock_tree.h
+@@ -90,9 +90,14 @@ static struct vdd_prcm_config vdd1_rate_table[MAX_VDD1_OPP +1] = {
+ 	/*OPP3*/
+ 	{S500M, PRCM_VDD1_OPP3, RATE_IN_343X},
+ 	/*OPP4*/
+-	{S550M, PRCM_VDD1_OPP4, RATE_IN_343X},
++	{S600M, PRCM_VDD1_OPP4, RATE_IN_343X},
+ 	/*OPP5*/
+-	{S600M, PRCM_VDD1_OPP5, RATE_IN_343X},
++	{S720M, PRCM_VDD1_OPP5, RATE_IN_343X},
++	/*OPP6*/
++	{S800M, PRCM_VDD1_OPP6, RATE_IN_343X},
++	/*OPP7*/
++	{S1050M, PRCM_VDD1_OPP7, RATE_IN_343X},
++
+ };
+ 
+ static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
+diff --git a/arch/arm/mach-omap3pe/constraint.c b/arch/arm/mach-omap3pe/constraint.c
+index 68e5b84..7fbd1f9 100644
+--- a/arch/arm/mach-omap3pe/constraint.c
++++ b/arch/arm/mach-omap3pe/constraint.c
+@@ -67,7 +67,7 @@ static struct atomic_notifier_head freq_dsp_pre_notifier_list;
+ static struct atomic_notifier_head freq_dsp_post_notifier_list;
+ 
+ #define min_vdd1_opp    CO_VDD1_OPP1
+-#define max_vdd1_opp    CO_VDD1_OPP5
++#define max_vdd1_opp    CO_VDD1_OPP7
+ #define min_vdd2_opp    CO_VDD2_OPP2
+ #define max_vdd2_opp    CO_VDD2_OPP3
+ 
+diff --git a/arch/arm/mach-omap3pe/prcm_opp.c b/arch/arm/mach-omap3pe/prcm_opp.c
+index 067e92a..9f34eea 100644
+--- a/arch/arm/mach-omap3pe/prcm_opp.c
++++ b/arch/arm/mach-omap3pe/prcm_opp.c
+@@ -56,8 +56,8 @@
+ 
+ static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
+ 	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
+-				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
+-	0x1e, 0x24, 0x30, 0x36, 0x3C
++	1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5), 1.35 (OPP6), 1.35 (OPP7) */
++		0x1e, 0x24, 0x26, 0x34, 0x36, 0x3c, 0x3e
+ };
+ 
+ static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
+@@ -155,20 +155,32 @@ static struct dpll_param mpu_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
+ 	/* OPP5 (600 Mhz) */
++	{0x12C, 0x05, 0x07, 0x01},
++	/* OPP6 (720 Mhz) */
++	{0x12C, 0x05, 0x07, 0x01},
++	/* OPP7 (800 Mhz) */
+ 	{0x12C, 0x05, 0x07, 0x01} },
+ 	/* 13M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x1F4, 0x0C, 0x03, 0x04}, {0x1F4, 0x0C, 0x03, 0x02},
+-	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+-	{0x1F4, 0x0C, 0x03, 0x01}, {0x226, 0x0C, 0x03, 0x01},
+-	/* OPP5 (600 Mhz) */
+-	{0x258, 0x0C, 0x03, 0x01} },
++	/* OPP3(500 Mhz) and OPP4(600 Mhz)*/
++	{0x1F4, 0x0C, 0x03, 0x01}, {0x258, 0x0C, 0x03, 0x01},
++	/* OPP5 (720 Mhz) */
++	{0x2D0, 0x0C, 0x03, 0x01},
++	/* OPP6 (800 Mhz) */
++	{0x320, 0x0C, 0x03, 0x01},
++	/* OPP7 (1050 Mhz) */
++	{0x41A, 0x0C, 0x03, 0x01} },
+ 	/* 19.2M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x271, 0x17, 0x03, 0x04}, {0x271, 0x17, 0x03, 0x02},
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x271, 0x17, 0x03, 0x01}, {0x191, 0x0D, 0x05, 0x01},
+ 	/* OPP5 (600 Mhz) */
++	{0x177, 0x0B, 0x06, 0x01},
++	/* OPP6 (720 Mhz) */
++	{0x177, 0x0B, 0x06, 0x01},
++	/* OPP7 (800 Mhz) */
+ 	{0x177, 0x0B, 0x06, 0x01} },
+ 	/* 26M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+@@ -176,13 +188,21 @@ static struct dpll_param mpu_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x0FA, 0x0C, 0x07, 0x01}, {0x113, 0x0C, 0x07, 0x01},
+ 	/* OPP5 (600 Mhz) */
+-	{0x12C, 0x0C, 0x07, 0x01} },
++	{0x12C, 0x0C, 0x07, 0x01},
++	/* OPP6 (720 Mhz) */
++	{0x168, 0x0C, 0x07, 0x01},
++	/* OPP7 (800 Mhz) */
++	{0x190, 0x0C, 0x07, 0x01} },
+ 	/* 38.4M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x271, 0x2F, 0x03, 0x04}, {0x271, 0x2F, 0x03, 0x02},
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x271, 0x2F, 0x03, 0x01}, {0x1BC, 0x1E, 0x04, 0x01},
+ 	/* OPP5 (600 Mhz) */
++	{0x177, 0x17, 0x06, 0x01},
++	/* OPP6 (720 Mhz) */
++	{0x177, 0x17, 0x06, 0x01},
++	/* OPP7 (800 Mhz) */
+ 	{0x177, 0x17, 0x06, 0x01} },
+ };
+ 
+@@ -194,7 +214,11 @@ static struct dpll_param iva_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0B4, 0x05, 0x07, 0x01}, {0x0C6, 0x05, 0x07, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x0D7, 0x05, 0x07, 0x01} },
++	 {0x0D7, 0x05, 0x07, 0x01},
++  /* OPP6 (520 Mhz) */
++   {0x0D7, 0x05, 0x07, 0x01},
++  /* OPP7 (600 Mhz) */
++   {0x0D7, 0x05, 0x07, 0x01} },
+ #if 0
+ 	/* 13M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+@@ -215,7 +239,13 @@ static struct dpll_param iva_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
+ 	/* OPP3(360 Mhz) and OPP4(360 Mhz)*/
+ 	 {0x168, 0x0C, 0x03, 0x01}, {0x168, 0x0C, 0x03, 0x01},
+ 	/* OPP5 (360 Mhz) */
++	 {0x168, 0x0C, 0x03, 0x01},
++  /* OPP6 (520 Mhz) */
++	 {0x168, 0x0C, 0x03, 0x01},
++//        {0x0D7, 0x05, 0x07, 0x01},
++  /* OPP7 (600 Mhz) */
+ 	 {0x168, 0x0C, 0x03, 0x01} },
++//        {0x0D7, 0x05, 0x07, 0x01} },
+ #endif
+ 	/* 19.2M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+@@ -223,21 +253,33 @@ static struct dpll_param iva_dpll_param[5][PRCM_NO_VDD1_OPPS] = {
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x203, 0x16, 0x03, 0x01} },
++	 {0x203, 0x16, 0x03, 0x01},
++  /* OPP6 (520 Mhz) */
++   {0x203, 0x16, 0x03, 0x01},
++  /* OPP7 (600 Mhz) */
++   {0x203, 0x16, 0x03, 0x01} },
+ 	/* 26M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+ 	{{0x0B4, 0x0C, 0x07, 0x04}, {0x0B4, 0x0C, 0x07, 0x02},
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0B4, 0x0C, 0x07, 0x01}, {0x0C6, 0x0C, 0x07, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x0D7, 0x0C, 0x07, 0x01} },
++	 {0x0D7, 0x0C, 0x07, 0x01},
++  /* OPP6 (520 Mhz) */
++   {0x104, 0x0C, 0x07, 0x01},
++  /* OPP7 (600 Mhz) */
++   {0x12c, 0x0C, 0x07, 0x01} },
+ 	/* 38.4M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+ 	{{0x0E1, 0x17, 0x06, 0x04}, {0x0E1, 0x17, 0x06, 0x02},
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0E1, 0x17, 0x06, 0x01}, {0x14A, 0x1F, 0x04, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x23B, 0x32, 0x01, 0x01} },
++	 {0x23B, 0x32, 0x01, 0x01},
++  /* OPP6 (520 Mhz) */
++   {0x23B, 0x32, 0x03, 0x01},
++  /* OPP7 (600 Mhz) */
++   {0x23B, 0x32, 0x03, 0x01} },
+ };
+ 
+ /* CORE parameters */
+@@ -478,6 +520,13 @@ void prcm_scale_finish(void)
+ 		case PRCM_VDD1_OPP5:
+ 			valid_rate = clk_round_rate(p_vdd1_clk, S600M);
+ 			break;
++                case PRCM_VDD1_OPP6:
++                        valid_rate = clk_round_rate(p_vdd1_clk, S720M);
++                        break;
++                case PRCM_VDD1_OPP7:
++                        valid_rate = clk_round_rate(p_vdd1_clk, S1050M);
++                        break;
++
+ 		}
+ 		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
+ 	}
+@@ -493,8 +542,11 @@ static struct vdd1_arm_dsp_freq_d {
+ 	{125,  90, CO_VDD1_OPP1, PRCM_VDD1_OPP1},
+ 	{250, 180, CO_VDD1_OPP2, PRCM_VDD1_OPP2},
+ 	{500, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
+-	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
+-	{600, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{600, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
++	{720, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{800, 520, CO_VDD1_OPP6, PRCM_VDD1_OPP6},
++	{1050, 600, CO_VDD1_OPP7, PRCM_VDD1_OPP7},
++
+ };
+ static struct vdd2_core_freq_d {
+ 	unsigned int freq;
+@@ -506,8 +558,8 @@ static struct vdd2_core_freq_d {
+ 	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
+ };
+ 
+-static unsigned int rnd_rate_vdd1[5] = {
+-	S125M, S250M, S500M, S550M, S600M
++static unsigned int rnd_rate_vdd1[7] = {
++	S125M, S250M, S500M, S600M, S720M, S800M, S1050M
+ };
+ static unsigned int rnd_rate_vdd2[3] = {
+ 	0, S83M, S166M
+@@ -1449,6 +1501,11 @@ int __init prcm_vdd_clk_init(void)
+ 	target_vdd1_opp = PRCM_VDD1_OPP4;
+ #elif defined(CONFIG_OMAP3ES2_VDD1_OPP5)
+ 	target_vdd1_opp = PRCM_VDD1_OPP5;
++#elif defined(CONFIG_OMAP3ES2_VDD1_OPP6)
++  target_vdd1_opp = PRCM_VDD1_OPP6;
++#elif defined(CONFIG_OMAP3ES2_VDD1_OPP7)
++  target_vdd1_opp = PRCM_VDD1_OPP7;
++
+ #endif
+         target_mpu_khz  = get_arm_freq_for_opp(get_opp_no(target_vdd1_opp));
+ 
+diff --git a/include/asm-arm/arch-omap/prcm.h b/include/asm-arm/arch-omap/prcm.h
+index 05bab7e..ad67920 100644
+--- a/include/asm-arm/arch-omap/prcm.h
++++ b/include/asm-arm/arch-omap/prcm.h
+@@ -609,7 +609,12 @@
+ 							| ID_OPP_NO(0x4))
+ #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
+ 							| ID_OPP_NO(0x5))
+-#define PRCM_NO_VDD1_OPPS	5
++#define PRCM_VDD1_OPP6          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x6))
++#define PRCM_VDD1_OPP7          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x7))
++
++#define PRCM_NO_VDD1_OPPS	7
+ 
+ /* VDD2 OPPs */
+ #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
+diff --git a/include/asm-arm/arch-omap/resource.h b/include/asm-arm/arch-omap/resource.h
+index 4327cee..5e6606e 100644
+--- a/include/asm-arm/arch-omap/resource.h
++++ b/include/asm-arm/arch-omap/resource.h
+@@ -32,7 +32,7 @@
+ #define curr_vdd1_opp   3
+ #define curr_vdd2_opp   3
+ #define min_vdd1_opp    CO_VDD1_OPP1
+-#define max_vdd1_opp    CO_VDD1_OPP5
++#define max_vdd1_opp    CO_VDD1_OPP7
+ #define min_vdd2_opp    CO_VDD2_OPP2
+ #define max_vdd2_opp    CO_VDD2_OPP3
+ 
+@@ -121,6 +121,8 @@
+ #define CO_VDD1_OPP3		0x3
+ #define CO_VDD1_OPP4		0x4
+ #define CO_VDD1_OPP5		0x5
++#define CO_VDD1_OPP6		0x6
++#define CO_VDD1_OPP7		0x7
+ 
+ /* VDD2 OPP constraint levels */
+ #define CO_VDD2_OPP1		0x1
+@@ -274,11 +276,11 @@
+ #define curr_arm_freq 	500
+ #define curr_dsp_freq 	360
+ #define min_arm_freq 	125
+-#define max_arm_freq 	600
++#define max_arm_freq 	1050
+ #define min_dsp_freq 	90
+-#define max_dsp_freq 	430
++#define max_dsp_freq 	600
+ #define MIN_VDD1_OPP 	CO_VDD1_OPP1
+-#define MAX_VDD1_OPP 	CO_VDD1_OPP5
++#define MAX_VDD1_OPP 	CO_VDD1_OPP7
+ #define MIN_VDD2_OPP 	CO_VDD2_OPP2
+ #define MAX_VDD2_OPP 	CO_VDD2_OPP3
+ 
