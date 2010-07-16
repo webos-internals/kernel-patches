@@ -1,5 +1,5 @@
 diff --git a/arch/arm/mach-omap3pe/Kconfig b/arch/arm/mach-omap3pe/Kconfig
-index d9e8c9d..1ec6228 100644
+index d9e8c9d..bf6df64 100644
 --- a/arch/arm/mach-omap3pe/Kconfig
 +++ b/arch/arm/mach-omap3pe/Kconfig
 @@ -132,17 +132,29 @@ config OMAP3ES2_VDD1_OPP3
@@ -14,19 +14,19 @@ index d9e8c9d..1ec6228 100644
  
  config OMAP3ES2_VDD1_OPP5
 -	bool "MPU-625Mhz/DSP-430Mhz(OPP5)"
-+	bool "MPU-720Mhz/DSP-430Mhz(OPP5)"
++	bool "MPU-720Mhz/DSP-360Mhz(OPP5)"
  	depends on OMAP3_PM
  	help
  	  Select this option if you want to boot at OPP5.
  
 +config OMAP3ES2_VDD1_OPP6
-+    bool "MPU-800Mhz/DSP-520Mhz(OPP6)"
++    bool "MPU-800Mhz/DSP-360Mhz(OPP6)"
 +    depends on OMAP3_PM
 +    help
 +      Select this option if you want to boot at OPP6.
 +
 +config OMAP3ES2_VDD1_OPP7
-+    bool "MPU-1050Mhz/DSP-600Mhz(OPP7)"
++    bool "MPU-1050Mhz/DSP-360Mhz(OPP7)"
 +    depends on OMAP3_PM
 +    help
 +      Select this option if you want to boot at OPP7.
@@ -86,7 +86,7 @@ index 68e5b84..7fbd1f9 100644
  #define max_vdd2_opp    CO_VDD2_OPP3
  
 diff --git a/arch/arm/mach-omap3pe/prcm_opp.c b/arch/arm/mach-omap3pe/prcm_opp.c
-index 067e92a..9f34eea 100644
+index 067e92a..2f46d05 100644
 --- a/arch/arm/mach-omap3pe/prcm_opp.c
 +++ b/arch/arm/mach-omap3pe/prcm_opp.c
 @@ -56,8 +56,8 @@
@@ -244,10 +244,10 @@ index 067e92a..9f34eea 100644
  	{500, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
 -	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
 -	{600, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
-+	{600, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
-+	{720, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
-+	{800, 520, CO_VDD1_OPP6, PRCM_VDD1_OPP6},
-+	{1050, 600, CO_VDD1_OPP7, PRCM_VDD1_OPP7},
++	{600, 360, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
++	{720, 360, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{800, 360, CO_VDD1_OPP6, PRCM_VDD1_OPP6},
++	{1050, 360, CO_VDD1_OPP7, PRCM_VDD1_OPP7},
 +
  };
  static struct vdd2_core_freq_d {
