@@ -169,8 +169,8 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +#include <linux/workqueue.h>
 +
 +// Cap min freq capped to 500MHz, or set to policy->min
-+#define SCREENSTATE_CAP_MIN_FREQ policy->min
-+//#define SCREENSTATE_CAP_MIN_FREQ 500000
++//#define SCREENSTATE_CAP_MIN_FREQ policy->min
++#define SCREENSTATE_CAP_MIN_FREQ 500000
 +
 +// High temp alarm and cap
 +#define SCREENSTATE_HIGHTEMP 55
