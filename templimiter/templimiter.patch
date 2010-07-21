@@ -1,0 +1,118 @@
+--- kernel/power/battery_fastpath_client.c.orig	2010-07-18 21:40:03.000000000 -0700
++++ kernel/power/battery_fastpath_client.c	2010-07-21 00:04:20.000000000 -0700
+@@ -2,6 +2,7 @@
+  * battery_fastpath_client.c
+  *
+  * Copyright (C) 2008-2009 Palm, Inc.
++ * Copyright (C) 2010 Tom King <ka6sox@gmail.com>
+  *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 as
+@@ -26,6 +27,9 @@
+ #include <linux/gen_timer.h>
+ #include <linux/fastpath_client.h>
+ 
++#include <linux/cpufreq.h>
++#include <linux/spinlock.h>
++
+ /**
+  * Debug
+  */
+@@ -169,6 +173,20 @@
+   { 0,		 POLL_FREQ_SEC_LT_3400   },
+ };
+ 
++/*
++* Defines for overtemp section
++*/
++
++#define int overtemp_attack_threshold  55; /* in Deg C */
++#define int overtemp_release_threshold 50; /* in Deg C */
++#define int overtemp;
++#define int overtemp_condition_exists;
++
++int omap34xx_get_temp(void);
++
++/*
++*/
++
+ static int percent_sample[BATTERY_PERCENT_SAMPLES];
+ static int percent_sample_index = 0;
+ 
+@@ -280,7 +298,7 @@
+ 		}
+ 	}
+ 
+-	if (battery.temperature_C >= BATTERY_HIGH_TEMPERATURE_C)
++	if ((battery.temperature_C >= BATTERY_HIGH_TEMPERATURE_C) || (overtemp))  /* poll faster if we are overtemp'd on battery or CPU */
+ 	{
+ 		poll_interval = min(poll_interval, POLL_FREQ_HIGH_TEMP);
+ 	}
+@@ -294,6 +312,9 @@
+ 	int percent;
+ 	int voltage_uV;
+ 	int temperature_C;
++	u32 cputemp;
++	
++	cputemp = omap34xx_get_temp();    // Get CPU temp
+ 
+ 	if (fake_battery.enabled) {
+ 		/* Debugging overrides */
+@@ -325,6 +347,49 @@
+ 	battery.percent = percent;
+ 	battery.voltage_uV = voltage_uV;
+ 	battery.temperature_C = temperature_C;
++	
++	if((cputemp >= overtemp_attack_threshold) && (!overtemp))   \
++	      ||  ((battery.temperature_C >= BATTERY_HIGH_TEMPERATURE_C) && (!overtemp))
++	{
++		if(battery.temperature_C >= BATTERY_HIGH_TEMPERATURE_C) 
++		{
++			printk("battery_check:Battery overtemp warning! %dC\n",temperature_C);
++		else
++			printk("battery_check:CPU Overtemp warning! &dC\n",cputemp);    
++		}
++		overtemp_condition_exists = 1;
++		__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++		overtemp = 1;
++	}
++	else if((cputemp >= overtemp_release_threshold) && (overtemp))  \
++	|| (battery.temperature_C >= BATTERY_HIGH_TEMPERATURE_C) && (overtemp)) 
++	{			
++		if(battery.temperature_C >= BATTERY_HIGH_TEMPERATURE_C) 
++		{
++			printk("battery_check:Battery overtemp still Hot! %dC\n",temperature_C);
++		else
++			printk("battery_check:CPU overtemp still hot! &dC\n",cputemp);    
++		}		
++		overtemp_condition_exists = 1;
++		__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++		overtemp = 1;
++	}
++	else if((cputemp <= overtemp_release_threshold) && (overtemp)) \ 
++	|| ((!battery.temperature_C >= BATTERY_HIGH_TEMPERATURE_C) && (overtemp)) 
++	{
++		if(battery.temperature_C >= BATTERY_HIGH_TEMPERATURE_C) 
++		{
++			printk("battery_check:Battery temperature normal %dC\n",temperature_C);
++		else
++			printk("battery_check:CPU temperature normal &dC\n",cputemp);    
++		}
++		overtemp_condition_exists = 0;
++		__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++		overtemp = 0;
++	}
++				
++EXPORT_SYMBOL(overtemp_condition_exists);
++
+ 
+ 	if (now) {
+ 		battery.last_read_sec = now;
+@@ -552,5 +617,6 @@
+ module_exit(batterycheck_module_exit);
+ 
+ MODULE_AUTHOR("Palm, Inc.");
+-MODULE_DESCRIPTION("Provides the ability to periodically wake device to check for critical battery.");
++MODULE_AUTHOR("Tom King");
++MODULE_DESCRIPTION("Provides the ability to periodically wake device to check for critical battery and temperatures.");
+ MODULE_LICENSE("GPL");
