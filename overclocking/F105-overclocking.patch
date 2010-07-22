@@ -81,20 +81,19 @@
  
  comment "Default VDD2 OPP Level Selection"
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/prcm_opp.c	2010-07-15 16:52:03.000000000 -0400
-@@ -56,8 +56,9 @@
++++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/prcm_opp.c	2010-07-21 21:34:15.000000000 -0400
+@@ -56,8 +56,8 @@
  
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
 -				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
-+	1.20V (OPP3), 1.27V (OPP4), 1.35V (OPP5), 1.35V (OPP6), 1.525V (OPP7) */
-+		//0x1E, 0x24, 0x30, 0x36, 0x3C, 0x3c, 0x42
-+		0x1E, 0x24, 0x30, 0x36, 0x3C, 0x3c, 0x4A
++	1.20V (OPP3), 1.27V (OPP4), 1.42V (OPP5), 1.475 (OPP6), 1.525V (OPP7) */
++		0x1E, 0x24, 0x30, 0x36, 0x42, 0x46, 0x4A
  };
  
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
-@@ -155,20 +156,32 @@
+@@ -155,20 +155,32 @@
  	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
  	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
  	/* OPP5 (600 Mhz) */
@@ -131,7 +130,7 @@
  	{0x177, 0x0B, 0x06, 0x01} },
  	/* 26M values */
  	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
-@@ -176,13 +189,21 @@
+@@ -176,13 +188,21 @@
  	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
  	{0x0FA, 0x0C, 0x07, 0x01}, {0x113, 0x0C, 0x07, 0x01},
  	/* OPP5 (600 Mhz) */
@@ -154,7 +153,7 @@
  	{0x177, 0x17, 0x06, 0x01} },
  };
  
-@@ -194,7 +215,11 @@
+@@ -194,7 +214,11 @@
  	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
  	 {0x0B4, 0x05, 0x07, 0x01}, {0x0C6, 0x05, 0x07, 0x01},
  	/* OPP5 (430 Mhz) */
@@ -167,21 +166,20 @@
  #if 0
  	/* 13M values */
  	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
-@@ -215,7 +240,13 @@
+@@ -215,7 +239,11 @@
  	/* OPP3(360 Mhz) and OPP4(360 Mhz)*/
  	 {0x168, 0x0C, 0x03, 0x01}, {0x168, 0x0C, 0x03, 0x01},
  	/* OPP5 (360 Mhz) */
+-	 {0x168, 0x0C, 0x03, 0x01} },
 +	 {0x168, 0x0C, 0x03, 0x01},
-+        /* OPP6 (520 Mhz) */
++        /* OPP6 (360 Mhz) */
 +	 {0x168, 0x0C, 0x03, 0x01},
-+//        {0x0D7, 0x05, 0x07, 0x01},
-+        /* OPP7 (600 Mhz) */
- 	 {0x168, 0x0C, 0x03, 0x01} },
-+//        {0x0D7, 0x05, 0x07, 0x01} },
++        /* OPP7 (520 Mhz) */
++	 {0x208, 0x0C, 0x03, 0x01} },
  #endif
  	/* 19.2M values */
  	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
-@@ -223,21 +254,33 @@
+@@ -223,21 +251,33 @@
  	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
  	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
  	/* OPP5 (430 Mhz) */
@@ -218,7 +216,7 @@
  };
  
  /* CORE parameters */
-@@ -473,11 +516,18 @@
+@@ -473,11 +513,18 @@
  			valid_rate = clk_round_rate(p_vdd1_clk, S500M);
  			break;
  		case PRCM_VDD1_OPP4:
@@ -239,7 +237,7 @@
  		}
  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
  	}
-@@ -490,11 +540,14 @@
+@@ -490,11 +537,14 @@
  	unsigned int constraint;
  	unsigned int opp;
  } vdd1_arm_dsp_freq[MAX_VDD1_OPP] = {
@@ -253,12 +251,12 @@
 +	{700, 360, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
 +	{800, 360, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
 +	{900, 360, CO_VDD1_OPP6, PRCM_VDD1_OPP6},
-+	{1005, 360, CO_VDD1_OPP7, PRCM_VDD1_OPP7},
++	{1005, 520, CO_VDD1_OPP7, PRCM_VDD1_OPP7},
 +
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
-@@ -506,8 +559,8 @@
+@@ -506,8 +556,8 @@
  	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
  };
  
@@ -269,7 +267,7 @@
  };
  static unsigned int rnd_rate_vdd2[3] = {
  	0, S83M, S166M
-@@ -1449,6 +1502,11 @@
+@@ -1449,6 +1499,11 @@
  	target_vdd1_opp = PRCM_VDD1_OPP4;
  #elif defined(CONFIG_OMAP3ES2_VDD1_OPP5)
  	target_vdd1_opp = PRCM_VDD1_OPP5;
@@ -298,7 +296,7 @@
  /* VDD2 OPPs */
  #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24.7-F105/include/asm-arm/arch-omap/resource.h	2010-07-07 13:48:53.000000000 -0400
++++ linux-2.6.24.7-F105/include/asm-arm/arch-omap/resource.h	2010-07-19 23:54:07.000000000 -0400
 @@ -30,14 +30,14 @@
  
  
@@ -337,7 +335,7 @@
 +#define max_arm_freq 	1005
  #define min_dsp_freq 	90
 -#define max_dsp_freq 	430
-+#define max_dsp_freq 	360
++#define max_dsp_freq 	600
  #define MIN_VDD1_OPP 	CO_VDD1_OPP1
 -#define MAX_VDD1_OPP 	CO_VDD1_OPP5
 -#define MIN_VDD2_OPP 	CO_VDD2_OPP2
@@ -346,3 +344,14 @@
  #define MAX_VDD2_OPP 	CO_VDD2_OPP3
  
  /* Structure returned to the framework user as handle */
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/clock.c	2010-07-21 21:23:06.000000000 -0400
+@@ -709,6 +709,8 @@
+ 
+ 	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;
+ 	for (; prcm->speed; prcm--) {
++		// Damn l-users!!!!  This will fix them!!!
++		if((prcm->speed / 1000) < 500000) continue;
+ 		freq_table[i].index = i;
+ 		freq_table[i].frequency = prcm->speed / 1000;
+ 		i++;
