@@ -1,0 +1,48 @@
+diff --git a/arch/arm/mach-omap3pe/smartreflex.c b/arch/arm/mach-omap3pe/smartreflex.c
+index d197a08..7df05b5 100644
+--- a/arch/arm/mach-omap3pe/smartreflex.c
++++ b/arch/arm/mach-omap3pe/smartreflex.c
+@@ -50,7 +50,7 @@ struct omap_sr{
+ 	int is_autocomp_active;
+ 	struct clk *fck;
+ 	u32 req_opp_no;
+-	u32 opp1_nvalue, opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue;
++	u32 opp1_nvalue, opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue, opp6_nvalue, opp7_nvalue;
+ 	u32 senp_mod, senn_mod;
+ 	u32 srbase_addr;
+ 	u32 vpbase_addr;
+@@ -203,6 +203,12 @@ static void sr_enable(struct omap_sr *sr, u32 target_opp_no)
+ 
+ 	if (sr->srid == SR1) {
+ 		switch (target_opp_no) {
++		case 7:
++			nvalue_reciprocal = sr->opp7_nvalue;
++			break;
++		case 6:
++			nvalue_reciprocal = sr->opp6_nvalue;
++			break;
+ 		case 5:
+ 			nvalue_reciprocal = sr->opp5_nvalue;
+ 			break;
+diff --git a/arch/arm/mach-omap3pe/smartreflex.h b/arch/arm/mach-omap3pe/smartreflex.h
+index d0d2f63..a566f2e 100644
+--- a/arch/arm/mach-omap3pe/smartreflex.h
++++ b/arch/arm/mach-omap3pe/smartreflex.h
+@@ -30,7 +30,7 @@
+ #define PRM_VP1_CONFIG_ERROROFFSET	(0x00 << 24)
+ #define PRM_VP1_CONFIG_ERRORGAIN	(0x20 << 16)
+ 
+-#define PRM_VP1_CONFIG_INITVOLTAGE	(0x30 << 8) /* 1.2 volt */
++#define PRM_VP1_CONFIG_INITVOLTAGE	(0x26 << 8) /* 1.075 volt */
+ #define PRM_VP1_CONFIG_TIMEOUTEN	(0x1 << 3)
+ #define PRM_VP1_CONFIG_INITVDD		(0x1 << 2)
+ #define PRM_VP1_CONFIG_FORCEUPDATE	(0x1 << 1)
+@@ -53,7 +53,7 @@
+ #define PRM_VP2_CONFIG_ERROROFFSET	(0x00 << 24)
+ #define PRM_VP2_CONFIG_ERRORGAIN	(0x20 << 16)
+ 
+-#define PRM_VP2_CONFIG_INITVOLTAGE	(0x30 << 8) /* 1.2 volt */
++#define PRM_VP2_CONFIG_INITVOLTAGE	(0x26 << 8) /* 1.075 volt */
+ #define PRM_VP2_CONFIG_TIMEOUTEN	(0x1 << 3)
+ #define PRM_VP2_CONFIG_INITVDD		(0x1 << 2)
+ #define PRM_VP2_CONFIG_FORCEUPDATE	(0x1 << 1)
