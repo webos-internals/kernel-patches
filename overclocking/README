@@ -1,10 +1,12 @@
 Overclocking patches
 
+override.patch: CPUfreq module to monitor and control temps and vdd1 Vsel tuner
+
 opp6-720-opp7-1005-min-opp5.patch: max 1005MHz
 
 opp6-720-opp7-800-min-opp5.patch: max 800MHz
 
-F105-overclocking.patch: 500, 700, 800, 900, 1005MHz
+F105-overclockinging.patch: 500, 700, 800, 900, 1005MHz
 
 defconfigs can be used with both patchsets.
 
