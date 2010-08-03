@@ -376,6 +376,7 @@
 +#define MAX_VDD1_OPP 	CO_VDD1_OPP7
  #define MIN_VDD2_OPP 	CO_VDD2_OPP2
  #define MAX_VDD2_OPP 	CO_VDD2_OPP3
+
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c     2010-06-11 17:48:34.000000000 -0400
 +++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/clock.c   2010-07-21 21:23:06.000000000 -0400
 @@ -709,6 +709,8 @@
