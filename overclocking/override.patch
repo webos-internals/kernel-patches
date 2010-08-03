@@ -94,8 +94,8 @@
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
 +#endif
 --- linux-2.6.24.7-F111/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24.7-F105C/drivers/cpufreq/cpufreq_override.c	2010-07-29 22:36:02.000000000 -0400
-@@ -0,0 +1,178 @@
++++ linux-2.6.24.7-F105C/drivers/cpufreq/cpufreq_override.c	2010-08-02 21:59:26.000000000 -0400
+@@ -0,0 +1,209 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -114,6 +114,12 @@
 +#include <linux/jiffies.h>
 +#include <linux/kobject.h>
 +#include <linux/workqueue.h>
++
++// VDD1 Vsel max
++#define VDD1_VSEL_MAX 112
++
++// VDD1 Vsel min
++#define VDD1_VSEL_MIN 25
 +
 +// High temp alarm and cap
 +#define HIGHTEMP_SCALEBACK 55
@@ -135,6 +141,7 @@
 +
 +static u32 override_hightemp=HIGHTEMP_SCALEBACK;
 +static u32 override_lowtemp=LOWTEMP_RESET;
++
 +static unsigned int overtemp_alarm=0;
 +
 +static DEFINE_MUTEX(override_mutex);
@@ -145,6 +152,12 @@
 +        .attr = {.name = __stringify(_name), .mode = _mode, }, \
 +        .show = _show,\
 +        .store = _store,\
++};
++
++#define CPUFREQ_OVERRIDE_ATTR2(_name,_mode,_show) \
++static struct freq_attr _attr_##_name = {\
++	.attr = {.name = __stringify(_name), .mode = _mode, }, \
++	.show = _show,\
 +};
 +
 +static inline void check_temp(struct work_struct *work) {
@@ -184,6 +197,14 @@
 +	schedule_delayed_work(&dbs_work,OVERRIDE_POLLING);
 +}
 +
++static ssize_t show_vdd1_vsel_max(struct cpufreq_policy *policy, char *buf) {
++	return sprintf(buf, "%hu\n",VDD1_VSEL_MAX);
++}
++
++static ssize_t show_vdd1_vsel_min(struct cpufreq_policy *policy, char *buf) {
++	return sprintf(buf, "%hu\n",VDD1_VSEL_MIN);
++}
++
 +static ssize_t show_vdd1_vsel(struct cpufreq_policy *policy, char *buf) {
 +        u8 volt[7];
 +
@@ -195,13 +216,19 @@
 +
 +static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
 +						size_t count) {
-+        u8 volt[7];
++        u8 volt[7], i;
 +
 +        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
 +                                                &volt[4],&volt[3],&volt[2],
-+                                                &volt[1],&volt[0]) == 7)
-+                omap_pm_opp_set_volts(volt);
-+        else printk("CPUfreq: invalid vsel\n");
++                                                &volt[1],&volt[0]) == 7) {
++		for(i=0;i < 7;i++) {
++			if((volt[i] < VDD1_VSEL_MIN) || (volt[i] > VDD1_VSEL_MAX))
++				printk("CPUfreq: invalid vsel\n");
++				break;
++		}
++		if(i == 7) omap_pm_opp_set_volts(volt);
++	}
++	else printk("CPUfreq: missing vsel values\n");
 +
 +	return count;
 +}
@@ -239,6 +266,8 @@
 +}
 +
 +CPUFREQ_OVERRIDE_ATTR(vdd1_vsel,0644,show_vdd1_vsel,store_vdd1_vsel);
++CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_min,0444,show_vdd1_vsel_min);
++CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_max,0444,show_vdd1_vsel_max);
 +CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_alarm,0644,show_hightemp_scaleback,
 +			store_hightemp_scaleback);
 +CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_reset,0644,show_lowtemp_reset,
@@ -246,6 +275,8 @@
 +
 +static struct attribute *default_attrs[] = {
 +        &_attr_vdd1_vsel.attr,
++        &_attr_vdd1_vsel_min.attr,
++        &_attr_vdd1_vsel_max.attr,
 +        &_attr_cpu_hightemp_alarm.attr,
 +        &_attr_cpu_hightemp_reset.attr,
 +        NULL
