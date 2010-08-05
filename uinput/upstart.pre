@@ -1,14 +1,14 @@
 #!/bin/sh
 
-description "aufs module loader"
+description "uinput module loader"
 
 start on stopped finish
 
 script
+  APP_ID=org.webosinternals.modules.uinput-pre
   APPS=/media/cryptofs/apps
-  APP_ID=org.webosinternals.modules.aufs
   APP_DIR=${APPS}/usr/palm/applications/${APP_ID}
-  MODULE=${APP_DIR}/additional_files/lib/modules/`uname -r`/extra/aufs.ko
+  MODULE=${APP_DIR}/additional_files/lib/modules/`uname -r`/kernel/drivers/input/misc/uinput.ko
 
   if [ -f ${MODULE} ]; then
     /sbin/insmod ${MODULE}

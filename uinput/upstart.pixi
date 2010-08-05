@@ -5,8 +5,8 @@ description "uinput module loader"
 start on stopped finish
 
 script
+  APP_ID=org.webosinternals.modules.uinput-pixi
   APPS=/media/cryptofs/apps
-  APP_ID=org.webosinternals.modules.uinput
   APP_DIR=${APPS}/usr/palm/applications/${APP_ID}
   MODULE=${APP_DIR}/additional_files/lib/modules/`uname -r`/kernel/drivers/input/misc/uinput.ko
 
