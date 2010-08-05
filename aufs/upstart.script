@@ -5,13 +5,16 @@ description "aufs module loader"
 start on stopped finish
 
 script
-  APPS=/media/cryptofs/apps
-  APP_ID=org.webosinternals.modules.aufs
-  APP_DIR=${APPS}/usr/palm/applications/${APP_ID}
-  MODULE=${APP_DIR}/additional_files/lib/modules/`uname -r`/extra/aufs.ko
+  APP_ID=
 
-  if [ -f ${MODULE} ]; then
-    /sbin/insmod ${MODULE}
+  if [ -n "${APP_ID}" ]; then
+    APPS=/media/cryptofs/apps
+    APP_DIR=${APPS}/usr/palm/applications/${APP_ID}
+    MODULE=${APP_DIR}/additional_files/lib/modules/`uname -r`/extra/aufs.ko
+
+    if [ -f ${MODULE} ]; then
+      /sbin/insmod ${MODULE}
+    fi
   fi
 
 end script
