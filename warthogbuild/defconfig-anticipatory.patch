@@ -1,0 +1,19 @@
+diff --git a/arch/arm/configs/omap_sirloin_3430_defconfig b/arch/arm/configs/omap_sirloin_3430_defconfig
+index f545100..1cffbe9 100644
+--- a/arch/arm/configs/omap_sirloin_3430_defconfig
++++ b/arch/arm/configs/omap_sirloin_3430_defconfig
+@@ -108,11 +108,11 @@ CONFIG_IOSCHED_NOOP=y
+ CONFIG_IOSCHED_AS=y
+ CONFIG_IOSCHED_DEADLINE=y
+ CONFIG_IOSCHED_CFQ=y
+-# CONFIG_DEFAULT_AS is not set
++CONFIG_DEFAULT_AS=y
+ # CONFIG_DEFAULT_DEADLINE is not set
+-CONFIG_DEFAULT_CFQ=y
++# CONFIG_DEFAULT_CFQ is not set
+ # CONFIG_DEFAULT_NOOP is not set
+-CONFIG_DEFAULT_IOSCHED="cfq"
++CONFIG_DEFAULT_IOSCHED="anticipatory"
+ 
+ #
+ # System Type
