@@ -1,0 +1,329 @@
+--- linux-2.6.24.7-F111/drivers/cpufreq/Kconfig	2010-05-31 12:05:09.000000000 -0400
++++ linux-2.6.24.7-F105C/drivers/cpufreq/Kconfig	2010-07-29 20:33:28.000000000 -0400
+@@ -53,6 +53,14 @@
+ 
+ 	  If in doubt, say N.
+ 
++config CPU_FREQ_OVERRIDE
++	bool "Extra on-demand CPU tweaking options"
++	default y
++	help
++	  This will give options to tweak CPU settings in-demand.
++
++	  If in doubt, say Y.
++
+ choice
+ 	prompt "Default CPUFreq governor"
+ 	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
+--- linux-2.6.24.7-F111/drivers/cpufreq/Makefile	2010-05-31 12:05:09.000000000 -0400
++++ linux-2.6.24.7-F105C/drivers/cpufreq/Makefile	2010-07-29 22:51:07.000000000 -0400
+@@ -14,3 +14,5 @@
+ # CPUfreq cross-arch helpers
+ obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
+ 
++# CPUfreq override
++obj-$(CONFIG_CPU_FREQ_OVERRIDE)		+= cpufreq_override.o
+--- linux-2.6.24.7-F111/drivers/cpufreq/cpufreq.c	2010-05-30 23:47:28.000000000 -0400
++++ linux-2.6.24.7-F105C/drivers/cpufreq/cpufreq.c	2010-07-29 22:52:25.000000000 -0400
+@@ -32,6 +32,11 @@
+ #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
+ 						"cpufreq-core", msg)
+ 
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++int cpufreq_override_driver_init(void);
++void cpufreq_override_driver_exit(void);
++#endif
++
+ /**
+  * The "cpufreq driver" - the arch- or hardware-dependent low
+  * level driver of CPUFreq support, and its spinlock. This lock
+@@ -1682,6 +1687,15 @@
+ 	return ret;
+ }
+ 
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++int cpufreq_set_policy(struct cpufreq_policy *policy)
++{
++	struct cpufreq_policy *data = cpufreq_cpu_get(0);
++	__cpufreq_set_policy(data,policy);
++}
++EXPORT_SYMBOL(cpufreq_set_policy);
++#endif
++
+ /**
+  *	cpufreq_update_policy - re-evaluate an existing cpufreq policy
+  *	@cpu: CPU which shall be re-evaluated
+@@ -1831,6 +1845,10 @@
+ 		cpufreq_debug_enable_ratelimit();
+ 	}
+ 
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++	cpufreq_override_driver_init();
++#endif
++
+ 	return (ret);
+ }
+ EXPORT_SYMBOL_GPL(cpufreq_register_driver);
+@@ -1864,6 +1882,10 @@
+ 	cpufreq_driver = NULL;
+ 	spin_unlock_irqrestore(&cpufreq_driver_lock, flags);
+ 
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++	cpufreq_override_driver_exit();
++#endif
++
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
+--- linux-2.6.24.7-F111/arch/arm/mach-omap3pe/prcm_opp.c	2010-07-20 22:45:41.000000000 -0400
++++ linux-2.6.24.7-F105C/arch/arm/mach-omap3pe/prcm_opp.c	2010-08-03 12:23:10.000000000 -0400
+@@ -1577,3 +1577,16 @@
+ 
+ 	return -1;
+ }
++
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++void omap_pm_opp_get_volts(u8 *vdd1_volts[]) {
++	memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++}
++EXPORT_SYMBOL(omap_pm_opp_get_volts);
++
++void omap_pm_opp_set_volts(u8 vdd1_volts[]) {
++	memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++	prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
++}
++EXPORT_SYMBOL(omap_pm_opp_set_volts);
++#endif
+--- linux-2.6.24.7-F111/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
++++ linux-2.6.24.7-F105C/drivers/cpufreq/cpufreq_override.c	2010-08-03 11:47:29.000000000 -0400
+@@ -0,0 +1,213 @@
++/*
++ *  drivers/cpufreq/cpufreq_override.c
++ *
++ *  	Marco Benton <marco@unixpsycho.com>.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ */
++
++#include <linux/kernel.h>
++#include <linux/sysdev.h>
++#include <linux/cpu.h>
++#include <linux/sysfs.h>
++#include <linux/cpufreq.h>
++#include <linux/jiffies.h>
++#include <linux/kobject.h>
++#include <linux/workqueue.h>
++
++// VDD1 Vsel max
++#define VDD1_VSEL_MAX 112
++
++// VDD1 Vsel min
++#define VDD1_VSEL_MIN 25
++
++// High temp alarm and cap
++#define HIGHTEMP_SCALEBACK 55
++
++//Reset temp from alarm
++#define LOWTEMP_RESET 50
++
++// Polling frequency jiffies
++#define OVERRIDE_POLLING 1000
++
++void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
++void omap_pm_opp_set_volts(u8 vdd1_volts[]);
++int omap34xx_get_temp(void);
++int cpufreq_set_policy(struct cpufreq_policy *policy);
++
++static inline void check_temp(struct work_struct *work);
++int prev_maxspeed=0;
++int prev_minspeed=0;
++
++static u32 override_hightemp=HIGHTEMP_SCALEBACK;
++static u32 override_lowtemp=LOWTEMP_RESET;
++
++static unsigned int overtemp_alarm=0;
++
++static DEFINE_MUTEX(override_mutex);
++static DECLARE_DELAYED_WORK(dbs_work, check_temp);
++
++#define CPUFREQ_OVERRIDE_ATTR(_name,_mode,_show,_store) \
++static struct freq_attr _attr_##_name = {\
++        .attr = {.name = __stringify(_name), .mode = _mode, }, \
++        .show = _show,\
++        .store = _store,\
++};
++
++#define CPUFREQ_OVERRIDE_ATTR2(_name,_mode,_show) \
++static struct freq_attr _attr_##_name = {\
++	.attr = {.name = __stringify(_name), .mode = _mode, }, \
++	.show = _show,\
++};
++
++static inline void check_temp(struct work_struct *work) {
++        struct cpufreq_policy new_policy, *policy = cpufreq_cpu_get(0);
++        u32 cputemp;
++
++        mutex_lock(&override_mutex);
++        cputemp = omap34xx_get_temp();    // Get CPU temp
++
++        if(cputemp > override_hightemp) {
++                if(!overtemp_alarm) {
++                        printk("CPUfreq: CPU temp warning! %dC\n",cputemp);
++                        overtemp_alarm = 1;
++                        cpufreq_get_policy(&new_policy,0);
++                        prev_minspeed=policy->min;
++                        prev_maxspeed=policy->max;
++                        new_policy.min=500000;
++                        new_policy.max=500000;
++			cpufreq_set_policy(&new_policy);
++                }
++        }
++        else {
++                if((overtemp_alarm) && (cputemp < override_lowtemp)) {
++                        printk("CPUfreq: CPU temp back under control! %dC\n",
++								cputemp);
++                        if (overtemp_alarm) {
++				cpufreq_get_policy(&new_policy,0);
++				new_policy.min=prev_minspeed;
++				new_policy.max=prev_maxspeed;
++				cpufreq_set_policy(&new_policy);
++                        	overtemp_alarm = 0;
++			}
++                }
++        }
++
++        mutex_unlock(&override_mutex);
++	schedule_delayed_work(&dbs_work,OVERRIDE_POLLING);
++}
++
++static ssize_t show_vdd1_vsel_max(struct cpufreq_policy *policy, char *buf) {
++	return sprintf(buf, "%hu\n",VDD1_VSEL_MAX);
++}
++
++static ssize_t show_vdd1_vsel_min(struct cpufreq_policy *policy, char *buf) {
++	return sprintf(buf, "%hu\n",VDD1_VSEL_MIN);
++}
++
++static ssize_t show_vdd1_vsel(struct cpufreq_policy *policy, char *buf) {
++        u8 volt[7];
++
++        omap_pm_opp_get_volts(&volt);
++        return sprintf(buf, "%hu %hu %hu %hu %hu %hu %hu\n", volt[6],
++                                        volt[5],volt[4],volt[3],
++                                        volt[2],volt[1],volt[0]);
++}
++
++static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
++						size_t count) {
++        u8 volt[7], i;
++
++        mutex_lock(&override_mutex);
++        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
++                                                &volt[4],&volt[3],&volt[2],
++                                                &volt[1],&volt[0]) == 7) {
++		for(i=0;i < 7;i++) {
++			if((volt[i] < VDD1_VSEL_MIN) || (volt[i] >
++							VDD1_VSEL_MAX)) {
++				printk("CPUfreq: invalid vsel\n");
++				break;
++			}
++		}
++		if(i == 7) omap_pm_opp_set_volts(volt);
++	}
++	else printk("CPUfreq: missing vsel values\n");
++
++        mutex_unlock(&override_mutex);
++	return count;
++}
++
++static ssize_t show_hightemp_scaleback(struct cpufreq_policy *policy,
++						char *buf) {
++        return sprintf(buf, "%d\n", override_hightemp);
++}
++
++static ssize_t store_hightemp_scaleback(struct cpufreq_policy *policy,
++						char *buf, size_t count) {
++        int maxtemp=0;
++
++        if(sscanf(buf, "%d", &maxtemp) == 1)
++                override_hightemp=maxtemp;
++        else printk("CPUfreq: invalid max temp\n");
++
++	return count;
++}
++
++static ssize_t show_lowtemp_reset(struct cpufreq_policy *policy, char *buf) {
++
++        return sprintf(buf, "%d\n", override_lowtemp);
++}
++
++static ssize_t store_lowtemp_reset(struct cpufreq_policy *policy, char *buf,
++						size_t count) {
++        int lowtemp=0;
++
++        if(sscanf(buf, "%d", &lowtemp) == 1)
++                override_lowtemp=lowtemp;
++        else printk("CPUfreq: invalid low temp\n");
++
++	return count;
++}
++
++CPUFREQ_OVERRIDE_ATTR(vdd1_vsel,0644,show_vdd1_vsel,store_vdd1_vsel);
++CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_min,0444,show_vdd1_vsel_min);
++CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_max,0444,show_vdd1_vsel_max);
++CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_alarm,0644,show_hightemp_scaleback,
++			store_hightemp_scaleback);
++CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_reset,0644,show_lowtemp_reset,
++			store_lowtemp_reset);
++
++static struct attribute *default_attrs[] = {
++        &_attr_vdd1_vsel.attr,
++        &_attr_vdd1_vsel_min.attr,
++        &_attr_vdd1_vsel_max.attr,
++        &_attr_cpu_hightemp_alarm.attr,
++        &_attr_cpu_hightemp_reset.attr,
++        NULL
++};
++
++static struct attribute_group override_attr_group = {
++        .attrs = default_attrs,
++        .name = "override"
++};
++
++int cpufreq_override_driver_init(void) {
++	schedule_delayed_work(&dbs_work,OVERRIDE_POLLING);
++        struct cpufreq_policy *data = cpufreq_cpu_get(0);
++        return sysfs_create_group(&data->kobj,&override_attr_group);
++}
++EXPORT_SYMBOL(cpufreq_override_driver_init);
++
++void cpufreq_override_driver_exit(void) {
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	cancel_delayed_work(&dbs_work);
++	sysfs_remove_group(&policy->kobj, &override_attr_group);
++	flush_scheduled_work();
++}
++EXPORT_SYMBOL(cpufreq_override_driver_exit);
++
++MODULE_AUTHOR ("marco@unixpsycho.com");
++MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
++MODULE_LICENSE ("GPL");
+--- linux-2.6.24.7-F111/drivers/hwmon/omap34xx_temp.c     2010-05-31 12:05:29.000000000 -0400
++++ linux-2.6.24.7-F105C/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
+@@ -140,6 +140,14 @@
+	mutex_unlock(&data->update_lock);
+ }
+
++int omap34xx_get_temp(void) {
++	struct omap34xx_data *data =
++		dev_get_drvdata(&omap34xx_temp_device.dev);
++	omap34xx_update(data);
++	return adc_to_temp[omap_ctrl_readl(OMAP343X_CONTROL_TEMP_SENSOR) & ((1<<7) - 1)];
++}
++EXPORT_SYMBOL(omap34xx_get_temp);
++
+ static ssize_t show_name(struct device *dev,
+ 		struct device_attribute *devattr, char *buf)
+ {
