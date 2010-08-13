@@ -1,6 +1,6 @@
 --- linux-2.6.24.7-F111/drivers/cpufreq/Kconfig	2010-05-31 12:05:09.000000000 -0400
-+++ linux-2.6.24.7-F105C/drivers/cpufreq/Kconfig	2010-07-29 20:33:28.000000000 -0400
-@@ -53,6 +53,14 @@
++++ linux-2.6.24.7-F105C/drivers/cpufreq/Kconfig	2010-08-05 17:46:37.000000000 -0400
+@@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
  
@@ -11,6 +11,15 @@
 +	  This will give options to tweak CPU settings in-demand.
 +
 +	  If in doubt, say Y.
++
++config CPU_FREQ_OVERRIDE_STRIPOPP
++	bool "Strip OPP1 and OPP2 from available frequencies list"
++	depends on CPU_FREQ_OVERRIDE
++	default y
++	help
++	  This will hide 125MHz and 250MHz from scaling_available_frequencies.
++
++	  If in doubt, say N.
 +
  choice
  	prompt "Default CPUFreq governor"
@@ -95,8 +104,8 @@
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
 +#endif
 --- linux-2.6.24.7-F111/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24.7-F105C/drivers/cpufreq/cpufreq_override.c	2010-08-03 11:47:29.000000000 -0400
-@@ -0,0 +1,213 @@
++++ linux-2.6.24.7-F105C/drivers/cpufreq/cpufreq_override.c	2010-08-05 20:40:57.000000000 -0400
+@@ -0,0 +1,229 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -210,9 +219,15 @@
 +        u8 volt[7];
 +
 +        omap_pm_opp_get_volts(&volt);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++        return sprintf(buf, "%hu %hu %hu %hu %hu\n", volt[6],
++                                        volt[5],volt[4],volt[3],
++                                        volt[2]);
++#else
 +        return sprintf(buf, "%hu %hu %hu %hu %hu %hu %hu\n", volt[6],
 +                                        volt[5],volt[4],volt[3],
 +                                        volt[2],volt[1],volt[0]);
++#endif
 +}
 +
 +static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
@@ -220,17 +235,27 @@
 +        u8 volt[7], i;
 +
 +        mutex_lock(&override_mutex);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
++                                                &volt[4],&volt[3],&volt[2]) == 5) {
++		for(i=0;i < 5;i++) {
++#else
 +        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
 +                                                &volt[4],&volt[3],&volt[2],
 +                                                &volt[1],&volt[0]) == 7) {
 +		for(i=0;i < 7;i++) {
++#endif
 +			if((volt[i] < VDD1_VSEL_MIN) || (volt[i] >
 +							VDD1_VSEL_MAX)) {
 +				printk("CPUfreq: invalid vsel\n");
 +				break;
 +			}
 +		}
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++		if(i == 5) omap_pm_opp_set_volts(volt);
++#else
 +		if(i == 7) omap_pm_opp_set_volts(volt);
++#endif
 +	}
 +	else printk("CPUfreq: missing vsel values\n");
 +
