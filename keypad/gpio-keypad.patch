@@ -1,0 +1,69 @@
+diff --git a/drivers/input/keyboard/gpio_keypad.c b/drivers/input/keyboard/gpio_keypad.c
+index 6e4a346..f084128 100644
+--- a/drivers/input/keyboard/gpio_keypad.c
++++ b/drivers/input/keyboard/gpio_keypad.c
+@@ -55,6 +55,7 @@ typedef struct gpio_kp_dev
+     u16    mx_state [KP_MAX_INPUTS]; // matrix state
+     u16    last_scan[KP_MAX_INPUTS]; // last scan results
+     typeof(jiffies) key_down_tstamp[KP_MAX_INPUTS*KP_MAX_OUTPUTS];
++		typeof(jiffies) prox_timeout;
+ } gpio_kp_dev_t;
+ 
+ /*************************************************************************
+@@ -367,7 +368,7 @@ drop_key_down (struct gpio_kp_dev *kpdev, int idx)
+                         break;    // the end
+                 if(!kdts[adj])
+                         continue; // next in list
+-                if( time_before(jiffies, kdts[adj] + msecs_to_jiffies(pcfg->key_prox_timeout)))
++                if( time_before(jiffies, kdts[adj] + msecs_to_jiffies(kpdev->prox_timeout)))
+                     return 1;     // drop the key
+         }
+         return 0;
+@@ -745,6 +746,37 @@ static DEVICE_ATTR(pm_suspend, S_IRUGO | S_IWUSR, kp_pm_state_show, kp_pm_state_
+ 
+ #endif
+ 
++static ssize_t
++prox_timeout_show(	struct device *dev,
++		struct device_attribute *attr,
++		char *buf)
++{
++	struct input_dev *input_dev = to_input_dev(dev);
++	struct gpio_kp_dev *kpdev = input_get_drvdata(input_dev);
++
++	return snprintf(buf, PAGE_SIZE, "%d\n", jiffies_to_msecs(kpdev->prox_timeout));
++}
++
++static ssize_t
++prox_timeout_store( struct device *dev,
++                struct device_attribute *attr,
++                const char *buf, size_t count)
++{
++	char *endp;
++	struct input_dev *input_dev = to_input_dev(dev);
++	struct gpio_kp_dev *kpdev = input_get_drvdata(input_dev);
++	int new_prox_timeout = simple_strtoul(buf, &endp, 10);
++
++	if (new_prox_timeout)
++		kpdev->prox_timeout = msecs_to_jiffies(kpdev->pcfg->key_prox_timeout); 
++	else
++		kpdev->prox_timeout = 0;
++
++	return count;
++}
++
++static DEVICE_ATTR(prox_timeout, S_IWUGO | S_IRUGO, prox_timeout_show, prox_timeout_store);
++
+ static int __devexit
+ kp_remove ( struct platform_device *dev )
+ {
+@@ -813,6 +845,9 @@ kp_probe ( struct platform_device  *dev )
+         goto probe_err1;
+     }
+ 
++		// setup key proximity timeout
++		kpdev->prox_timeout = msecs_to_jiffies(kpdev->pcfg->key_prox_timeout);
++
+     // attach kpdev context to it to device
+     platform_set_drvdata ( dev, kpdev );
+ 
