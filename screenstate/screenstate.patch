@@ -1,7 +1,6 @@
-diff -ur linux-2.6.24/drivers/cpufreq/Kconfig linux-2.6.24-b/drivers/cpufreq/Kconfig
---- linux-2.6.24/drivers/cpufreq/Kconfig	2010-04-25 23:00:26.000000000 -0400
-+++ linux-2.6.24-b/drivers/cpufreq/Kconfig	2010-04-29 22:01:14.000000000 -0400
-@@ -87,6 +87,15 @@
+--- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24-ss/drivers/cpufreq/Kconfig	2010-08-25 14:49:37.000000000 -0400
+@@ -87,6 +104,15 @@
  	  program shall be able to set the CPU dynamically without having
  	  to enable the userspace governor manually.
  
@@ -17,7 +16,7 @@ diff -ur linux-2.6.24/drivers/cpufreq/Kconfig linux-2.6.24-b/drivers/cpufreq/Kco
  config CPU_FREQ_DEFAULT_GOV_ONDEMAND
  	bool "ondemand"
  	select CPU_FREQ_GOV_ONDEMAND
-@@ -149,6 +158,16 @@
+@@ -149,6 +175,16 @@
  
  	  If in doubt, say Y.
  
@@ -34,10 +33,9 @@ diff -ur linux-2.6.24/drivers/cpufreq/Kconfig linux-2.6.24-b/drivers/cpufreq/Kco
  config CPU_FREQ_GOV_ONDEMAND
  	tristate "'ondemand' cpufreq policy governor"
  	select CPU_FREQ_TABLE
-diff -ur linux-2.6.24/drivers/cpufreq/Makefile linux-2.6.24-b/drivers/cpufreq/Makefile
---- linux-2.6.24/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
-+++ linux-2.6.24-b/drivers/cpufreq/Makefile	2010-04-29 21:59:11.000000000 -0400
-@@ -9,6 +9,7 @@
+--- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
++++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2010-08-25 14:49:37.000000000 -0400
+@@ -9,7 +9,10 @@
  obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
  obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
@@ -45,9 +43,9 @@ diff -ur linux-2.6.24/drivers/cpufreq/Makefile linux-2.6.24-b/drivers/cpufreq/Ma
  
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
-diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufreq.h
---- linux-2.6.24/include/linux/cpufreq.h	2010-04-25 23:00:27.000000000 -0400
-+++ linux-2.6.24-b/include/linux/cpufreq.h	2010-04-29 22:27:58.000000000 -0400
+ 
+--- linux-2.6.24-palm/include/linux/cpufreq.h	2010-06-11 17:48:35.000000000 -0400
++++ linux-2.6.24-ss/include/linux/cpufreq.h	2010-08-25 14:48:12.000000000 -0400
 @@ -309,6 +309,9 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
  extern struct cpufreq_governor cpufreq_gov_userspace;
@@ -59,7 +57,7 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24.7-F105/drivers/video/omap/lcd_panel.c	2010-07-04 23:16:07.000000000 -0400
++++ linux-2.6.24-ss/drivers/video/omap/lcd_panel.c	2010-08-25 14:48:12.000000000 -0400
 @@ -31,6 +31,11 @@
  
  #include "lcd.h"
@@ -104,7 +102,7 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
  
  unlock:
 --- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/drivers/usb/gadget/gadget_event.c	2010-06-05 11:30:37.000000000 -0400
++++ linux-2.6.24-ss/drivers/usb/gadget/gadget_event.c	2010-08-25 14:48:12.000000000 -0400
 @@ -282,6 +282,13 @@
  }
  EXPORT_SYMBOL(gadget_event_power_state_changed);
@@ -120,7 +118,7 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
  {
  	int ret = 0;
 --- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24.7-F105/drivers/w1/slaves/w1_ds2784.c	2010-07-04 16:49:07.000000000 -0400
++++ linux-2.6.24-ss/drivers/w1/slaves/w1_ds2784.c	2010-08-25 14:48:12.000000000 -0400
 @@ -1151,11 +1151,20 @@
  	return ds2784_gettemperature_dev(battery_device, ret_temperature);
  }
@@ -143,8 +141,8 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
  static struct battery_ops ds2784_battery_ops = {
  	.get_percent       = ds2784_getpercent,
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24.7-F105/drivers/cpufreq/cpufreq_screenstate.c	2010-07-05 10:34:27.000000000 -0400
-@@ -0,0 +1,171 @@
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_screenstate.c	2010-08-25 16:36:44.000000000 -0400
+@@ -0,0 +1,196 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -183,9 +181,22 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +
 +static DECLARE_DELAYED_WORK(dbs_work, check_charger);
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++u8 override_show_chrg_ovrd();
++#endif
++
 +static inline void check_charger(struct work_struct *work) {
 +	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 +	int cur=0,current_mA=0;
++
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++	if(override_show_chrg_ovrd()) {
++		charging_state=0;
++		if(lcd_state) __cpufreq_driver_target(policy, policy->max,
++							CPUFREQ_RELATION_H);
++		goto out;
++	}
++#endif
 +
 +	mutex_lock(&screenstate_mutex);
 +	ds2784_getcurrent(&cur);
@@ -194,7 +205,8 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +		// Assume Touchstone
 +		if(!charging_state) {
 +			charging_state=1;
-+			__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++			__cpufreq_driver_target(policy, 500000,
++						CPUFREQ_RELATION_L);
 +			printk("screenstate: TS found!\n");
 +		}
 +	} 
@@ -202,7 +214,8 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +		if(current_mA == 1000) {
 +			if(!charging_state) {
 +				charging_state=1;
-+				__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++				__cpufreq_driver_target(policy, 500000,
++							CPUFREQ_RELATION_L);
 +				printk("screenstate: 1000mA charger found!\n");
 +			}
 +		}
@@ -211,10 +224,14 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +				charging_state=0;
 +				printk("screenstate: charger unplugged!\n");
 +				if(lcd_state)
-+					__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++					__cpufreq_driver_target(policy,
++						policy->max, CPUFREQ_RELATION_H);
 +			}
 +		}
 +	}
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++out:
++#endif
 +	schedule_delayed_work(&dbs_work,1000);
 +	mutex_unlock(&screenstate_mutex);
 +	return;
@@ -231,7 +248,8 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +			lcd_state = 1;
 +			charging_state = 0;
 +			mutex_lock(&screenstate_mutex);
-+			__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++			__cpufreq_driver_target(policy, policy->max,
++							CPUFREQ_RELATION_H);
 +			schedule_delayed_work(&dbs_work,1000);
 +			mutex_unlock(&screenstate_mutex);
 +			
@@ -245,13 +263,17 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +			mutex_lock(&screenstate_mutex);
 +			printk("screenstate: policy change\n");
 +			if(charging_state)
-+				__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++				__cpufreq_driver_target(policy, 500000,
++							CPUFREQ_RELATION_L);
 +			else {
-+				if(lcd_state) __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++				if(lcd_state) __cpufreq_driver_target(policy,
++					policy->max, CPUFREQ_RELATION_H);
 +#ifdef SCREENSTATE_CAP_MIN_FREQ
-+				else __cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++				else __cpufreq_driver_target(policy, 500000,
++							CPUFREQ_RELATION_L);
 +#else
-+				else __cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
++				else __cpufreq_driver_target(policy,
++					policy->min, CPUFREQ_RELATION_L);
 +#endif
 +			}
 +			mutex_unlock(&screenstate_mutex);
@@ -296,7 +318,8 @@ diff -ur linux-2.6.24/include/linux/cpufreq.h linux-2.6.24-b/include/linux/cpufr
 +	mutex_lock(&screenstate_mutex);
 +        if(cpu_is_managed) {
 +		printk("screenstate: lcd on\n");
-+                if(!charging_state) __cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++                if(!charging_state) __cpufreq_driver_target(policy,
++					policy->max, CPUFREQ_RELATION_H);
 +		else __cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
 +		lcd_state = 1;
 +        }

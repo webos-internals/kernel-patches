@@ -1,5 +1,5 @@
---- linux-2.6.24.7-F111/drivers/cpufreq/Kconfig	2010-05-31 12:05:09.000000000 -0400
-+++ linux-2.6.24.7-F105C/drivers/cpufreq/Kconfig	2010-08-05 17:46:37.000000000 -0400
+--- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24-ss/drivers/cpufreq/Kconfig	2010-08-25 14:49:37.000000000 -0400
 @@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
@@ -24,16 +24,16 @@
  choice
  	prompt "Default CPUFreq governor"
  	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
---- linux-2.6.24.7-F111/drivers/cpufreq/Makefile	2010-05-31 12:05:09.000000000 -0400
-+++ linux-2.6.24.7-F105C/drivers/cpufreq/Makefile	2010-07-29 22:51:07.000000000 -0400
+--- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
++++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2010-08-25 14:49:37.000000000 -0400
 @@ -14,3 +14,5 @@
  # CPUfreq cross-arch helpers
- obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
- 
+ obj-$(CONFIG_CPU_FREQ_TABLE)           += freq_table.o
+
 +# CPUfreq override
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)		+= cpufreq_override.o
---- linux-2.6.24.7-F111/drivers/cpufreq/cpufreq.c	2010-05-30 23:47:28.000000000 -0400
-+++ linux-2.6.24.7-F105C/drivers/cpufreq/cpufreq.c	2010-07-29 22:52:25.000000000 -0400
+--- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq.c	2010-08-25 14:49:37.000000000 -0400
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -84,9 +84,9 @@
  	return 0;
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
---- linux-2.6.24.7-F111/arch/arm/mach-omap3pe/prcm_opp.c	2010-07-20 22:45:41.000000000 -0400
-+++ linux-2.6.24.7-F105C/arch/arm/mach-omap3pe/prcm_opp.c	2010-08-03 12:23:10.000000000 -0400
-@@ -1577,3 +1577,16 @@
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-08-25 14:49:37.000000000 -0400
+@@ -1523,3 +1578,16 @@
  
  	return -1;
  }
@@ -103,9 +103,9 @@
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
 +#endif
---- linux-2.6.24.7-F111/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24.7-F105C/drivers/cpufreq/cpufreq_override.c	2010-08-05 20:40:57.000000000 -0400
-@@ -0,0 +1,229 @@
+--- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-08-25 15:55:20.000000000 -0400
+@@ -0,0 +1,260 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -148,6 +148,9 @@
 +static inline void check_temp(struct work_struct *work);
 +int prev_maxspeed=0;
 +int prev_minspeed=0;
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++u8 charger_override=0;
++#endif
 +
 +static u32 override_hightemp=HIGHTEMP_SCALEBACK;
 +static u32 override_lowtemp=LOWTEMP_RESET;
@@ -295,6 +298,31 @@
 +	return count;
 +}
 +
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++static ssize_t show_charger_override(struct cpufreq_policy *policy, char *buf) {
++	return sprintf(buf, "%hu\n",charger_override);
++}
++
++static ssize_t store_charger_override(struct cpufreq_policy *policy,
++					char *buf, size_t count) {
++	u8 override=0;
++
++	if(sscanf(buf, "%d", &override) == 1)
++		charger_override=(override) ? 1 : 0;
++	else printk("CPUfreq: invalid charger override value\n");
++
++	return count;
++}
++
++u8 override_show_chrg_ovrd() {
++	return charger_override;
++}
++EXPORT_SYMBOL(override_show_chrg_ovrd);
++
++CPUFREQ_OVERRIDE_ATTR(override_charger,0644,show_charger_override,
++			store_charger_override);
++#endif
++
 +CPUFREQ_OVERRIDE_ATTR(vdd1_vsel,0644,show_vdd1_vsel,store_vdd1_vsel);
 +CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_min,0444,show_vdd1_vsel_min);
 +CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_max,0444,show_vdd1_vsel_max);
@@ -309,6 +337,9 @@
 +        &_attr_vdd1_vsel_max.attr,
 +        &_attr_cpu_hightemp_alarm.attr,
 +        &_attr_cpu_hightemp_reset.attr,
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++	&_attr_override_charger.attr,
++#endif
 +        NULL
 +};
 +
@@ -335,8 +366,8 @@
 +MODULE_AUTHOR ("marco@unixpsycho.com");
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
---- linux-2.6.24.7-F111/drivers/hwmon/omap34xx_temp.c     2010-05-31 12:05:29.000000000 -0400
-+++ linux-2.6.24.7-F105C/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
+--- linux-2.6.24-palm/drivers/hwmon/omap34xx_temp.c     2010-05-31 12:05:29.000000000 -0400
++++ linux-2.6.24-ss/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
 @@ -140,6 +140,14 @@
 	mutex_unlock(&data->update_lock);
  }
@@ -352,8 +383,8 @@
  static ssize_t show_name(struct device *dev,
  		struct device_attribute *devattr, char *buf)
  {
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c     2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105C/arch/arm/mach-omap3pe/clock.c  2010-08-05 17:45:21.000000000 -0400
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24-ss/arch/arm/mach-omap3pe/clock.c	2010-08-25 14:49:37.000000000 -0400
 @@ -709,6 +709,10 @@
  
  	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;
