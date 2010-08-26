@@ -188,6 +188,7 @@
 +	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 +	int cur=0,current_mA=0;
 +
++	mutex_lock(&screenstate_mutex);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE
 +	if(override_show_chrg_ovrd()) {
 +		charging_state=0;
@@ -197,7 +198,6 @@
 +	}
 +#endif
 +
-+	mutex_lock(&screenstate_mutex);
 +	ds2784_getcurrent(&cur);
 +	current_mA=gadget_event_state_current();
 +	if((cur>0) && (current_mA < 500)) {
