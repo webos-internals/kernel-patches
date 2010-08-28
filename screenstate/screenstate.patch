@@ -191,7 +191,7 @@
 +
 +	mutex_lock(&screenstate_mutex);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE
-+	u8 oc = override_show_chrg_ovrd();
++	int oc = override_show_chrg_ovrd();
 +
 +	if((oc) && (!ch_override)) {
 +		printk("screenstate: charger override set\n");

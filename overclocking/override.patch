@@ -314,7 +314,7 @@
 +	return count;
 +}
 +
-+u8 override_show_chrg_ovrd() {
++int override_show_chrg_ovrd() {
 +	return charger_override;
 +}
 +EXPORT_SYMBOL(override_show_chrg_ovrd);
