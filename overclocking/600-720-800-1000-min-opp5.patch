@@ -85,20 +85,30 @@
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
 -				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
-+  1.20V (OPP3), 1.35V (OPP4), 1.413V (OPP5), 1.425V (OPP6), 1.46V (OPP7) */
-+		0x1E, 0x24, 0x30, 0x3C, 0x41, 0x42, 0x45
++  1.20V (OPP3), 1.35V (OPP4), 1.413V (OPP5), 1.425V (OPP6), 1.525V (OPP7) */
++		0x1E, 0x24, 0x30, 0x3C, 0x41, 0x42, 0x4A
  };
  
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
-@@ -65,7 +65,6 @@
- 	0x1e, 0x24, 0x2c
- };
+@@ -138,7 +138,7 @@
  
--
- static struct dvfs_config omap3_vdd2_config[2] = {
- 	{
- 	/* SDRC CS0/CS1 values 83MHZ*/
-@@ -155,20 +154,32 @@
+ u32 omap3_max_vdd1_opp(void)
+ {
+-	return 5;
++	return 7;
+ 
+ 	/* This function call is used in the bridgedriver.
+ 	 *
+@@ -146,7 +146,7 @@
+ 	 * OPP based on silicon revision and part binning. We are not using
+ 	 * this code right now but are keeping it here for future reference.
+ 	 *
+-	 * For our kernel we are always returning 5 as max OPP.
++	 * For our kernel we are always returning 7 as max OPP.
+ 	 */
+ #if 0
+ 	u32 sku_id;
+@@ -187,20 +187,32 @@
  	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
  	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
  	/* OPP5 (600 Mhz) */
@@ -135,7 +145,7 @@
  	{0x177, 0x0B, 0x06, 0x01} },
  	/* 26M values */
  	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
-@@ -176,13 +187,21 @@
+@@ -208,13 +220,21 @@
  	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
  	{0x0FA, 0x0C, 0x07, 0x01}, {0x113, 0x0C, 0x07, 0x01},
  	/* OPP5 (600 Mhz) */
@@ -158,7 +168,7 @@
  	{0x177, 0x17, 0x06, 0x01} },
  };
  
-@@ -194,7 +213,11 @@
+@@ -226,13 +246,21 @@
  	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
  	 {0x0B4, 0x05, 0x07, 0x01}, {0x0C6, 0x05, 0x07, 0x01},
  	/* OPP5 (430 Mhz) */
@@ -168,21 +178,20 @@
 +        {0x0D7, 0x05, 0x07, 0x01},
 +        /* OPP7 (600 Mhz) */
 +        {0x0D7, 0x05, 0x07, 0x01} },
- #if 0
  	/* 13M values */
  	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
-@@ -215,6 +238,10 @@
- 	/* OPP3(360 Mhz) and OPP4(360 Mhz)*/
- 	 {0x168, 0x0C, 0x03, 0x01}, {0x168, 0x0C, 0x03, 0x01},
- 	/* OPP5 (360 Mhz) */
-+	 {0x168, 0x0C, 0x03, 0x01},
-+        /* OPP6 (360 Mhz) */
-+	 {0x168, 0x0C, 0x03, 0x01},
-+        /* OPP7 (360 Mhz) */
- 	 {0x168, 0x0C, 0x03, 0x01} },
- #endif
+ 	{{0x168, 0x0C, 0x03, 0x04}, {0x168, 0x0C, 0x03, 0x02},
+ 	/* OPP3(360 Mhz) and OPP4(400 Mhz)*/
+ 	 {0x168, 0x0C, 0x03, 0x01}, {0x190, 0x0C, 0x03, 0x01},
+ 	/* OPP5 (430 Mhz) */
++	 {0x1AE, 0x0C, 0x03, 0x01},
++	/* OPP6 (430 Mhz) */
++	 {0x1AE, 0x0C, 0x03, 0x01},
++	/* OPP7 (430 Mhz) */
+ 	 {0x1AE, 0x0C, 0x03, 0x01} },
  	/* 19.2M values */
-@@ -223,21 +250,33 @@
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+@@ -240,21 +268,33 @@
  	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
  	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
  	/* OPP5 (430 Mhz) */
@@ -219,7 +228,7 @@
  };
  
  /* CORE parameters */
-@@ -473,11 +512,18 @@
+@@ -490,11 +530,18 @@
  			valid_rate = clk_round_rate(p_vdd1_clk, S500M);
  			break;
  		case PRCM_VDD1_OPP4:
@@ -240,7 +249,7 @@
  		}
  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
  	}
-@@ -490,11 +536,14 @@
+@@ -507,11 +554,14 @@
  	unsigned int constraint;
  	unsigned int opp;
  } vdd1_arm_dsp_freq[MAX_VDD1_OPP] = {
@@ -258,7 +267,7 @@
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
-@@ -506,8 +555,8 @@
+@@ -523,8 +573,8 @@
  	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
  };
  
@@ -269,7 +278,7 @@
  };
  static unsigned int rnd_rate_vdd2[3] = {
  	0, S83M, S166M
-@@ -1449,6 +1498,11 @@
+@@ -1466,6 +1516,11 @@
  	target_vdd1_opp = PRCM_VDD1_OPP4;
  #elif defined(CONFIG_OMAP3ES2_VDD1_OPP5)
  	target_vdd1_opp = PRCM_VDD1_OPP5;
