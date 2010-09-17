@@ -1,0 +1,68 @@
+PURPOSE:
+The primary reason for this patch is to allow the Pre to function as a
+mass storage device on hosts that have buggy SCSI implementations.
+One very popular host is the Xbox 360, which cannot detect the Pre as
+a mass storage device without this patch.
+
+CONTRIBUTORS:
+Felipe Balbi
+Mike Lockwood
+Alan Stern
+
+The original author of this patch was Felipe Balbi who submitted his
+patch against Alan Stern's file_storage.c.  For details regarding the
+patch along with the patch itself, you can read the original
+conversation:
+http://thread.gmane.org/gmane.linux.usb.general/9998/focus=10058
+
+WebOS uses the Android version of f_mass_storage.c - written by Mike
+Lockwood (also based on file_storage.c by Alan Stern).  Felipe Balbi's
+patch never made it into f_mass_storage.c (the patch I am providing).
+
+SOLUTION:
+The ultimate solution is for WebOS to use the new f_mass_storage.c
+from the mainline kernel:
+http://git.kernel.org/?p=linux/kernel/git/stable/linux-2.6.35.y.git;a=blob;f=drivers/usb/gadget/f_mass_storage.c;h=4ce899c9b1653b2cfd747e65a17b919d0adeae2c;hb=1506707a6c740db316e422239a53ae5df1727591
+
+Until then, the provided patch will allow functionality with devices
+such as the Xbox 360.
+
+A slightly more verbose explanation:
+http://mobilecoder.wordpress.com/2010/09/16/using-the-palm-pre-as-xbox-360-storage-the-finale/
+
+Regards,
+Zachary Burke
+
+diff -BurN linux-2.6.24/drivers/usb/gadget/f_mass_storage.c.orig linux-2.6.24/drivers/usb/gadget/f_mass_storage.c
+--- linux-2.6.24/drivers/usb/gadget/f_mass_storage.c.orig
++++ linux-2.6.24/drivers/usb/gadget/f_mass_storage.c
+@@ -1980,11 +1980,24 @@
+ 	/* Verify the length of the command itself */
+ 	if (cmnd_size != fsg->cmnd_size) {
+ 
+-		/* Special case workaround: MS-Windows issues REQUEST SENSE
+-		 * with cbw->Length == 12 (it should be 6). */
+-		if (fsg->cmnd[0] == SC_REQUEST_SENSE && fsg->cmnd_size == 12)
+-			cmnd_size = fsg->cmnd_size;
+-		else {
++		/* Special case workaround: There are plenty of buggy SCSI
++		 * implementations. Many have issues with cbw->Length
++		 * field passing a wrong command size. For those cases we
++		 * always try to work around the problem by using the length
++		 * sent by the host side provided it is at least as large
++		 * as the correct command length.
++		 * Examples of such cases would be MS-Windows, which issues
++		 * REQUEST SENSE with cbw->Length == 12 where it should
++		 * be 6, and xbox360 issuing INQUIRY, TEST UNIT READY and
++		 * REQUEST SENSE with cbw->Length == 10 where it should
++		 * be 6 as well.
++		 */
++		if (cmnd_size <= fsg->cmnd_size) {
++			DBG(fsg, "%s is buggy! Expected length %d "
++					"but we got %d\n", name,
++					cmnd_size, fsg->cmnd_size);
++			cmnd_size = fsg->cmnd_size;
++		} else {
+ 			fsg->phase_error = 1;
+ 			return -EINVAL;
+ 		}
