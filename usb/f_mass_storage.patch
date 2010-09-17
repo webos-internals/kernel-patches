@@ -27,6 +27,9 @@ http://git.kernel.org/?p=linux/kernel/git/stable/linux-2.6.35.y.git;a=blob;f=dri
 Until then, the provided patch will allow functionality with devices
 such as the Xbox 360.
 
+A slightly more verbose explanation:
+http://mobilecoder.wordpress.com/2010/09/16/using-the-palm-pre-as-xbox-360-storage-the-finale/
+
 Regards,
 Zachary Burke
 
