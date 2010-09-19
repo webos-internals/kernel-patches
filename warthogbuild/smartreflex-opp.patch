@@ -33,7 +33,7 @@ index d0d2f63..a566f2e 100644
  #define PRM_VP1_CONFIG_ERRORGAIN	(0x20 << 16)
  
 -#define PRM_VP1_CONFIG_INITVOLTAGE	(0x30 << 8) /* 1.2 volt */
-+#define PRM_VP1_CONFIG_INITVOLTAGE	(0x26 << 8) /* 1.075 volt */
++#define PRM_VP1_CONFIG_INITVOLTAGE	(0x20 << 8) /* 1.0 volt */
  #define PRM_VP1_CONFIG_TIMEOUTEN	(0x1 << 3)
  #define PRM_VP1_CONFIG_INITVDD		(0x1 << 2)
  #define PRM_VP1_CONFIG_FORCEUPDATE	(0x1 << 1)
@@ -42,7 +42,7 @@ index d0d2f63..a566f2e 100644
  #define PRM_VP2_CONFIG_ERRORGAIN	(0x20 << 16)
  
 -#define PRM_VP2_CONFIG_INITVOLTAGE	(0x30 << 8) /* 1.2 volt */
-+#define PRM_VP2_CONFIG_INITVOLTAGE	(0x26 << 8) /* 1.075 volt */
++#define PRM_VP2_CONFIG_INITVOLTAGE	(0x20 << 8) /* 1.0 volt */
  #define PRM_VP2_CONFIG_TIMEOUTEN	(0x1 << 3)
  #define PRM_VP2_CONFIG_INITVDD		(0x1 << 2)
  #define PRM_VP2_CONFIG_FORCEUPDATE	(0x1 << 1)
