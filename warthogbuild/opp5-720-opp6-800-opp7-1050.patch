@@ -104,7 +104,7 @@ index 067e92a..f804c0c 100644
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
  	/* Vsel corresponding to 0.975V (OPP1), 1.05V (OPP2), 1.15 (OPP3) */
 -	0x1e, 0x24, 0x2c
-+	0x1e, 0x22, 0x24
++	0x1c, 0x1e, 0x20
  };
  
  
