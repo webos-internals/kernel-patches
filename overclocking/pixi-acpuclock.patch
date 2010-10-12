@@ -1,0 +1,68 @@
+--- arch/arm/mach-msm/acpuclock.c	2010-10-12 15:43:38.000000000 +1030
++++ /srv/webos/acpuclock.c	2010-10-12 15:39:53.000000000 +1030
+@@ -202,6 +202,21 @@
+ 	{ 0, 400000, ACPU_PLL_2, 2, 2, 133333, 2, 122880, 5 },
+ 	{ 1, 480000, ACPU_PLL_0, 4, 1, 160000, 2, 122880, 6 },
+ 	{ 1, 600000, ACPU_PLL_2, 2, 1, 200000, 2, 122880, 7 },
++	//{ 1, 710400, ACPU_PLL_2, 2, 0, 175200, 3, 122880, 7 },	
++	//{ 1, 729600, ACPU_PLL_2, 2, 0, 182400, 3, 122880, 7 },	
++	{ 1, 748800, ACPU_PLL_2, 2, 0, 187200, 3, 122880, 7 },	
++	//{ 1, 768000, ACPU_PLL_2, 2, 0, 192000, 3, 122880, 7 },	
++	{ 1, 787200, ACPU_PLL_2, 2, 0, 196800, 3, 122880, 7 },	
++	{ 1, 806400, ACPU_PLL_2, 2, 0, 201600, 3, 122880, 7 },	
++	//{ 1, 825600, ACPU_PLL_2, 2, 0, 206400, 3, 122880, 7 },	
++	//{ 1, 844800, ACPU_PLL_2, 2, 0, 211200, 3, 122880, 7 },	
++	//{ 1, 883200, ACPU_PLL_2, 2, 0, 220800, 3, 122880, 7 },	
++	{ 1, 897600, ACPU_PLL_2, 2, 0, 224400, 3, 122880, 7 },	
++	//{ 1, 907200, ACPU_PLL_2, 2, 0, 226800, 3, 122880, 7 },	
++	//{ 1, 912000, ACPU_PLL_2, 2, 0, 228000, 3, 122880, 7 },	
++	//{ 1, 936000, ACPU_PLL_2, 2, 0, 234000, 3, 122880, 7 },	
++	//{ 1, 964800, ACPU_PLL_2, 2, 0, 241200, 3, 122880, 7 },	
++	//{ 1, 993600, ACPU_PLL_2, 2, 0, 248400, 3, 122880, 7 },	
+ 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+ };
+ 
+@@ -378,7 +393,7 @@
+ 
+ /* Set proper dividers for the given clock speed. */
+ static void acpuclk_set_div(const struct clkctl_acpu_speed *hunt_s) {
+-	uint32_t reg_clkctl, reg_clksel, clk_div, src_sel;
++	uint32_t reg_clkctl, reg_clksel, clk_div, src_sel, a11_div;
+ 
+ 	reg_clksel = readl(A11S_CLK_SEL_ADDR);
+ 
+@@ -387,6 +402,14 @@
+ 	/* CLK_SEL_SRC1NO */
+ 	src_sel = reg_clksel & 1;
+ 
++        /* Overclock override */
++        a11_div = hunt_s->a11clk_src_div;
++        if (hunt_s->a11clk_khz > 600000) {
++		a11_div=0;
++		writel(hunt_s->a11clk_khz/19200, PLLn_L_VAL(2));
++		udelay(50);
++        }
++
+ 	/*
+ 	 * If the new clock divider is higher than the previous, then
+ 	 * program the divider before switching the clock
+@@ -400,7 +423,19 @@
+ 	/* Program clock source and divider */
+ 	reg_clkctl = readl(A11S_CLK_CNTL_ADDR);
+ 	reg_clkctl &= ~(0xFF << (8 * src_sel));
++
++        // Only kick in if over 600Mhz
++        if (hunt_s->a11clk_khz > 600000) {
++        	reg_clkctl |= a11_div;
++        }
++
+ 	reg_clkctl |= hunt_s->a11clk_src_sel << (4 + 8 * src_sel);
++
++        // Only kick in if over 600Mhz
++        if (hunt_s->a11clk_khz > 600000) {
++        	reg_clkctl |= a11_div;
++        }
++
+ 	reg_clkctl |= hunt_s->a11clk_src_div << (0 + 8 * src_sel);
+ 	writel(reg_clkctl, A11S_CLK_CNTL_ADDR);
+ 
