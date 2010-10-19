@@ -26,12 +26,13 @@
  	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
 --- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
 +++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2010-08-25 21:50:26.000000000 -0400
-@@ -14,3 +14,5 @@
+@@ -14,3 +14,5 @@ 
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
-
+ 
 +# CPUfreq override
-+obj-$(CONFIG_CPU_FREQ_OVERRIDE)	+= cpufreq_override.o
++obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
++
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-06-11 17:48:34.000000000 -0400
 +++ linux-2.6.24-ss/drivers/cpufreq/cpufreq.c	2010-09-02 13:10:13.000000000 -0400
 @@ -32,6 +32,11 @@
@@ -161,8 +162,8 @@
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
 +#endif
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-09-02 13:08:30.000000000 -0400
-@@ -0,0 +1,340 @@
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-10-18 13:23:37.000000000 -0400
+@@ -0,0 +1,344 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -249,7 +250,11 @@
 +
 +        mutex_lock(&override_mutex);
 +        cputemp = omap34xx_get_temp();    // Get CPU temp
-+	ds2784_getpercent(&battery_per);   // Get battery percent left
++	ds2784_getpercent(&battery_per);  // Get battery percent left
++
++	// Check values in case driver hasnt polled
++	battery_per = (battery_per > 0) ? battery_per : 100;
++	cputemp = (cputemp < 100) ? cputemp : 0;
 +
 +        if(cputemp > override_hightemp) {
 +                if(!overtemp_alarm) {
