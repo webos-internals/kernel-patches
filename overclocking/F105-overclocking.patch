@@ -1,6 +1,13 @@
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/clock.h	2010-07-01 23:05:33.000000000 -0400
-@@ -47,9 +47,10 @@
++++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/clock.h	2010-10-18 22:50:08.000000000 -0400
+@@ -41,15 +41,16 @@
+ #define S38M	38400000
+ #define S96M	96000000
+ #define S83M	83000000
+-#define S166M	166000000
++#define S200M	200000000
+ 
+ #define S120M	120000000
  #define S125M	125000000
  #define S250M	250000000
  #define S500M	500000000
@@ -15,7 +22,7 @@
  /* Macro to enable clock control via clock framework */
  #define ENABLE_CLOCKCONTROL 1
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/clock_tree.h	2010-06-27 16:24:49.000000000 -0400
++++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/clock_tree.h	2010-10-18 22:50:31.000000000 -0400
 @@ -90,9 +90,14 @@
  	/*OPP3*/
  	{S500M, PRCM_VDD1_OPP3, RATE_IN_343X},
@@ -33,6 +40,15 @@
  };
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
+@@ -102,7 +107,7 @@
+ 	/*OPP2*/
+ 	{S83M, PRCM_VDD2_OPP2, RATE_IN_343X},
+ 	/*OPP3*/
+-	{S166M, PRCM_VDD2_OPP3, RATE_IN_343X},
++	{S200M, PRCM_VDD2_OPP3, RATE_IN_343X},
+ };
+ 
+ /* Base external input clocks */
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2010-06-11 17:48:34.000000000 -0400
 +++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/constraint.c	2010-07-06 18:18:31.000000000 -0400
 @@ -67,8 +67,8 @@
@@ -81,18 +97,24 @@
  
  comment "Default VDD2 OPP Level Selection"
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/prcm_opp.c	2010-07-21 21:34:15.000000000 -0400
-@@ -56,8 +56,8 @@
++++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/prcm_opp.c	2010-10-18 23:13:14.000000000 -0400
+@@ -56,13 +56,13 @@
  
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
 -				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
-+	1.20V (OPP3), 1.27V (OPP4), 1.42V (OPP5), 1.45 (OPP6), 1.46V (OPP7) */
-+		0x1E, 0x24, 0x30, 0x36, 0x42, 0x44, 0x45
++	1.20V (OPP3), 1.27V (OPP4), 1.42V (OPP5), 1.45V (OPP6), 1.46V (OPP7) */
++		0x1E, 0x24, 0x26, 0x36, 0x3e, 0x41, 0x43
  };
  
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
+ 	/* Vsel corresponding to 0.975V (OPP1), 1.05V (OPP2), 1.15 (OPP3) */
+-	0x1e, 0x24, 0x2c
++	0x1e, 0x24, 0x26
+ };
+ 
+ 
 @@ -155,20 +155,32 @@
  	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
  	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
@@ -216,6 +238,24 @@
  };
  
  /* CORE parameters */
+@@ -247,7 +287,7 @@
+ 	{{0, 0, 0, 0}, {0x0A6, 0x05, 0x07, 0x02}, {0x0A6, 0x05, 0x07, 0x01} },
+ 	/* 13M values */
+ 	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
+-	{{0, 0, 0, 0}, {0x14C, 0x0C, 0x03, 0x02}, {0x14C, 0x0C, 0x03, 0x01} },
++	{{0, 0, 0, 0}, {0x14C, 0x0C, 0x03, 0x02}, {0x190, 0x0C, 0x03, 0x01} },
+ 	/* 19.2M values */
+ 	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
+ 	{{0, 0, 0, 0}, {0x19F, 0x17, 0x03, 0x02}, {0x19F, 0x17, 0x03, 0x01} },
+@@ -459,7 +499,7 @@
+ 	/* Scale back to previous OPP for VDD2*/
+ 	if (current_vdd2_opp != PRCM_VDD2_OPP2) {
+ 		prcm_do_voltage_scaling(PRCM_VDD2_OPP3, PRCM_VDD2_OPP2);
+-		valid_rate = clk_round_rate(p_vdd2_clk, S166M);
++		valid_rate = clk_round_rate(p_vdd2_clk, S200M);
+ 		p_vdd2_clk->set_rate(p_vdd2_clk, valid_rate);
+ 	}
+ 
 @@ -473,11 +513,18 @@
  			valid_rate = clk_round_rate(p_vdd1_clk, S500M);
  			break;
@@ -256,8 +296,12 @@
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
-@@ -506,8 +556,8 @@
- 	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
+@@ -503,14 +553,14 @@
+ } vdd2_core_freq[MAX_VDD2_OPP] = {
+ 	{0, CO_VDD2_OPP1, PRCM_VDD2_OPP1},
+ 	{83, CO_VDD2_OPP2, PRCM_VDD2_OPP2},
+-	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
++	{200, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
  };
  
 -static unsigned int rnd_rate_vdd1[5] = {
@@ -266,7 +310,11 @@
 +	S125M, S250M, S500M, S700M, S800M, S900M, S1005M
  };
  static unsigned int rnd_rate_vdd2[3] = {
- 	0, S83M, S166M
+-	0, S83M, S166M
++	0, S83M, S200M
+ };
+ 
+ /* To set the opp for vdd1 */
 @@ -1449,6 +1499,11 @@
  	target_vdd1_opp = PRCM_VDD1_OPP4;
  #elif defined(CONFIG_OMAP3ES2_VDD1_OPP5)
@@ -296,13 +344,10 @@
  /* VDD2 OPPs */
  #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24.7-F105/include/asm-arm/arch-omap/resource.h	2010-07-19 23:54:07.000000000 -0400
-@@ -30,14 +30,14 @@
- 
- 
++++ linux-2.6.24.7-F105/include/asm-arm/arch-omap/resource.h	2010-10-18 23:00:39.000000000 -0400
+@@ -32,8 +32,8 @@
  #define curr_vdd1_opp   3
--#define curr_vdd2_opp   3
-+#define curr_vdd2_opp   2
+ #define curr_vdd2_opp   3
  #define min_vdd1_opp    CO_VDD1_OPP1
 -#define max_vdd1_opp    CO_VDD1_OPP5
 -#define min_vdd2_opp    CO_VDD2_OPP2
@@ -311,11 +356,6 @@
  #define max_vdd2_opp    CO_VDD2_OPP3
  
  #define CURR_VDD1_OPP	3
--#define CURR_VDD2_OPP	3
-+#define CURR_VDD2_OPP	2
- /* Flags to denote Pool usage */
- #define RES_UNUSED		0x0
- #define RES_USED		0x1
 @@ -121,6 +121,8 @@
  #define CO_VDD1_OPP3		0x3
  #define CO_VDD1_OPP4		0x4
@@ -331,11 +371,12 @@
  #define curr_dsp_freq 	360
 -#define min_arm_freq 	125
 -#define max_arm_freq 	600
+-#define min_dsp_freq 	90
+-#define max_dsp_freq 	430
 +#define min_arm_freq 	500
 +#define max_arm_freq 	1005
- #define min_dsp_freq 	90
--#define max_dsp_freq 	430
-+#define max_dsp_freq 	600
++#define min_dsp_freq 	360
++#define max_dsp_freq 	520
  #define MIN_VDD1_OPP 	CO_VDD1_OPP1
 -#define MAX_VDD1_OPP 	CO_VDD1_OPP5
 -#define MIN_VDD2_OPP 	CO_VDD2_OPP2
