@@ -147,8 +147,9 @@ index c43234a..1d2bc6c 100644
  static unsigned int rnd_rate_vdd1[7] = {
  	S125M, S250M, S500M, S600M, S720M, S800M, S1000M
  };
- static unsigned int rnd_rate_vdd2[3] = {
+-static unsigned int rnd_rate_vdd2[3] = {
 -	0, S83M, S166M
++static unsigned int rnd_rate_vdd2[4] = {
 +	0, S83M, S166M, S200M
  };
  
