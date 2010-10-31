@@ -355,7 +355,7 @@
 *** 907,912 ****
 --- 930,936 ----
   	for (vdd2_prcm = vdd2_rate_table+MAX_VDD2_OPP; vdd2_prcm->speed;
-  		vdd2_prcm++) {
+  		vdd2_prcm--) {
   		pr_debug("%lu\n", vdd2_prcm->speed);
 + 		printk("%lu\n", vdd2_prcm->speed);
   		if (vdd2_prcm->speed <= l3_speed)

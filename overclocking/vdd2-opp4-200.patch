@@ -244,3 +244,23 @@ index b8f8ce8..297b181 100644
  
  /* Structure returned to the framework user as handle */
  struct res_handle {
+*** a/arch/arm/mach-omap3pe/clock.c
+--- b/arch/arm/mach-omap3pe/clock.c
+***************
+*** 905,911 ****
+  	curr_vdd1_prcm_set = vdd1_prcm;
+  
+  	for (vdd2_prcm = vdd2_rate_table+MAX_VDD2_OPP; vdd2_prcm->speed;
+! 		vdd2_prcm++) {
+  		pr_debug("%lu\n", vdd2_prcm->speed);
+  		if (vdd2_prcm->speed <= l3_speed)
+  			break;
+--- 905,911 ----
+  	curr_vdd1_prcm_set = vdd1_prcm;
+  
+  	for (vdd2_prcm = vdd2_rate_table+MAX_VDD2_OPP; vdd2_prcm->speed;
+! 		vdd2_prcm--) {
+  		pr_debug("%lu\n", vdd2_prcm->speed);
+  		if (vdd2_prcm->speed <= l3_speed)
+  			break;
+
