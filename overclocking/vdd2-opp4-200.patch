@@ -68,7 +68,7 @@ index c43234a..1d2bc6c 100644
 -	0x1e, 0x24, 0x2c
 +static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 4 OPPs */
 +	/* Vsel corresponding to 0.975V (OPP1), 1.05V (OPP2), 1.15 (OPP3), 1.15 (OPP4) */
-+	0x1e, 0x24, 0x26, 0x26
++	0x1e, 0x24, 0x2c, 0x2c
  };
  
 -static struct dvfs_config omap3_vdd2_config[2] = {
