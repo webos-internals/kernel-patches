@@ -29,9 +29,9 @@
 @@ -14,3 +14,5 @@ 
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
- 
+
 +# CPUfreq override
-+obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
++obj-$(CONFIG_CPU_FREQ_OVERRIDE)		+= cpufreq_override.o
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-06-11 17:48:34.000000000 -0400
 +++ linux-2.6.24-ss/drivers/cpufreq/cpufreq.c	2010-09-02 13:10:13.000000000 -0400
@@ -143,8 +143,8 @@
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-08-25 14:49:37.000000000 -0400
-@@ -1523,3 +1578,16 @@
++++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-02 17:43:21.000000000 -0400
+@@ -1523,3 +1578,28 @@
  
  	return -1;
  }
@@ -160,10 +160,22 @@
 +	prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
++
++void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volts[]) {
++        memcpy(vdd2_volts,core_l3_vdd2_volts,sizeof(core_l3_vdd2_volts));
++}
++EXPORT_SYMBOL(omap_pm_opp_get_vdd2_volts);
++
++void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]) {
++        memcpy(core_l3_vdd2_volts,vdd2_volts,sizeof(core_l3_vdd2_volts));
++        prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
++}
++EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
++
 +#endif
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-10-18 13:23:37.000000000 -0400
-@@ -0,0 +1,344 @@
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-11-02 17:55:02.000000000 -0400
+@@ -0,0 +1,384 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -189,6 +201,12 @@
 +// VDD1 Vsel min
 +#define VDD1_VSEL_MIN 25
 +
++// VDD2 Vsel max
++#define VDD2_VSEL_MAX 55
++
++// VDD2 Vsel min
++#define VDD2_VSEL_MIN 25
++
 +// High temp alarm and cap
 +#define HIGHTEMP_SCALEBACK 55
 +
@@ -206,6 +224,8 @@
 +
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]);
++void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volts[]);
++void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]);
 +int omap34xx_get_temp(void);
 +int cpufreq_set_policy(struct cpufreq_policy *policy);
 +int ds2784_getpercent(int *ret_percent);
@@ -333,6 +353,14 @@
 +#endif
 +}
 +
++static ssize_t show_vdd2_vsel(struct cpufreq_policy *policy, char *buf) {
++        u8 volt[3];
++
++        omap_pm_opp_get_vdd2_volts(&volt);
++        return sprintf(buf, "%hu %hu %hu\n", volt[2],
++                                        volt[1],volt[0]);
++}
++
 +static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
 +						size_t count) {
 +        u8 volt[7], i;
@@ -365,6 +393,28 @@
 +        mutex_unlock(&override_mutex);
 +	return count;
 +}
++
++static ssize_t store_vdd2_vsel(struct cpufreq_policy *policy, char *buf,
++                                                size_t count) {
++        u8 volt[3], i;
++
++        mutex_lock(&override_mutex);
++        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1], &volt[0]) == 3) {
++                for(i=0;i < 3;i++) {
++                        if((volt[i] < VDD2_VSEL_MIN) || (volt[i] >
++                                                        VDD2_VSEL_MAX)) {
++                                printk("CPUfreq: invalid vsel\n");
++                                break;
++                        }
++                }
++                if(i == 3) omap_pm_opp_set_vdd2_volts(volt);
++        }
++        else printk("CPUfreq: missing vsel values\n");
++
++        mutex_unlock(&override_mutex);
++        return count;
++}
++
 +
 +static ssize_t show_hightemp_scaleback(struct cpufreq_policy *policy,
 +						char *buf) {
@@ -458,6 +508,7 @@
 +#endif
 +
 +CPUFREQ_OVERRIDE_ATTR(vdd1_vsel,0644,show_vdd1_vsel,store_vdd1_vsel);
++CPUFREQ_OVERRIDE_ATTR(vdd2_vsel,0644,show_vdd2_vsel,store_vdd2_vsel);
 +CPUFREQ_OVERRIDE_ATTR(battery_scaleback_percent,0644,
 +			show_battery_scaleback_per,
 +			store_battery_scaleback_per);
@@ -475,6 +526,7 @@
 +        &_attr_vdd1_vsel.attr,
 +        &_attr_vdd1_vsel_min.attr,
 +        &_attr_vdd1_vsel_max.attr,
++        &_attr_vdd2_vsel.attr,
 +        &_attr_cpu_hightemp_alarm.attr,
 +        &_attr_cpu_hightemp_reset.attr,
 +	&_attr_battery_scaleback_percent.attr,
