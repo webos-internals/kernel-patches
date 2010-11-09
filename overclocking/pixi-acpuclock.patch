@@ -2,12 +2,13 @@ diff --git a/arch/arm/mach-msm/acpuclock.c b/arch/arm/mach-msm/acpuclock.c
 index 0f4c9bd..2709aff 100644
 --- a/arch/arm/mach-msm/acpuclock.c
 +++ b/arch/arm/mach-msm/acpuclock.c
-@@ -202,6 +202,8 @@ static struct clkctl_acpu_speed pll0_960_pll1_245_pll2_1200[] = {
+@@ -202,6 +202,9 @@ static struct clkctl_acpu_speed pll0_960_pll1_245_pll2_1200[] = {
  	{ 0, 400000, ACPU_PLL_2, 2, 2, 133333, 2, 122880, 5 },
  	{ 1, 480000, ACPU_PLL_0, 4, 1, 160000, 2, 122880, 6 },
  	{ 1, 600000, ACPU_PLL_2, 2, 1, 200000, 2, 122880, 7 },
 +	{ 1, 748800, ACPU_PLL_2, 2, 0, 187200, 3, 122880, 7 },	
 +	{ 1, 768000, ACPU_PLL_2, 2, 0, 192000, 3, 122880, 7 },	
++	{ 1, 787200, ACPU_PLL_2, 2, 0, 196800, 3, 122880, 7 },
  	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
  };
  
