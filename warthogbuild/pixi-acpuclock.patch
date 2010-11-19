@@ -1,18 +1,19 @@
 diff --git a/arch/arm/mach-msm/acpuclock.c b/arch/arm/mach-msm/acpuclock.c
-index 0f4c9bd..bb32a24 100644
+index 0f4c9bd..b573dc3 100644
 --- a/arch/arm/mach-msm/acpuclock.c
 +++ b/arch/arm/mach-msm/acpuclock.c
-@@ -202,6 +202,9 @@ static struct clkctl_acpu_speed pll0_960_pll1_245_pll2_1200[] = {
+@@ -202,6 +202,10 @@ static struct clkctl_acpu_speed pll0_960_pll1_245_pll2_1200[] = {
  	{ 0, 400000, ACPU_PLL_2, 2, 2, 133333, 2, 122880, 5 },
  	{ 1, 480000, ACPU_PLL_0, 4, 1, 160000, 2, 122880, 6 },
  	{ 1, 600000, ACPU_PLL_2, 2, 1, 200000, 2, 122880, 7 },
 +	{ 1, 748800, ACPU_PLL_2, 2, 0, 187200, 3, 122880, 7 },	
 +	{ 1, 768000, ACPU_PLL_2, 2, 0, 192000, 3, 122880, 7 },	
 +	{ 1, 787200, ACPU_PLL_2, 2, 0, 196800, 3, 122880, 7 },
++	{ 1, 806400, ACPU_PLL_2, 2, 0, 201600, 3, 122880, 7 },	
  	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
  };
  
-@@ -378,7 +381,7 @@ static int acpuclk_set_vdd_level(int vdd)
+@@ -378,7 +382,7 @@ static int acpuclk_set_vdd_level(int vdd)
  
  /* Set proper dividers for the given clock speed. */
  static void acpuclk_set_div(const struct clkctl_acpu_speed *hunt_s) {
@@ -21,7 +22,7 @@ index 0f4c9bd..bb32a24 100644
  
  	reg_clksel = readl(A11S_CLK_SEL_ADDR);
  
-@@ -387,6 +390,14 @@ static void acpuclk_set_div(const struct clkctl_acpu_speed *hunt_s) {
+@@ -387,6 +391,14 @@ static void acpuclk_set_div(const struct clkctl_acpu_speed *hunt_s) {
  	/* CLK_SEL_SRC1NO */
  	src_sel = reg_clksel & 1;
  
@@ -36,7 +37,7 @@ index 0f4c9bd..bb32a24 100644
  	/*
  	 * If the new clock divider is higher than the previous, then
  	 * program the divider before switching the clock
-@@ -400,7 +411,19 @@ static void acpuclk_set_div(const struct clkctl_acpu_speed *hunt_s) {
+@@ -400,7 +412,19 @@ static void acpuclk_set_div(const struct clkctl_acpu_speed *hunt_s) {
  	/* Program clock source and divider */
  	reg_clkctl = readl(A11S_CLK_CNTL_ADDR);
  	reg_clkctl &= ~(0xFF << (8 * src_sel));
