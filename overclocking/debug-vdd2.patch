@@ -1,0 +1,330 @@
+--- linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c.orig
++++ linux-2.6.24/arch/arm/mach-omap3pe/prcm_opp.c
+***************
+*** 45,51 ****
+   *
+   ******************************************************************************/
+  
+! //#define DEBUG_PRCM
+  
+  #ifdef DEBUG_PRCM
+  # define DPRINTK(fmt, args...)	\
+--- 45,51 ----
+   *
+   ******************************************************************************/
+  
+! #define DEBUG_PRCM
+  
+  #ifdef DEBUG_PRCM
+  # define DPRINTK(fmt, args...)	\
+***************
+*** 421,426 ****
+--- 421,428 ----
+  	int curr_opp_no, target_opp_no;
+  	u8 vsel = 0;
+  
++ 	DPRINTK("prcm_do_voltage_scaling(%x, %x)\n", target_opp_id, current_opp_id);
++ 
+  	if (target_opp_id == current_opp_id)
+  		return PRCM_PASS;
+  
+***************
+*** 459,469 ****
+  		return PRCM_PASS;
+  	}
+  
+! 	if (vdd == PRCM_VDD1)
+  		vsel = mpu_iva2_vdd1_volts[target_opp_no - 1];
+  
+! 	else if (vdd == PRCM_VDD2)
+  		vsel = core_l3_vdd2_volts[target_opp_no - 1];
+  
+  #if defined(CONFIG_OMAP_VOLT_VSEL)
+  	if (set_voltage_level(vdd, vsel)) {
+--- 461,475 ----
+  		return PRCM_PASS;
+  	}
+  
+! 	if (vdd == PRCM_VDD1) {
+  		vsel = mpu_iva2_vdd1_volts[target_opp_no - 1];
++ 		DPRINTK("VDD1 vsel = %d\n", vsel);
++ 	}
+  
+! 	else if (vdd == PRCM_VDD2) {
+  		vsel = core_l3_vdd2_volts[target_opp_no - 1];
++ 		DPRINTK("VDD2 vsel = %d\n", vsel);
++ 	}
+  
+  #if defined(CONFIG_OMAP_VOLT_VSEL)
+  	if (set_voltage_level(vdd, vsel)) {
+***************
+*** 587,595 ****
+--- 593,607 ----
+  	u32 valid_rate;
+  	unsigned int cur_opp_no, target_vdd1_opp;
+  
++ 	DPRINTK("vdd1_opp_setting target_opp_no = %d\n", target_opp_no);
++ 
+  	target_vdd1_opp = vdd1_arm_dsp_freq[target_opp_no-1].opp;
+  	cur_opp_no = get_opp_no(current_vdd1_opp);
+  
++ 	DPRINTK("vdd1_opp_setting target_vdd1_opp = %x\n", target_vdd1_opp);
++ 	DPRINTK("vdd1_opp_setting current_vdd1_opp = %x\n", current_vdd1_opp);
++ 	DPRINTK("vdd1_opp_setting cur_opp_no = %d\n", cur_opp_no);
++ 
+  	if (p_vdd1_clk == NULL)
+  		p_vdd1_clk = clk_get(NULL, "virt_vdd1_prcm_set");
+  
+***************
+*** 603,617 ****
+--- 615,632 ----
+  		prcm_do_voltage_scaling(target_vdd1_opp, current_vdd1_opp);
+  		valid_rate = clk_round_rate(p_vdd1_clk,
+  					    rnd_rate_vdd1[target_opp_no-1]);
++ 		DPRINTK("vdd1_opp_setting valid_rate = %d\n", valid_rate);
+  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
+  	} else {
+  		valid_rate = clk_round_rate(p_vdd1_clk,
+  					    rnd_rate_vdd1[target_opp_no-1]);
++ 		DPRINTK("vdd1_opp_setting valid_rate = %d\n", valid_rate);
+  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
+  		prcm_do_voltage_scaling(target_vdd1_opp, current_vdd1_opp);
+  	}
+  
+  	current_vdd1_opp = target_vdd1_opp;
++ 	DPRINTK("vdd1_opp_setting current_vdd1_opp = %x\n", current_vdd1_opp);
+  }
+  
+  /* To set the opp value for vdd2 */
+***************
+*** 620,628 ****
+--- 635,649 ----
+  	u32 valid_rate;
+  	unsigned int cur_opp_no, target_vdd2_opp;
+  
++ 	DPRINTK("vdd2_opp_setting target_opp_no = %d\n", target_opp_no);
++ 
+  	target_vdd2_opp = vdd2_core_freq[target_opp_no-1].opp;
+  	cur_opp_no = get_opp_no(current_vdd2_opp);
+  
++ 	DPRINTK("vdd2_opp_setting target_vdd2_opp = %x\n", target_vdd2_opp);
++ 	DPRINTK("vdd2_opp_setting current_vdd2_opp = %x\n", current_vdd2_opp);
++ 	DPRINTK("vdd2_opp_setting cur_opp_no = %d\n", cur_opp_no);
++ 
+  	if (p_vdd2_clk == NULL)
+  		p_vdd2_clk = clk_get(NULL, "virt_vdd2_prcm_set");
+  
+***************
+*** 630,644 ****
+--- 651,668 ----
+  		prcm_do_voltage_scaling(target_vdd2_opp, current_vdd2_opp);
+  		valid_rate = clk_round_rate(p_vdd2_clk,
+  			rnd_rate_vdd2[target_opp_no-1]);
++ 		DPRINTK("vdd2_opp_setting valid_rate = %d\n", valid_rate);
+  		p_vdd2_clk->set_rate(p_vdd2_clk, valid_rate);
+  	} else {
+  		valid_rate = clk_round_rate(p_vdd2_clk,
+  			rnd_rate_vdd2[target_opp_no-1]);
++ 		DPRINTK("vdd2_opp_setting valid_rate = %d\n", valid_rate);
+  		p_vdd2_clk->set_rate(p_vdd2_clk, valid_rate);
+  		prcm_do_voltage_scaling(target_vdd2_opp, current_vdd2_opp);
+  	}
+  
+  	current_vdd2_opp = target_vdd2_opp;
++ 	DPRINTK("vdd2_opp_setting current_vdd2_opp = %x\n", current_vdd2_opp);
+  }
+  
+  /******************************************************************************
+***************
+*** 1372,1377 ****
+--- 1396,1403 ----
+  	unsigned long flags;
+  	u32 rfr_ctrl = 0, actim_ctrla = 0, actim_ctrlb = 0;
+  
++ 	DPRINTK("prcm_do_frequency_scaling(%x, %x)\n", target_opp_id, current_opp_id);
++ 
+  	if (target_opp_id == current_opp_id)
+  		return PRCM_PASS;
+  
+***************
+*** 1389,1394 ****
+--- 1415,1422 ----
+  
+  	sys_clkspeed = prcm_get_system_clock_speed();
+  
++ 	DPRINTK("sys_clkspeed = %d\n", sys_clkspeed);
++ 
+  	switch (sys_clkspeed) {
+  	case 12000: index = 0; break;
+  	case 13000: index = 1; break;
+***************
+*** 1402,1407 ****
+--- 1430,1438 ----
+  	if (vdd == PRCM_VDD1) {
+  		curr_opp_no = current_opp_id & OPP_NO_MASK;
+  		target_opp_no = target_opp_id & OPP_NO_MASK;
++ 
++ 		DPRINTK("VDD1 configure mpu\n");
++ 
+  		curr_m = (mpu_dpll_param[index][curr_opp_no - 1].dpll_m);
+  		curr_n = (mpu_dpll_param[index][curr_opp_no - 1].dpll_n);
+  		tar_m = (mpu_dpll_param[index][target_opp_no - 1].dpll_m);
+***************
+*** 1423,1428 ****
+--- 1454,1461 ----
+  		tar_m2 = mpu_dpll_param[index][target_opp_no - 1].dpll_m2;
+  		prcm_configure_dpll_divider(PRCM_DPLL1_M2X2_CLK, tar_m2);
+  
++ 		DPRINTK("VDD1 configure iva\n");
++ 
+  		curr_m = iva_dpll_param[index][curr_opp_no - 1].dpll_m;
+  		curr_n = iva_dpll_param[index][curr_opp_no - 1].dpll_n;
+  		tar_m =  iva_dpll_param[index][target_opp_no - 1].dpll_m;
+***************
+*** 1449,1454 ****
+--- 1482,1490 ----
+  		}
+  	else if (vdd == PRCM_VDD2) {
+  		target_opp_no = target_opp_id & OPP_NO_MASK;
++ 
++ 		DPRINTK("VDD2 configure core\n");
++ 
+  		tar_m = (core_dpll_param[index][target_opp_no - 1].dpll_m);
+  		tar_n = (core_dpll_param[index][target_opp_no - 1].dpll_n);
+  		tar_freqsel = (core_dpll_param[index]
+***************
+*** 1457,1478 ****
+--- 1493,1519 ----
+  		/* This function is executed from SRAM */
+  		local_irq_save(flags);
+  		if (target_opp_id == PRCM_VDD2_OPP4) {
++ 		  DPRINTK("VDD2 configure opp4\n");
+  			omap3_configure_gpmc(&omap3_vdd2_config[2]);
+  			rfr_ctrl    = omap3_vdd2_config[2].sdrc_cfg[0].sdrc_rfr_ctrl;
+  			actim_ctrla = omap3_vdd2_config[2].sdrc_cfg[0].sdrc_actim_ctrla;
+  			actim_ctrlb = omap3_vdd2_config[2].sdrc_cfg[0].sdrc_actim_ctrlb;
+  		} else if (target_opp_id == PRCM_VDD2_OPP3) {
++ 		  DPRINTK("VDD2 configure opp3\n");
+  			omap3_configure_gpmc(&omap3_vdd2_config[1]);
+  			rfr_ctrl    = omap3_vdd2_config[1].sdrc_cfg[0].sdrc_rfr_ctrl;
+  			actim_ctrla = omap3_vdd2_config[1].sdrc_cfg[0].sdrc_actim_ctrla;
+  			actim_ctrlb = omap3_vdd2_config[1].sdrc_cfg[0].sdrc_actim_ctrlb;
+  		} else if (target_opp_id == PRCM_VDD2_OPP2) {
++ 		  DPRINTK("VDD2 configure opp2\n");
+  			rfr_ctrl    = omap3_vdd2_config[0].sdrc_cfg[0].sdrc_rfr_ctrl;
+  			actim_ctrla = omap3_vdd2_config[0].sdrc_cfg[0].sdrc_actim_ctrla;
+  			actim_ctrlb = omap3_vdd2_config[0].sdrc_cfg[0].sdrc_actim_ctrlb;
+  		}
++ 		DPRINTK("VDD2 calling configure_core_dpll\n");
+  		omap3_configure_core_dpll(rfr_ctrl, actim_ctrla,
+  					  actim_ctrlb, tar_m2);
++ 		DPRINTK("VDD2 returned from configure_core_dpll\n");
+  		if (target_opp_id == PRCM_VDD2_OPP2)
+  			/* TODO: We still configure the 166 GPMC values even at
+  			 * 83
+
+*** linux-2.6.24/arch/arm/mach-omap3pe/clock.c.orig	2010-10-31 23:28:01.000000000 +1030
+--- linux-2.6.24/arch/arm/mach-omap3pe/clock.c	2010-10-31 23:28:54.000000000 +1030
+***************
+*** 603,608 ****
+--- 603,610 ----
+  	int ret = -EINVAL;
+  	int div = 0;
+  
++ 	printk("omap3_select_table_rate(%lu)\n", rate);
++ 
+  	if ((clk != &virt_vdd1_prcm_set) && (clk != &virt_vdd2_prcm_set))
+  		return ret;
+  
+***************
+*** 620,625 ****
+--- 622,628 ----
+  		if (prcm_vdd->speed <= rate) {
+  			found_speed = prcm_vdd->speed;
+  			pr_debug("Found speed = %lu\n", found_speed);
++ 			printk("Found speed = %lu\n", found_speed);
+  			break;
+  		}
+  	}
+***************
+*** 649,659 ****
+--- 652,667 ----
+  			return -EINVAL;
+  		cur_vdd_rate /= div;
+  		current_opp = curr_vdd2_prcm_set->opp;
++ 		printk("current_opp = %x\n", current_opp);
+  	}
+  
+  	cur_vdd_rate *= 1000;
+  	pr_debug("Current rate:%u\n", cur_vdd_rate);
++ 	printk("Current rate:%u\n", cur_vdd_rate);
++ 	printk("Found speed:%lu\n", found_speed);
++ 	printk("Current opp:%x\n", current_opp);
+  	if (cur_vdd_rate != found_speed) {
++ 	  printk("Doing frequency scaling\n");
+  		ret =
+  			prcm_do_frequency_scaling(prcm_vdd->opp,
+  					current_opp);
+***************
+*** 662,667 ****
+--- 670,677 ----
+  #ifdef CONFIG_CORE_OFF
+  		save_scratchpad_contents();
+  #endif
++ 		printk("Done frequency scaling\n");
++ 
+  	}
+  
+  	if (clk == &virt_vdd1_prcm_set) {
+***************
+*** 678,690 ****
+--- 688,709 ----
+  #endif
+  	} else {
+  		curr_vdd2_prcm_set = prcm_vdd;
++ 		printk("curr_vdd2_prcm_set = %p\n", curr_vdd2_prcm_set);
++ 		printk("Doing clk recalc\n");
+  		omap3_clk_recalc(&core_ck);
++ 		printk("Doing propagate_rate\n");
+  		omap3_propagate_rate(&core_ck);
++ 		printk("Doing clk recalc\n");
+  		omap3_clk_recalc(&core_x2_ck);
++ 		printk("Doing propagate_rate\n");
+  		omap3_propagate_rate(&core_x2_ck);
++ 		printk("Doing clk recalc\n");
+  		omap3_clk_recalc(&emul_core_alwon_ck);
++ 		printk("Doing propagate_rate\n");
+  		omap3_propagate_rate(&emul_core_alwon_ck);
+  	}
++ 
++ 	printk("finished omap3_select_table_rate\n");
+  	return 0;
+  }
+  
+***************
+*** 896,904 ****
+--- 915,927 ----
+  	pr_debug("System clock speed: %u, mpu speed : %u, l3_speed : %u"
+  				"\n", sys_clk_speed, mpu_speed, l3_speed);
+  
++ 	printk("System clock speed: %u, mpu speed : %u, l3_speed : %u"
++ 				"\n", sys_clk_speed, mpu_speed, l3_speed);
++ 
+  	for (vdd1_prcm = vdd1_rate_table+MAX_VDD1_OPP; vdd1_prcm->speed;
+  	vdd1_prcm--) {
+  		pr_debug("%lu\n", vdd1_prcm->speed);
++ 		printk("%lu\n", vdd1_prcm->speed);
+  		if (vdd1_prcm->speed <= mpu_speed)
+  			break;
+  	}
+***************
+*** 907,912 ****
+--- 930,936 ----
+  	for (vdd2_prcm = vdd2_rate_table+MAX_VDD2_OPP; vdd2_prcm->speed;
+  		vdd2_prcm--) {
+  		pr_debug("%lu\n", vdd2_prcm->speed);
++ 		printk("%lu\n", vdd2_prcm->speed);
+  		if (vdd2_prcm->speed <= l3_speed)
+  			break;
+  	}
+
