@@ -1,5 +1,5 @@
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/board-sirloin-3430.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-oc/arch/arm/mach-omap3pe/board-sirloin-3430.c	2010-11-25 21:02:21.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/board-sirloin-3430.c	2010-11-25 21:02:21.000000000 -0500
 @@ -1490,7 +1490,9 @@
  	.sdi_pll_to_pclk_ratio	= 0x0f,		/* PDIV */
  	.sdi_freq_selector	= 0x7,		/* 1.75-2Mhz (optimal) */
@@ -10,8 +10,203 @@
  };
  
  static struct platform_device board_lcd_controller = {
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/smartreflex.h	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/smartreflex.h	2010-11-25 20:31:16.000000000 -0500
+@@ -37,6 +37,8 @@
+  #define PRM_VP1_CONFIG_ERRORGAIN_OPP3   (0x16 << 16)
+  #define PRM_VP1_CONFIG_ERRORGAIN_OPP4   (0x23 << 16)
+  #define PRM_VP1_CONFIG_ERRORGAIN_OPP5   (0x27 << 16)
++ #define PRM_VP1_CONFIG_ERRORGAIN_OPP6   (0x27 << 16)
++ #define PRM_VP1_CONFIG_ERRORGAIN_OPP7   (0x27 << 16)
+ #else
+  #define PRM_VP1_CONFIG_ERRORGAIN        (0x18 << 16) /*20-4 18-3mV/% */
+ #endif
+@@ -182,6 +184,8 @@
+  #define SR1_ERRMINLIMIT_OPP3            0xF9
+  #define SR1_ERRMINLIMIT_OPP4            0xFA
+  #define SR1_ERRMINLIMIT_OPP5            0xFA
++ #define SR1_ERRMINLIMIT_OPP6            0xFA
++ #define SR1_ERRMINLIMIT_OPP7            0xFA
+ 
+  #define SR2_ERRWEIGHT                   (0x04 << 16)
+  #define SR2_ERRMAXLIMIT                 (0x02 << 8)
+@@ -220,6 +224,8 @@
+ #define CONTROL_FUSE_OPP3_VDD1           0x48002388
+ #define CONTROL_FUSE_OPP4_VDD1           0x4800238C
+ #define CONTROL_FUSE_OPP5_VDD1           0x48002390
++#define CONTROL_FUSE_OPP6_VDD1           0x48002394
++#define CONTROL_FUSE_OPP7_VDD1           0x48002398
+ 
+ #define CONTROL_FUSE_OPP1_VDD2           0x48002394
+ #define CONTROL_FUSE_OPP2_VDD2           0x48002398
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/smartreflex.c	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/smartreflex.c	2010-11-26 15:04:04.000000000 -0500
+@@ -78,9 +78,9 @@
+ 	struct clk *fck;
+ 	u32 req_opp_no;
+ #ifdef CONFIG_MACH_SIRLOIN_3630
+-	u32 opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue;
++	u32 opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue, opp6_nvalue, opp7_nvalue;
+ #else
+-	u32 opp1_nvalue, opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue;
++	u32 opp1_nvalue, opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue, opp6_nvalue, opp7_nvalue;
+ #endif
+ 	u32 senp_mod, senn_mod;
+ 	u32 srbase_addr;
+@@ -326,6 +326,8 @@
+ 
+ 	sr1.opp4_nvalue = omap_readl(CONTROL_FUSE_OPP4_VDD1) & 0xFFFFFF;
+ 	sr1.opp5_nvalue = omap_readl(CONTROL_FUSE_OPP5_VDD1) & 0xFFFFFF;
++	sr1.opp6_nvalue = omap_readl(CONTROL_FUSE_OPP6_VDD1) & 0xFFFFFF;
++	sr1.opp7_nvalue = omap_readl(CONTROL_FUSE_OPP7_VDD1) & 0xFFFFFF;
+ 
+ 	n = (fuse_sr & 0x0F00) >> 8;
+ 	sr2.senp_mod = (n & 0x03);
+@@ -663,22 +665,27 @@
+ 
+ /******************************************************************************/
+ 
+-static u8 sr1errminlimit[5] = {
++#ifdef CONFIG_MACH_SIRLOIN_3630
++static u8 sr1errminlimit[7] = {
+ //	0x00, /* OPP1, not used */
+ 	SR1_ERRMINLIMIT_OPP2,
+ 	SR1_ERRMINLIMIT_OPP2,
+ 	SR1_ERRMINLIMIT_OPP3,
+ 	SR1_ERRMINLIMIT_OPP4,
+-	SR1_ERRMINLIMIT_OPP5
++	SR1_ERRMINLIMIT_OPP5,
++	SR1_ERRMINLIMIT_OPP6,
++	SR1_ERRMINLIMIT_OPP7
+ };
+ 
+-static u32 vp1errgain[5] = {
++static u32 vp1errgain[7] = {
+ //	0x00, /* OPP1, not used */
+ 	PRM_VP1_CONFIG_ERRORGAIN_OPP2,
+ 	PRM_VP1_CONFIG_ERRORGAIN_OPP2,
+ 	PRM_VP1_CONFIG_ERRORGAIN_OPP3,
+ 	PRM_VP1_CONFIG_ERRORGAIN_OPP4,
+-	PRM_VP1_CONFIG_ERRORGAIN_OPP5
++	PRM_VP1_CONFIG_ERRORGAIN_OPP5,
++	PRM_VP1_CONFIG_ERRORGAIN_OPP6,
++	PRM_VP1_CONFIG_ERRORGAIN_OPP7
+ };
+ 
+ static u8 sr2errminlimit[3] = {
+@@ -692,6 +699,7 @@
+ 	PRM_VP2_CONFIG_ERRORGAIN_OPP2,
+ 	PRM_VP2_CONFIG_ERRORGAIN_OPP3
+ };
++#endif
+ 
+ static void sr_enable(struct omap_sr *sr, u32 target_opp_no)
+ {
+@@ -705,6 +713,12 @@
+ #ifdef CONFIG_MACH_SIRLOIN_3630
+ 	if (sr->srid == SR1) {
+ 		switch (target_opp_no) {
++                case 7:
++                        nvalue_reciprocal = sr->opp7_nvalue;
++                        break;
++                case 6:
++                        nvalue_reciprocal = sr->opp6_nvalue;
++                        break;
+ 		case 5:
+ 			nvalue_reciprocal = sr->opp5_nvalue;
+ 			break;
+@@ -749,6 +763,12 @@
+ 		errorgain = PRM_VP1_CONFIG_ERRORGAIN;
+ 		errorminlimit = SR1_ERRMINLIMIT;
+ 		switch (target_opp_no) {
++                case 7:
++                        nvalue_reciprocal = sr->opp7_nvalue;
++                        break;
++                case 6:
++                        nvalue_reciprocal = sr->opp6_nvalue;
++                        break;
+ 		case 5:
+ 			nvalue_reciprocal = sr->opp5_nvalue;
+ 			break;
+@@ -800,10 +820,10 @@
+ 	sr_modify_reg(sr, ERRCONFIG,
+ 			(ERRCONFIG_VPBOUNDINTEN | ERRCONFIG_VPBOUNDINTST),
+ 			(ERRCONFIG_VPBOUNDINTEN | ERRCONFIG_VPBOUNDINTST));
+-
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ 	sr_modify_reg(sr, ERRCONFIG,
+ 			(SR1_ERRORMINLIMIT_MASK), (errorminlimit));
+-
++#endif
+ 	if (sr->srid == SR1) {
+ 		/* set/latch init voltage */
+ 		vc = (PRM_VP1_CONFIG & ~(PRM_VPX_CONFIG_INITVOLTAGE_MASK |
+@@ -928,7 +948,7 @@
+ 
+ #ifdef CONFIG_MACH_SIRLOIN_3630
+ 
+-#define  FBB_OPP   CO_VDD1_OPP5
++#define  FBB_OPP   CO_VDD1_OPP7
+  
+ static void omap3630_abb_change_active_opp(u32 target_opp_no)
+ {
+@@ -1188,12 +1208,14 @@
+ 		reg_addr = R_VDD2_SR_CONTROL;
+ 	}
+ 
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ 	if (vdd == PRCM_VDD1) {
+ 		/* We only need to do this here for 5->non-5 transitions */
+ 		if( cur_opp_no == FBB_OPP && target_opp_no != FBB_OPP ) {
+ 			omap3630_abb_change_active_opp(target_opp_no);
+ 		}
+ 	}
++#endif
+ 
+ #ifdef CONFIG_OMAP_VOLT_SR_BYPASS
+ 	vc_bypass_value = (vsel << PRM_VC_BYPASS_DATA_SHIFT) |
+@@ -1469,6 +1491,7 @@
+ /******************************************************************************/
+ 
+ /* Sysfs interface to set VP1 error gain values */
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ static ssize_t omap_sr_vp1errgain_show(struct kset *subsys, char *buf)
+ {
+ 	return sprintf(buf, "1 %02x\n2 %02x\n3 %02x\n4 %02x\n5 %02x\n",
+@@ -1538,7 +1561,6 @@
+ 	.store = omap_sr_vp2errgain_store,
+ };
+ 
+-
+ /* Sysfs interface to set SR1 error min values */
+ static ssize_t omap_sr_sr1errminlimit_show(struct kset *subsys, char *buf)
+ {
+@@ -1608,6 +1630,7 @@
+ 	.show  = omap_sr_sr2errminlimit_show,
+ 	.store = omap_sr_sr2errminlimit_store,
+ };
++#endif
+ 
+ static ssize_t 
+ vdd1_vsel_show(struct kset *subsys, char *buf)
+@@ -1812,6 +1835,7 @@
+ 	if (ret)
+ 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
+ 
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ 	ret = subsys_create_file(&power_subsys, &sr_vdd2_autocomp);
+ 	if (ret)
+ 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
+@@ -1835,6 +1859,7 @@
+ 	ret = subsys_create_file(&power_subsys, &sr_sr2errminlimit);
+ 	if (ret)
+ 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
++#endif
+ 
+ 	ret = subsys_create_file(&power_subsys, &vdd1_vsel);
+ 	if (ret)
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-oc/arch/arm/mach-omap3pe/clock.h	2010-11-25 12:45:33.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock.h	2010-11-25 12:45:33.000000000 -0500
 @@ -51,11 +51,14 @@
  #define S250M	250000000
  #define S300M	300000000
@@ -30,7 +225,7 @@
  /* Macro to enable clock control via clock framework */
  #define ENABLE_CLOCKCONTROL 1
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-oc/arch/arm/mach-omap3pe/clock_tree.h	2010-11-25 12:33:30.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock_tree.h	2010-11-25 12:33:30.000000000 -0500
 @@ -94,6 +94,10 @@
  	{S800M, PRCM_VDD1_OPP4, RATE_IN_343X},
  	/*OPP5*/
@@ -60,7 +255,7 @@
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/Kconfig	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-oc/arch/arm/mach-omap3pe/Kconfig	2010-11-25 11:50:32.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/Kconfig	2010-11-25 11:50:32.000000000 -0500
 @@ -164,6 +164,18 @@
  	help
  	  Select this option if you want to boot at OPP5.
@@ -81,7 +276,7 @@
  
  choice
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-oc/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-25 21:38:04.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-26 14:52:41.000000000 -0500
 @@ -62,11 +62,11 @@
  #endif
  static u8 mpu_iva2_vdd1_volts [2][PRCM_NO_VDD1_OPPS] = {
@@ -403,6 +598,17 @@
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
+@@ -745,8 +840,8 @@
+ 	{200, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
+ };
+ 
+-static unsigned int rnd_rate_vdd1[5] = {
+-	S150M, S300M, S600M, S800M, S1000M
++static unsigned int rnd_rate_vdd1[7] = {
++	S150M, S300M, S600M, S800M, S1000M, S1200M, S1600M
+ };
+ static unsigned int rnd_rate_vdd2[3] = {
+ 	0, S100M, S200M
 @@ -758,11 +853,14 @@
  	unsigned int constraint;
  	unsigned int opp;
@@ -443,192 +649,8 @@
  #else	
  #error  "Undefined default VDD1 operation point"
  #endif
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/smartreflex.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-oc/arch/arm/mach-omap3pe/smartreflex.c	2010-11-25 21:08:17.000000000 -0500
-@@ -80,7 +80,7 @@
- #ifdef CONFIG_MACH_SIRLOIN_3630
- 	u32 opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue;
- #else
--	u32 opp1_nvalue, opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue;
-+	u32 opp1_nvalue, opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue, opp6_nvalue, opp7_nvalue;
- #endif
- 	u32 senp_mod, senn_mod;
- 	u32 srbase_addr;
-@@ -326,6 +326,8 @@
- 
- 	sr1.opp4_nvalue = omap_readl(CONTROL_FUSE_OPP4_VDD1) & 0xFFFFFF;
- 	sr1.opp5_nvalue = omap_readl(CONTROL_FUSE_OPP5_VDD1) & 0xFFFFFF;
-+	sr1.opp6_nvalue = omap_readl(CONTROL_FUSE_OPP6_VDD1) & 0xFFFFFF;
-+	sr1.opp7_nvalue = omap_readl(CONTROL_FUSE_OPP7_VDD1) & 0xFFFFFF;
- 
- 	n = (fuse_sr & 0x0F00) >> 8;
- 	sr2.senp_mod = (n & 0x03);
-@@ -663,22 +665,27 @@
- 
- /******************************************************************************/
- 
--static u8 sr1errminlimit[5] = {
-+#ifdef CONFIG_MACH_SIRLOIN_3630
-+static u8 sr1errminlimit[7] = {
- //	0x00, /* OPP1, not used */
- 	SR1_ERRMINLIMIT_OPP2,
- 	SR1_ERRMINLIMIT_OPP2,
- 	SR1_ERRMINLIMIT_OPP3,
- 	SR1_ERRMINLIMIT_OPP4,
--	SR1_ERRMINLIMIT_OPP5
-+	SR1_ERRMINLIMIT_OPP5,
-+	SR1_ERRMINLIMIT_OPP6,
-+	SR1_ERRMINLIMIT_OPP7
- };
- 
--static u32 vp1errgain[5] = {
-+static u32 vp1errgain[7] = {
- //	0x00, /* OPP1, not used */
- 	PRM_VP1_CONFIG_ERRORGAIN_OPP2,
- 	PRM_VP1_CONFIG_ERRORGAIN_OPP2,
- 	PRM_VP1_CONFIG_ERRORGAIN_OPP3,
- 	PRM_VP1_CONFIG_ERRORGAIN_OPP4,
--	PRM_VP1_CONFIG_ERRORGAIN_OPP5
-+	PRM_VP1_CONFIG_ERRORGAIN_OPP5,
-+	PRM_VP1_CONFIG_ERRORGAIN_OPP6,
-+	PRM_VP1_CONFIG_ERRORGAIN_OPP7
- };
- 
- static u8 sr2errminlimit[3] = {
-@@ -692,6 +699,7 @@
- 	PRM_VP2_CONFIG_ERRORGAIN_OPP2,
- 	PRM_VP2_CONFIG_ERRORGAIN_OPP3
- };
-+#endif
- 
- static void sr_enable(struct omap_sr *sr, u32 target_opp_no)
- {
-@@ -705,6 +713,12 @@
- #ifdef CONFIG_MACH_SIRLOIN_3630
- 	if (sr->srid == SR1) {
- 		switch (target_opp_no) {
-+                case 7:
-+                        nvalue_reciprocal = sr->opp7_nvalue;
-+                        break;
-+                case 6:
-+                        nvalue_reciprocal = sr->opp6_nvalue;
-+                        break;
- 		case 5:
- 			nvalue_reciprocal = sr->opp5_nvalue;
- 			break;
-@@ -749,6 +763,12 @@
- 		errorgain = PRM_VP1_CONFIG_ERRORGAIN;
- 		errorminlimit = SR1_ERRMINLIMIT;
- 		switch (target_opp_no) {
-+                case 7:
-+                        nvalue_reciprocal = sr->opp7_nvalue;
-+                        break;
-+                case 6:
-+                        nvalue_reciprocal = sr->opp6_nvalue;
-+                        break;
- 		case 5:
- 			nvalue_reciprocal = sr->opp5_nvalue;
- 			break;
-@@ -800,10 +820,10 @@
- 	sr_modify_reg(sr, ERRCONFIG,
- 			(ERRCONFIG_VPBOUNDINTEN | ERRCONFIG_VPBOUNDINTST),
- 			(ERRCONFIG_VPBOUNDINTEN | ERRCONFIG_VPBOUNDINTST));
--
-+#ifdef CONFIG_MACH_SIRLOIN_3630
- 	sr_modify_reg(sr, ERRCONFIG,
- 			(SR1_ERRORMINLIMIT_MASK), (errorminlimit));
--
-+#endif
- 	if (sr->srid == SR1) {
- 		/* set/latch init voltage */
- 		vc = (PRM_VP1_CONFIG & ~(PRM_VPX_CONFIG_INITVOLTAGE_MASK |
-@@ -928,7 +948,7 @@
- 
- #ifdef CONFIG_MACH_SIRLOIN_3630
- 
--#define  FBB_OPP   CO_VDD1_OPP5
-+#define  FBB_OPP   CO_VDD1_OPP7
-  
- static void omap3630_abb_change_active_opp(u32 target_opp_no)
- {
-@@ -1188,12 +1208,14 @@
- 		reg_addr = R_VDD2_SR_CONTROL;
- 	}
- 
-+#ifdef CONFIG_MACH_SIRLOIN_3630
- 	if (vdd == PRCM_VDD1) {
- 		/* We only need to do this here for 5->non-5 transitions */
- 		if( cur_opp_no == FBB_OPP && target_opp_no != FBB_OPP ) {
- 			omap3630_abb_change_active_opp(target_opp_no);
- 		}
- 	}
-+#endif
- 
- #ifdef CONFIG_OMAP_VOLT_SR_BYPASS
- 	vc_bypass_value = (vsel << PRM_VC_BYPASS_DATA_SHIFT) |
-@@ -1469,6 +1491,7 @@
- /******************************************************************************/
- 
- /* Sysfs interface to set VP1 error gain values */
-+#ifdef CONFIG_MACH_SIRLOIN_3630
- static ssize_t omap_sr_vp1errgain_show(struct kset *subsys, char *buf)
- {
- 	return sprintf(buf, "1 %02x\n2 %02x\n3 %02x\n4 %02x\n5 %02x\n",
-@@ -1608,6 +1630,7 @@
- 	.show  = omap_sr_sr2errminlimit_show,
- 	.store = omap_sr_sr2errminlimit_store,
- };
-+#endif
- 
- static ssize_t 
- vdd1_vsel_show(struct kset *subsys, char *buf)
-@@ -1812,6 +1835,7 @@
- 	if (ret)
- 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
- 
-+#ifdef CONFIG_MACH_SIRLOIN_3630
- 	ret = subsys_create_file(&power_subsys, &sr_vdd2_autocomp);
- 	if (ret)
- 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
-@@ -1835,6 +1859,7 @@
- 	ret = subsys_create_file(&power_subsys, &sr_sr2errminlimit);
- 	if (ret)
- 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
-+#endif
- 
- 	ret = subsys_create_file(&power_subsys, &vdd1_vsel);
- 	if (ret)
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/smartreflex.h	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-oc/arch/arm/mach-omap3pe/smartreflex.h	2010-11-25 20:31:16.000000000 -0500
-@@ -37,6 +37,8 @@
-  #define PRM_VP1_CONFIG_ERRORGAIN_OPP3   (0x16 << 16)
-  #define PRM_VP1_CONFIG_ERRORGAIN_OPP4   (0x23 << 16)
-  #define PRM_VP1_CONFIG_ERRORGAIN_OPP5   (0x27 << 16)
-+ #define PRM_VP1_CONFIG_ERRORGAIN_OPP6   (0x27 << 16)
-+ #define PRM_VP1_CONFIG_ERRORGAIN_OPP7   (0x27 << 16)
- #else
-  #define PRM_VP1_CONFIG_ERRORGAIN        (0x18 << 16) /*20-4 18-3mV/% */
- #endif
-@@ -182,6 +184,8 @@
-  #define SR1_ERRMINLIMIT_OPP3            0xF9
-  #define SR1_ERRMINLIMIT_OPP4            0xFA
-  #define SR1_ERRMINLIMIT_OPP5            0xFA
-+ #define SR1_ERRMINLIMIT_OPP6            0xFA
-+ #define SR1_ERRMINLIMIT_OPP7            0xFA
- 
-  #define SR2_ERRWEIGHT                   (0x04 << 16)
-  #define SR2_ERRMAXLIMIT                 (0x02 << 8)
-@@ -220,6 +224,8 @@
- #define CONTROL_FUSE_OPP3_VDD1           0x48002388
- #define CONTROL_FUSE_OPP4_VDD1           0x4800238C
- #define CONTROL_FUSE_OPP5_VDD1           0x48002390
-+#define CONTROL_FUSE_OPP6_VDD1           0x48002394
-+#define CONTROL_FUSE_OPP7_VDD1           0x48002398
- 
- #define CONTROL_FUSE_OPP1_VDD2           0x48002394
- #define CONTROL_FUSE_OPP2_VDD2           0x48002398
 --- linux-2.6.24-palm/include/asm/arch-omap/prcm.h	2010-11-23 18:42:42.000000000 -0500
-+++ linux-2.6.24-oc/include/asm/arch-omap/prcm.h	2010-11-25 11:38:13.000000000 -0500
++++ linux-2.6.24-F105/include/asm-arm/arch-omap/prcm.h	2010-11-25 11:38:13.000000000 -0500
 @@ -609,7 +609,12 @@
  							| ID_OPP_NO(0x4))
  #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
@@ -643,8 +665,24 @@
  
  /* VDD2 OPPs */
  #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
---- linux-2.6.24-palm/include/asm/arch-omap/resource.h	2010-11-23 18:42:42.000000000 -0500
-+++ linux-2.6.24-oc/include/asm/arch-omap/resource.h	2010-11-25 12:18:51.000000000 -0500
+--- linux-2.6.24-palm/include/asm-arm/arch-omap/prcm.h	2010-11-23 18:42:42.000000000 -0500
++++ linux-2.6.24-F105/include/asm-arm/arch-omap/prcm.h	2010-11-25 11:38:13.000000000 -0500
+@@ -609,7 +609,12 @@
+ 							| ID_OPP_NO(0x4))
+ #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
+ 							| ID_OPP_NO(0x5))
+-#define PRCM_NO_VDD1_OPPS	5
++#define PRCM_VDD1_OPP6          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x6))
++#define PRCM_VDD1_OPP7          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x7))
++
++#define PRCM_NO_VDD1_OPPS	7
+ 
+ /* VDD2 OPPs */
+ #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
+--- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-11-23 18:42:42.000000000 -0500
++++ linux-2.6.24-F105/include/asm-arm/arch-omap/resource.h	2010-11-25 12:18:51.000000000 -0500
 @@ -112,6 +112,8 @@
  #define CO_VDD1_OPP3		0x3
  #define CO_VDD1_OPP4		0x4
@@ -663,24 +701,8 @@
  #define MIN_VDD2_OPP 	CO_VDD2_OPP2
  #define MAX_VDD2_OPP 	CO_VDD2_OPP3
  
---- linux-2.6.24-palm/include/asm-arm/arch-omap/prcm.h	2010-11-23 18:42:42.000000000 -0500
-+++ linux-2.6.24-oc/include/asm-arm/arch-omap/prcm.h	2010-11-25 11:38:13.000000000 -0500
-@@ -609,7 +609,12 @@
- 							| ID_OPP_NO(0x4))
- #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
- 							| ID_OPP_NO(0x5))
--#define PRCM_NO_VDD1_OPPS	5
-+#define PRCM_VDD1_OPP6          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
-+                                                        | ID_OPP_NO(0x6))
-+#define PRCM_VDD1_OPP7          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
-+                                                        | ID_OPP_NO(0x7))
-+
-+#define PRCM_NO_VDD1_OPPS	7
- 
- /* VDD2 OPPs */
- #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
---- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-11-23 18:42:42.000000000 -0500
-+++ linux-2.6.24-oc/include/asm-arm/arch-omap/resource.h	2010-11-25 12:18:51.000000000 -0500
+--- linux-2.6.24-palm/include/asm/arch-omap/resource.h	2010-11-23 18:42:42.000000000 -0500
++++ linux-2.6.24-F105/include/asm-arm/arch-omap/resource.h	2010-11-25 12:18:51.000000000 -0500
 @@ -112,6 +112,8 @@
  #define CO_VDD1_OPP3		0x3
  #define CO_VDD1_OPP4		0x4
