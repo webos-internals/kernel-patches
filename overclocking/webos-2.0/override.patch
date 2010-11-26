@@ -143,7 +143,7 @@
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-26 11:56:37.000000000 -0500
++++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-26 12:48:32.000000000 -0500
 @@ -1889,5 +1991,37 @@
  	return -1;
  }
@@ -183,8 +183,8 @@
 +#endif
  
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-11-26 11:43:19.000000000 -0500
-@@ -0,0 +1,407 @@
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-11-26 14:36:00.000000000 -0500
+@@ -0,0 +1,413 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -273,6 +273,12 @@
 +	.show = _show,\
 +};
 +
++#ifdef CONFIG_MACH_SIRLOIN_3630
++static int tidx = 1;
++#else
++static int tidx = 0;
++#endif
++
 +static inline void check_stuff(struct work_struct *work) {
 +        struct cpufreq_policy new_policy, *policy = cpufreq_cpu_get(0);
 +        u32 cputemp;
@@ -349,17 +355,17 @@
 +}
 +
 +static ssize_t show_vdd1_vsel(struct cpufreq_policy *policy, char *buf) {
-+        u8 volt[7];
++        u8 volt[2][7];
 +
 +        omap_pm_opp_get_volts(&volt);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+        return sprintf(buf, "%hu %hu %hu %hu %hu\n", volt[6],
-+                                        volt[5],volt[4],volt[3],
-+                                        volt[2]);
++        return sprintf(buf, "%hu %hu %hu %hu %hu\n", volt[tidx][6],
++                                        volt[tidx][5],volt[tidx][4],
++                                        volt[tidx][3],volt[tidx][2]);
 +#else
-+        return sprintf(buf, "%hu %hu %hu %hu %hu %hu %hu\n", volt[6],
-+                                        volt[5],volt[4],volt[3],
-+                                        volt[2],volt[1],volt[0]);
++        return sprintf(buf, "%hu %hu %hu %hu %hu %hu %hu\n", volt[tidx][6],
++                                    volt[tidx][5],volt[tidx][4],volt[tidx][3],
++                                    volt[tidx][2],volt[tidx][1],volt[tidx][0]);
 +#endif
 +}
 +
@@ -372,37 +378,37 @@
 +}
 +
 +static ssize_t show_vdd2_vsel(struct cpufreq_policy *policy, char *buf) {
-+        u8 volt[3];
++        u8 volt[2][3];
 +
 +        omap_pm_opp_get_vdd2_volts(&volt);
-+        return sprintf(buf, "%hu %hu %hu\n", volt[2],
-+                                        volt[1],volt[0]);
++        return sprintf(buf, "%hu %hu %hu\n", volt[tidx][2],
++                                        volt[tidx][1],volt[tidx][0]);
 +}
 +
 +static ssize_t show_vdd2_freqs(struct cpufreq_policy *policy, char *buf) {
-+        u8 freqs[3];
++        u8 freqs[2][3];
 +        omap_pm_opp_get_vdd2_freq(&freqs);
 +
-+        return sprintf(buf, "%hu %hu %hu\n", freqs[2],
-+                                        freqs[1],freqs[0]);
++        return sprintf(buf, "%hu %hu %hu\n", freqs[tidx][2],
++                                        freqs[tidx][1],freqs[tidx][0]);
 +}
 +
 +static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
 +						size_t count) {
-+        u8 volt[7], i;
++        u8 volt[2][7], i;
 +
 +        mutex_lock(&override_mutex);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
-+                                                &volt[4],&volt[3],&volt[2]) == 5) {
++        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu", &volt[tidx][6],&volt[tidx][5],
++                       &volt[tidx][4],&volt[tidx][3],&volt[tidx][2]) == 5) {
 +		for(i=0;i < 5;i++) {
 +#else
-+        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
-+                                                &volt[4],&volt[3],&volt[2],
-+                                                &volt[1],&volt[0]) == 7) {
++        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[tidx][6],&volt[tidx][5],
++                                   &volt[tidx][4],&volt[tidx][3],&volt[tidx][2],
++                                   &volt[tidx][1],&volt[tidx][0]) == 7) {
 +		for(i=0;i < 7;i++) {
 +#endif
-+			if((volt[i] < VDD1_VSEL_MIN) || (volt[i] >
++			if((volt[tidx][i] < VDD1_VSEL_MIN) || (volt[tidx][i] >
 +							VDD1_VSEL_MAX)) {
 +				printk("CPUfreq: invalid vsel\n");
 +				break;
@@ -422,12 +428,12 @@
 +
 +static ssize_t store_vdd2_vsel(struct cpufreq_policy *policy, char *buf,
 +                                                size_t count) {
-+        u8 volt[3], i;
++        u8 volt[2][3], i;
 +
 +        mutex_lock(&override_mutex);
-+        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1], &volt[0]) == 3) {
++        if(sscanf(buf, "%hhu %hhu %hhu", &volt[tidx][2],&volt[tidx][1], &volt[tidx][0]) == 3) {
 +                for(i=0;i < 3;i++) {
-+                        if((volt[i] < VDD2_VSEL_MIN) || (volt[i] >
++                        if((volt[tidx][i] < VDD2_VSEL_MIN) || (volt[tidx][i] >
 +                                                        VDD2_VSEL_MAX)) {
 +                                printk("CPUfreq: invalid vsel\n");
 +                                break;
