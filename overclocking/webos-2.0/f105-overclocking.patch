@@ -1,0 +1,701 @@
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/board-sirloin-3430.c	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-oc/arch/arm/mach-omap3pe/board-sirloin-3430.c	2010-11-25 21:02:21.000000000 -0500
+@@ -1490,7 +1490,9 @@
+ 	.sdi_pll_to_pclk_ratio	= 0x0f,		/* PDIV */
+ 	.sdi_freq_selector	= 0x7,		/* 1.75-2Mhz (optimal) */
+ 	.sdi_power_enable	= board_sdi_vcc_enable,
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ 	.lvds_power_enable	= board_lvds_enable,
++#endif
+ };
+ 
+ static struct platform_device board_lcd_controller = {
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-oc/arch/arm/mach-omap3pe/clock.h	2010-11-25 12:45:33.000000000 -0500
+@@ -51,11 +51,14 @@
+ #define S250M	250000000
+ #define S300M	300000000
+ #define S500M	500000000
+-#define S550M	550000000
+-#define S625M	625000000
+ #define S600M	600000000
++#define S700M	700000000
+ #define S800M	800000000
++#define S900M	900000000
+ #define S1000M	1000000000
++#define S1005M	1005000000
++#define S1200M	1200000000
++#define S1600M	1600000000
+ 
+ /* Macro to enable clock control via clock framework */
+ #define ENABLE_CLOCKCONTROL 1
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-oc/arch/arm/mach-omap3pe/clock_tree.h	2010-11-25 12:33:30.000000000 -0500
+@@ -94,6 +94,10 @@
+ 	{S800M, PRCM_VDD1_OPP4, RATE_IN_343X},
+ 	/*OPP5*/
+ 	{S1000M, PRCM_VDD1_OPP5, RATE_IN_343X},
++        /*OPP6*/
++        {S1200M, PRCM_VDD1_OPP6, RATE_IN_343X},
++        /*OPP7*/
++        {S1600M, PRCM_VDD1_OPP7, RATE_IN_343X},
+ };
+ 
+ static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
+@@ -115,9 +119,14 @@
+ 	/*OPP3*/
+ 	{S500M, PRCM_VDD1_OPP3, RATE_IN_343X},
+ 	/*OPP4*/
+-	{S550M, PRCM_VDD1_OPP4, RATE_IN_343X},
++	{S700M, PRCM_VDD1_OPP4, RATE_IN_343X},
+ 	/*OPP5*/
+-	{S600M, PRCM_VDD1_OPP5, RATE_IN_343X},
++	{S800M, PRCM_VDD1_OPP5, RATE_IN_343X},
++        /*OPP6*/
++        {S900M, PRCM_VDD1_OPP6, RATE_IN_343X},
++        /*OPP7*/
++        {S1005M, PRCM_VDD1_OPP7, RATE_IN_343X},
++
+ };
+ 
+ static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/Kconfig	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-oc/arch/arm/mach-omap3pe/Kconfig	2010-11-25 11:50:32.000000000 -0500
+@@ -164,6 +164,18 @@
+ 	help
+ 	  Select this option if you want to boot at OPP5.
+ 
++config OMAP3_VDD1_OPP6
++	bool "OPP6"
++	depends on OMAP3_PM
++	help
++	  Select this option if you want to boot at OPP6.
++
++config OMAP3_VDD1_OPP7
++	bool "OPP7"
++	depends on OMAP3_PM
++	help
++	  Select this option if you want to boot at OPP7.
++
+ endchoice
+ 
+ choice
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-oc/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-25 21:38:04.000000000 -0500
+@@ -62,11 +62,11 @@
+ #endif
+ static u8 mpu_iva2_vdd1_volts [2][PRCM_NO_VDD1_OPPS] = {
+ 	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
+-				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
+-	{ 0x1e, 0x24, 0x30, 0x36, 0x3C },    /* OLD 3430 values */
++	1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5), 1.425V (OPP6), 1.46V (OPP7)*/
++	{ 0x1e, 0x24, 0x30, 0x36, 0x3C, 0x41, 0x43},    /* OLD 3430 values */
+ 	/* Vsel corresponding to unused (OPP1), 1.0125V (OPP2),
+ 				1.2V (OPP3), 1.325V (OPP4), 1.375 (OPP5) */
+-	{ 0x21, 0x21, 0x30, 0x3a, 0x3e },    /* NEW 3630 values */
++	{ 0x21, 0x21, 0x30, 0x3a, 0x3e, 0x44, 0x48 },    /* NEW 3630 values */
+ };
+ 
+ static u8 core_l3_vdd2_volts [2][PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
+@@ -226,7 +226,7 @@
+ 
+ u32 omap3_max_vdd1_opp(void)
+ {
+-	return 5;
++	return 7;
+ 
+ 	/* This function call is used in the bridgedriver.
+ 	 *
+@@ -234,7 +234,7 @@
+ 	 * OPP based on silicon revision and part binning. We are not using
+ 	 * this code right now but are keeping it here for future reference.
+ 	 *
+-	 * For our kernel we are always returning 5 as max OPP.
++	 * For our kernel we are always returning 7 as max OPP.
+ 	 */
+ #if 0
+ 	u32 sku_id;
+@@ -275,34 +275,54 @@
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
+ 	/* OPP5 (600 Mhz) */
++	{0x12C, 0x05, 0x07, 0x01},
++	/* OPP6 (720 Mhz) */
++	{0x12C, 0x05, 0x07, 0x01},
++	/* OPP7 (800 Mhz) */
+ 	{0x12C, 0x05, 0x07, 0x01} },
+ 	/* 13M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x1F4, 0x0C, 0x03, 0x04}, {0x1F4, 0x0C, 0x03, 0x02},
+-	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+-	{0x1F4, 0x0C, 0x03, 0x01}, {0x226, 0x0C, 0x03, 0x01},
+-	/* OPP5 (600 Mhz) */
+-	{0x258, 0x0C, 0x03, 0x01} },
++	/* OPP3(500 Mhz) and OPP4(700 Mhz)*/
++	{0x1F4, 0x0C, 0x03, 0x01}, {0x2BC, 0x0C, 0x03, 0x01},
++	/* OPP5 (800 Mhz) */
++	{0x320, 0x0C, 0x03, 0x01},
++	/* OPP6 (800 Mhz) */
++	{0x384, 0x0C, 0x03, 0x01},
++	/* OPP7 (1005 Mhz) */
++	{0x3ED, 0x0C, 0x03, 0x01} },
+ 	/* 19.2M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x271, 0x17, 0x03, 0x04}, {0x271, 0x17, 0x03, 0x02},
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x271, 0x17, 0x03, 0x01}, {0x191, 0x0D, 0x05, 0x01},
+ 	/* OPP5 (600 Mhz) */
++	{0x177, 0x0B, 0x06, 0x01},
++	/* OPP6 (720 Mhz) */
++	{0x177, 0x0B, 0x06, 0x01},
++	/* OPP7 (800 Mhz) */
+ 	{0x177, 0x0B, 0x06, 0x01} },
+ 	/* 26M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x0FA, 0x0C, 0x07, 0x04}, {0x0FA, 0x0C, 0x07, 0x02},
+-	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+-	{0x0FA, 0x0C, 0x07, 0x01}, {0x113, 0x0C, 0x07, 0x01},
+-	/* OPP5 (600 Mhz) */
+-	{0x12C, 0x0C, 0x07, 0x01} },
++	/* OPP3(500 Mhz) and OPP4(700 Mhz)*/
++	{0x0FA, 0x0C, 0x07, 0x01}, {0x15E, 0x0C, 0x07, 0x01},
++	/* OPP5 (800 Mhz) */
++	{0x190, 0x0C, 0x07, 0x01},
++	/* OPP6 (900 Mhz) */
++	{0x1C2, 0x0C, 0x07, 0x01},
++	/* OPP7 (1005 Mhz) */
++	{0x1F7, 0x0C, 0x07, 0x01} },
+ 	/* 38.4M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x271, 0x2F, 0x03, 0x04}, {0x271, 0x2F, 0x03, 0x02},
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x271, 0x2F, 0x03, 0x01}, {0x1BC, 0x1E, 0x04, 0x01},
+ 	/* OPP5 (600 Mhz) */
++	{0x177, 0x17, 0x06, 0x01},
++	/* OPP6 (720 Mhz) */
++	{0x177, 0x17, 0x06, 0x01},
++	/* OPP7 (800 Mhz) */
+ 	{0x177, 0x17, 0x06, 0x01} },
+ 	},
+ 
+@@ -314,35 +334,56 @@
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
+ 	/* OPP5 (600 Mhz) */
+-	{0x12C, 0x05, 0x07, 0x01} },
++	{0x12C, 0x05, 0x07, 0x01},
++        /* OPP6 (600 Mhz) */
++        {0x12C, 0x05, 0x07, 0x01},
++        /* OPP7 (600 Mhz) */
++        {0x12C, 0x05, 0x07, 0x01} },
+ 	/* 13M values */
+ 	/* OPP1(unused 150 Mhz) and OPP2(300 Mhz)*/
+ 	{{0x258, 0x0C, 0x03, 0x04}, {0x258, 0x0C, 0x03, 0x02},
+ 	/* OPP3(600 Mhz) and OPP4(800 Mhz)*/
+ 	{0x258, 0x0C, 0x03, 0x01}, {0x320, 0x0C, 0x03, 0x01},
+ 	/* OPP5 (1000 Mhz) */
+-	{0x3e8, 0x0C, 0x03, 0x01} },
++	{0x3e8, 0x0C, 0x03, 0x01},
++        /* OPP6 (1200 Mhz) */
++        {0x4B0, 0x0C, 0x03, 0x01},
++        /* OPP7 (1600 Mhz) */
++        {0x640, 0x0C, 0x03, 0x01} },
+ 	/* 19.2M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x271, 0x17, 0x03, 0x04}, {0x271, 0x17, 0x03, 0x02},
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x271, 0x17, 0x03, 0x01}, {0x191, 0x0D, 0x05, 0x01},
+ 	/* OPP5 (600 Mhz) */
+-	{0x177, 0x0B, 0x06, 0x01} },
++	{0x177, 0x0B, 0x06, 0x01},
++        /* OPP6 (600 Mhz) */
++        {0x177, 0x0B, 0x06, 0x01},
++        /* OPP7 (600 Mhz) */
++        {0x177, 0x0B, 0x06, 0x01} },
+ 	/* 26M values */
+ 	/* OPP1(150 Mhz) and OPP2(300 Mhz)*/
+ 	{{0x12c, 0x0C, 0x07, 0x04}, {0x12c, 0x0C, 0x07, 0x02},
+ 	/* OPP3(600 Mhz) and OPP4(800 Mhz)*/
+ 	{0x12c, 0x0C, 0x07, 0x01}, {0x190, 0x0C, 0x07, 0x01},
+ 	/* OPP5 (1000 Mhz) */
+-	{0x1f4, 0x0C, 0x07, 0x01} },
++	{0x1f4, 0x0C, 0x07, 0x01},
++        /* OPP6 (1000 Mhz) */
++        {0x1f4, 0x0C, 0x07, 0x01},
++        /* OPP7 (1000 Mhz) */
++        {0x1f4, 0x0C, 0x07, 0x01} },
++
+ 	/* 38.4M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x271, 0x2F, 0x03, 0x04}, {0x271, 0x2F, 0x03, 0x02},
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x271, 0x2F, 0x03, 0x01}, {0x1BC, 0x1E, 0x04, 0x01},
+ 	/* OPP5 (600 Mhz) */
+-	{0x177, 0x17, 0x06, 0x01} },
++	{0x177, 0x17, 0x06, 0x01},
++        /* OPP6 (600 Mhz) */
++        {0x177, 0x17, 0x06, 0x01},
++        /* OPP7 (600 Mhz) */
++        {0x177, 0x17, 0x06, 0x01} },
+ 	},
+ };
+ 
+@@ -355,13 +396,21 @@
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0B4, 0x05, 0x07, 0x01}, {0x0C6, 0x05, 0x07, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x0D7, 0x05, 0x07, 0x01} },
++	 {0x0D7, 0x05, 0x07, 0x01},
++        /* OPP6 (520 Mhz) */
++        {0x0D7, 0x05, 0x07, 0x01},
++        /* OPP7 (600 Mhz) */
++        {0x0D7, 0x05, 0x07, 0x01} },
+ 	/* 13M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+ 	{{0x168, 0x0C, 0x03, 0x04}, {0x168, 0x0C, 0x03, 0x02},
+ 	/* OPP3(360 Mhz) and OPP4(400 Mhz)*/
+ 	 {0x168, 0x0C, 0x03, 0x01}, {0x190, 0x0C, 0x03, 0x01},
+ 	/* OPP5 (430 Mhz) */
++	 {0x1AE, 0x0C, 0x03, 0x01},
++	/* OPP6 (430 Mhz) */
++	 {0x1AE, 0x0C, 0x03, 0x01},
++	/* OPP7 (430 Mhz) */
+ 	 {0x1AE, 0x0C, 0x03, 0x01} },
+ 	/* 19.2M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+@@ -369,21 +418,33 @@
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x203, 0x16, 0x03, 0x01} },
++	 {0x203, 0x16, 0x03, 0x01}, 
++        /* OPP6 (430 Mhz) */
++         {0x203, 0x16, 0x03, 0x01},
++        /* OPP7 (430 Mhz) */
++         {0x203, 0x16, 0x03, 0x01} },
+ 	/* 26M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+ 	{{0x0B4, 0x0C, 0x07, 0x04}, {0x0B4, 0x0C, 0x07, 0x02},
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0B4, 0x0C, 0x07, 0x01}, {0x0C6, 0x0C, 0x07, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x0D7, 0x0C, 0x07, 0x01} },
++	 {0x0D7, 0x0C, 0x07, 0x01},
++        /* OPP6 (430 Mhz) */
++         {0x0D7, 0x0C, 0x07, 0x01},
++        /* OPP7 (430 Mhz) */
++         {0x0D7, 0x0C, 0x07, 0x01} },
+ 	/* 38.4M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+ 	{{0x0E1, 0x17, 0x06, 0x04}, {0x0E1, 0x17, 0x06, 0x02},
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0E1, 0x17, 0x06, 0x01}, {0x14A, 0x1F, 0x04, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x23B, 0x32, 0x01, 0x01} },
++	 {0x23B, 0x32, 0x01, 0x01},
++        /* OPP6 (430 Mhz) */
++         {0x23B, 0x32, 0x01, 0x01},
++        /* OPP7 (430 Mhz) */
++         {0x23B, 0x32, 0x01, 0x01} },
+ 	},
+ 
+ 
+@@ -395,35 +456,55 @@
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0B4, 0x05, 0x07, 0x01}, {0x0C6, 0x05, 0x07, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x0D7, 0x05, 0x07, 0x01} },
++	 {0x0D7, 0x05, 0x07, 0x01},
++       /* OPP6 (430 Mhz) */ 
++         {0x0D7, 0x05, 0x07, 0x01},
++       /* OPP7 (430 Mhz) */ 
++         {0x0D7, 0x05, 0x07, 0x01} },
+ 	/* 13M values */
+ 	/* OPP1(130 Mhz) and OPP2(260 Mhz) */
+ 	{{0x208, 0x0C, 0x03, 0x04}, {0x208, 0x0C, 0x03, 0x02},
+ 	/* OPP3(520 Mhz) and OPP4(660 Mhz) */
+ 	 {0x208, 0x0C, 0x03, 0x01}, {0x294, 0x0C, 0x03, 0x01},
+ 	/* OPP5 (875 Mhz) */
+-	 {0x36b, 0x0C, 0x03, 0x01} },
++	 {0x36b, 0x0C, 0x03, 0x01},
++       /* OPP6 (875 Mhz) */ 
++         {0x36b, 0x0C, 0x03, 0x01},
++       /* OPP7 (875 Mhz) */ 
++         {0x36b, 0x0C, 0x03, 0x01} },
+ 	/* 19.2M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+ 	{{0x0E1, 0x0B, 0x06, 0x04}, {0x0E1, 0x0B, 0x06, 0x02},
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x203, 0x16, 0x03, 0x01} },
++	 {0x203, 0x16, 0x03, 0x01},
++        /* OPP6 (430 Mhz) */ 
++         {0x203, 0x16, 0x03, 0x01},
++        /* OPP7 (430 Mhz) */ 
++         {0x203, 0x16, 0x03, 0x01} },
+ 	/* 26M values */
+ 	/* OPP1(130 Mhz) and OPP2(260 Mhz) */
+ 	{{0x104, 0x0C, 0x07, 0x04}, {0x104, 0x0C, 0x07, 0x02},
+ 	/* OPP3(520 Mhz) and OPP4(660 Mhz) */
+ 	 {0x104, 0x0C, 0x07, 0x01}, {0x14a, 0x0C, 0x07, 0x01},
+ 	/* OPP5 (875 Mhz) */
+-	 {0x1b5, 0x0c, 0x07, 0x01} },
++	 {0x1b5, 0x0c, 0x07, 0x01},
++        /* OPP5 (875 Mhz) */ 
++         {0x1b5, 0x0c, 0x07, 0x01},
++        /* OPP5 (875 Mhz) */ 
++         {0x1b5, 0x0c, 0x07, 0x01} },
+ 	/* 38.4M values */
+ 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
+ 	{{0x0E1, 0x17, 0x06, 0x04}, {0x0E1, 0x17, 0x06, 0x02},
+ 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
+ 	 {0x0E1, 0x17, 0x06, 0x01}, {0x14A, 0x1F, 0x04, 0x01},
+ 	/* OPP5 (430 Mhz) */
+-	 {0x23B, 0x32, 0x01, 0x01} },
++	 {0x23B, 0x32, 0x01, 0x01},
++        /* OPP6 (430 Mhz) */
++         {0x23B, 0x32, 0x01, 0x01},
++        /* OPP7 (430 Mhz) */
++         {0x23B, 0x32, 0x01, 0x01} },
+ 	},
+ };
+ 
+@@ -702,6 +783,12 @@
+ 		case PRCM_VDD1_OPP5:
+ 			valid_rate = clk_round_rate(p_vdd1_clk, S1000M);
+ 			break;
++                case PRCM_VDD1_OPP6:
++                        valid_rate = clk_round_rate(p_vdd1_clk, S1200M);
++                        break;
++                case PRCM_VDD1_OPP7:
++                        valid_rate = clk_round_rate(p_vdd1_clk, S1600M);
++                        break;
+ #else
+ 		case PRCM_VDD1_OPP2:
+ 			valid_rate = clk_round_rate(p_vdd1_clk, S250M);
+@@ -710,11 +797,17 @@
+ 			valid_rate = clk_round_rate(p_vdd1_clk, S500M);
+ 			break;
+ 		case PRCM_VDD1_OPP4:
+-			valid_rate = clk_round_rate(p_vdd1_clk, S550M);
++			valid_rate = clk_round_rate(p_vdd1_clk, S700M);
+ 			break;
+ 		case PRCM_VDD1_OPP5:
+-			valid_rate = clk_round_rate(p_vdd1_clk, S600M);
++			valid_rate = clk_round_rate(p_vdd1_clk, S800M);
+ 			break;
++                case PRCM_VDD1_OPP6:
++                        valid_rate = clk_round_rate(p_vdd1_clk, S900M);
++                        break;
++                case PRCM_VDD1_OPP7:
++                        valid_rate = clk_round_rate(p_vdd1_clk, S1005M);
++                        break;
+ #endif
+ 		}
+ 		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
+@@ -734,6 +827,8 @@
+ 	{600, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
+ 	{800, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
+ 	{1000, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{1200, 430, CO_VDD1_OPP6, PRCM_VDD1_OPP6},
++	{1600, 430, CO_VDD1_OPP7, PRCM_VDD1_OPP7},
+ };
+ static struct vdd2_core_freq_d {
+ 	unsigned int freq;
+@@ -758,11 +853,14 @@
+ 	unsigned int constraint;
+ 	unsigned int opp;
+ } vdd1_arm_dsp_freq[MAX_VDD1_OPP] = {
+-	{125,  90, CO_VDD1_OPP1, PRCM_VDD1_OPP1},
++	{125, 90, CO_VDD1_OPP1, PRCM_VDD1_OPP1},
+ 	{250, 180, CO_VDD1_OPP2, PRCM_VDD1_OPP2},
+ 	{500, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
+-	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
+-	{600, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{700, 360, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
++	{800, 360, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{900, 360, CO_VDD1_OPP6, PRCM_VDD1_OPP6},
++	{1005, 360, CO_VDD1_OPP7, PRCM_VDD1_OPP7},
++
+ };
+ static struct vdd2_core_freq_d {
+ 	unsigned int freq;
+@@ -774,8 +872,8 @@
+ 	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
+ };
+ 
+-static unsigned int rnd_rate_vdd1[5] = {
+-	S125M, S250M, S500M, S550M, S600M
++static unsigned int rnd_rate_vdd1[7] = {
++	S125M, S250M, S500M, S700M, S800M, S900M, S1005M
+ };
+ static unsigned int rnd_rate_vdd2[3] = {
+ 	0, S83M, S166M
+@@ -1812,6 +1910,10 @@
+ 	target_vdd1_opp = PRCM_VDD1_OPP4;
+ #elif defined(CONFIG_OMAP3_VDD1_OPP5)
+ 	target_vdd1_opp = PRCM_VDD1_OPP5;
++#elif defined(CONFIG_OMAP3_VDD1_OPP6)
++        target_vdd1_opp = PRCM_VDD1_OPP6;
++#elif defined(CONFIG_OMAP3_VDD1_OPP7)
++        target_vdd1_opp = PRCM_VDD1_OPP7;
+ #else	
+ #error  "Undefined default VDD1 operation point"
+ #endif
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/smartreflex.c	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-oc/arch/arm/mach-omap3pe/smartreflex.c	2010-11-25 21:08:17.000000000 -0500
+@@ -80,7 +80,7 @@
+ #ifdef CONFIG_MACH_SIRLOIN_3630
+ 	u32 opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue;
+ #else
+-	u32 opp1_nvalue, opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue;
++	u32 opp1_nvalue, opp2_nvalue, opp3_nvalue, opp4_nvalue, opp5_nvalue, opp6_nvalue, opp7_nvalue;
+ #endif
+ 	u32 senp_mod, senn_mod;
+ 	u32 srbase_addr;
+@@ -326,6 +326,8 @@
+ 
+ 	sr1.opp4_nvalue = omap_readl(CONTROL_FUSE_OPP4_VDD1) & 0xFFFFFF;
+ 	sr1.opp5_nvalue = omap_readl(CONTROL_FUSE_OPP5_VDD1) & 0xFFFFFF;
++	sr1.opp6_nvalue = omap_readl(CONTROL_FUSE_OPP6_VDD1) & 0xFFFFFF;
++	sr1.opp7_nvalue = omap_readl(CONTROL_FUSE_OPP7_VDD1) & 0xFFFFFF;
+ 
+ 	n = (fuse_sr & 0x0F00) >> 8;
+ 	sr2.senp_mod = (n & 0x03);
+@@ -663,22 +665,27 @@
+ 
+ /******************************************************************************/
+ 
+-static u8 sr1errminlimit[5] = {
++#ifdef CONFIG_MACH_SIRLOIN_3630
++static u8 sr1errminlimit[7] = {
+ //	0x00, /* OPP1, not used */
+ 	SR1_ERRMINLIMIT_OPP2,
+ 	SR1_ERRMINLIMIT_OPP2,
+ 	SR1_ERRMINLIMIT_OPP3,
+ 	SR1_ERRMINLIMIT_OPP4,
+-	SR1_ERRMINLIMIT_OPP5
++	SR1_ERRMINLIMIT_OPP5,
++	SR1_ERRMINLIMIT_OPP6,
++	SR1_ERRMINLIMIT_OPP7
+ };
+ 
+-static u32 vp1errgain[5] = {
++static u32 vp1errgain[7] = {
+ //	0x00, /* OPP1, not used */
+ 	PRM_VP1_CONFIG_ERRORGAIN_OPP2,
+ 	PRM_VP1_CONFIG_ERRORGAIN_OPP2,
+ 	PRM_VP1_CONFIG_ERRORGAIN_OPP3,
+ 	PRM_VP1_CONFIG_ERRORGAIN_OPP4,
+-	PRM_VP1_CONFIG_ERRORGAIN_OPP5
++	PRM_VP1_CONFIG_ERRORGAIN_OPP5,
++	PRM_VP1_CONFIG_ERRORGAIN_OPP6,
++	PRM_VP1_CONFIG_ERRORGAIN_OPP7
+ };
+ 
+ static u8 sr2errminlimit[3] = {
+@@ -692,6 +699,7 @@
+ 	PRM_VP2_CONFIG_ERRORGAIN_OPP2,
+ 	PRM_VP2_CONFIG_ERRORGAIN_OPP3
+ };
++#endif
+ 
+ static void sr_enable(struct omap_sr *sr, u32 target_opp_no)
+ {
+@@ -705,6 +713,12 @@
+ #ifdef CONFIG_MACH_SIRLOIN_3630
+ 	if (sr->srid == SR1) {
+ 		switch (target_opp_no) {
++                case 7:
++                        nvalue_reciprocal = sr->opp7_nvalue;
++                        break;
++                case 6:
++                        nvalue_reciprocal = sr->opp6_nvalue;
++                        break;
+ 		case 5:
+ 			nvalue_reciprocal = sr->opp5_nvalue;
+ 			break;
+@@ -749,6 +763,12 @@
+ 		errorgain = PRM_VP1_CONFIG_ERRORGAIN;
+ 		errorminlimit = SR1_ERRMINLIMIT;
+ 		switch (target_opp_no) {
++                case 7:
++                        nvalue_reciprocal = sr->opp7_nvalue;
++                        break;
++                case 6:
++                        nvalue_reciprocal = sr->opp6_nvalue;
++                        break;
+ 		case 5:
+ 			nvalue_reciprocal = sr->opp5_nvalue;
+ 			break;
+@@ -800,10 +820,10 @@
+ 	sr_modify_reg(sr, ERRCONFIG,
+ 			(ERRCONFIG_VPBOUNDINTEN | ERRCONFIG_VPBOUNDINTST),
+ 			(ERRCONFIG_VPBOUNDINTEN | ERRCONFIG_VPBOUNDINTST));
+-
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ 	sr_modify_reg(sr, ERRCONFIG,
+ 			(SR1_ERRORMINLIMIT_MASK), (errorminlimit));
+-
++#endif
+ 	if (sr->srid == SR1) {
+ 		/* set/latch init voltage */
+ 		vc = (PRM_VP1_CONFIG & ~(PRM_VPX_CONFIG_INITVOLTAGE_MASK |
+@@ -928,7 +948,7 @@
+ 
+ #ifdef CONFIG_MACH_SIRLOIN_3630
+ 
+-#define  FBB_OPP   CO_VDD1_OPP5
++#define  FBB_OPP   CO_VDD1_OPP7
+  
+ static void omap3630_abb_change_active_opp(u32 target_opp_no)
+ {
+@@ -1188,12 +1208,14 @@
+ 		reg_addr = R_VDD2_SR_CONTROL;
+ 	}
+ 
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ 	if (vdd == PRCM_VDD1) {
+ 		/* We only need to do this here for 5->non-5 transitions */
+ 		if( cur_opp_no == FBB_OPP && target_opp_no != FBB_OPP ) {
+ 			omap3630_abb_change_active_opp(target_opp_no);
+ 		}
+ 	}
++#endif
+ 
+ #ifdef CONFIG_OMAP_VOLT_SR_BYPASS
+ 	vc_bypass_value = (vsel << PRM_VC_BYPASS_DATA_SHIFT) |
+@@ -1469,6 +1491,7 @@
+ /******************************************************************************/
+ 
+ /* Sysfs interface to set VP1 error gain values */
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ static ssize_t omap_sr_vp1errgain_show(struct kset *subsys, char *buf)
+ {
+ 	return sprintf(buf, "1 %02x\n2 %02x\n3 %02x\n4 %02x\n5 %02x\n",
+@@ -1608,6 +1630,7 @@
+ 	.show  = omap_sr_sr2errminlimit_show,
+ 	.store = omap_sr_sr2errminlimit_store,
+ };
++#endif
+ 
+ static ssize_t 
+ vdd1_vsel_show(struct kset *subsys, char *buf)
+@@ -1812,6 +1835,7 @@
+ 	if (ret)
+ 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
+ 
++#ifdef CONFIG_MACH_SIRLOIN_3630
+ 	ret = subsys_create_file(&power_subsys, &sr_vdd2_autocomp);
+ 	if (ret)
+ 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
+@@ -1835,6 +1859,7 @@
+ 	ret = subsys_create_file(&power_subsys, &sr_sr2errminlimit);
+ 	if (ret)
+ 		printk(KERN_ERR "subsys_create_file failed: %d\n", ret);
++#endif
+ 
+ 	ret = subsys_create_file(&power_subsys, &vdd1_vsel);
+ 	if (ret)
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/smartreflex.h	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-oc/arch/arm/mach-omap3pe/smartreflex.h	2010-11-25 20:31:16.000000000 -0500
+@@ -37,6 +37,8 @@
+  #define PRM_VP1_CONFIG_ERRORGAIN_OPP3   (0x16 << 16)
+  #define PRM_VP1_CONFIG_ERRORGAIN_OPP4   (0x23 << 16)
+  #define PRM_VP1_CONFIG_ERRORGAIN_OPP5   (0x27 << 16)
++ #define PRM_VP1_CONFIG_ERRORGAIN_OPP6   (0x27 << 16)
++ #define PRM_VP1_CONFIG_ERRORGAIN_OPP7   (0x27 << 16)
+ #else
+  #define PRM_VP1_CONFIG_ERRORGAIN        (0x18 << 16) /*20-4 18-3mV/% */
+ #endif
+@@ -182,6 +184,8 @@
+  #define SR1_ERRMINLIMIT_OPP3            0xF9
+  #define SR1_ERRMINLIMIT_OPP4            0xFA
+  #define SR1_ERRMINLIMIT_OPP5            0xFA
++ #define SR1_ERRMINLIMIT_OPP6            0xFA
++ #define SR1_ERRMINLIMIT_OPP7            0xFA
+ 
+  #define SR2_ERRWEIGHT                   (0x04 << 16)
+  #define SR2_ERRMAXLIMIT                 (0x02 << 8)
+@@ -220,6 +224,8 @@
+ #define CONTROL_FUSE_OPP3_VDD1           0x48002388
+ #define CONTROL_FUSE_OPP4_VDD1           0x4800238C
+ #define CONTROL_FUSE_OPP5_VDD1           0x48002390
++#define CONTROL_FUSE_OPP6_VDD1           0x48002394
++#define CONTROL_FUSE_OPP7_VDD1           0x48002398
+ 
+ #define CONTROL_FUSE_OPP1_VDD2           0x48002394
+ #define CONTROL_FUSE_OPP2_VDD2           0x48002398
+--- linux-2.6.24-palm/include/asm/arch-omap/prcm.h	2010-11-23 18:42:42.000000000 -0500
++++ linux-2.6.24-oc/include/asm/arch-omap/prcm.h	2010-11-25 11:38:13.000000000 -0500
+@@ -609,7 +609,12 @@
+ 							| ID_OPP_NO(0x4))
+ #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
+ 							| ID_OPP_NO(0x5))
+-#define PRCM_NO_VDD1_OPPS	5
++#define PRCM_VDD1_OPP6          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x6))
++#define PRCM_VDD1_OPP7          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x7))
++
++#define PRCM_NO_VDD1_OPPS	7
+ 
+ /* VDD2 OPPs */
+ #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
+--- linux-2.6.24-palm/include/asm/arch-omap/resource.h	2010-11-23 18:42:42.000000000 -0500
++++ linux-2.6.24-oc/include/asm/arch-omap/resource.h	2010-11-25 12:18:51.000000000 -0500
+@@ -112,6 +112,8 @@
+ #define CO_VDD1_OPP3		0x3
+ #define CO_VDD1_OPP4		0x4
+ #define CO_VDD1_OPP5		0x5
++#define CO_VDD1_OPP6		0x6
++#define CO_VDD1_OPP7		0x7
+ 
+ /* VDD2 OPP constraint levels */
+ #define CO_VDD2_OPP1		0x1
+@@ -260,7 +262,7 @@
+ 
+ /* Frequencies and Voltages for OPPs */
+ #define MIN_VDD1_OPP 	CO_VDD1_OPP1
+-#define MAX_VDD1_OPP 	CO_VDD1_OPP5
++#define MAX_VDD1_OPP 	CO_VDD1_OPP7
+ #define MIN_VDD2_OPP 	CO_VDD2_OPP2
+ #define MAX_VDD2_OPP 	CO_VDD2_OPP3
+ 
+--- linux-2.6.24-palm/include/asm-arm/arch-omap/prcm.h	2010-11-23 18:42:42.000000000 -0500
++++ linux-2.6.24-oc/include/asm-arm/arch-omap/prcm.h	2010-11-25 11:38:13.000000000 -0500
+@@ -609,7 +609,12 @@
+ 							| ID_OPP_NO(0x4))
+ #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
+ 							| ID_OPP_NO(0x5))
+-#define PRCM_NO_VDD1_OPPS	5
++#define PRCM_VDD1_OPP6          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x6))
++#define PRCM_VDD1_OPP7          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x7))
++
++#define PRCM_NO_VDD1_OPPS	7
+ 
+ /* VDD2 OPPs */
+ #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
+--- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-11-23 18:42:42.000000000 -0500
++++ linux-2.6.24-oc/include/asm-arm/arch-omap/resource.h	2010-11-25 12:18:51.000000000 -0500
+@@ -112,6 +112,8 @@
+ #define CO_VDD1_OPP3		0x3
+ #define CO_VDD1_OPP4		0x4
+ #define CO_VDD1_OPP5		0x5
++#define CO_VDD1_OPP6		0x6
++#define CO_VDD1_OPP7		0x7
+ 
+ /* VDD2 OPP constraint levels */
+ #define CO_VDD2_OPP1		0x1
+@@ -260,7 +262,7 @@
+ 
+ /* Frequencies and Voltages for OPPs */
+ #define MIN_VDD1_OPP 	CO_VDD1_OPP1
+-#define MAX_VDD1_OPP 	CO_VDD1_OPP5
++#define MAX_VDD1_OPP 	CO_VDD1_OPP7
+ #define MIN_VDD2_OPP 	CO_VDD2_OPP2
+ #define MAX_VDD2_OPP 	CO_VDD2_OPP3
+ 
