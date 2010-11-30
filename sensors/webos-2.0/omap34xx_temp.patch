@@ -1,6 +1,29 @@
+--- a/drivers/hwmon/Kconfig
++++ b/drivers/hwmon/Kconfig
+@@ -754,6 +754,10 @@
+ 	  Say Y here if you have an applicable laptop and want to experience
+ 	  the awesome power of applesmc.
+ 
++config SENSORS_OMAP34XX
++	tristate "TI OMAP34xx internal temperature sensor"
++	depends on ARCH_OMAP3 && HIGH_RES_TIMERS
++
+ config HWMON_DEBUG_CHIP
+        bool "Hardware Monitoring Chip debugging messages"
+        default n
+--- linux-2.6.24/drivers/hwmon/Makefile.orig	2008-01-24 14:58:37.000000000 -0800
++++ linux-2.6.24/drivers/hwmon/Makefile	2010-04-14 14:22:59.000000000 -0700
+@@ -68,6 +68,7 @@
+ obj-$(CONFIG_SENSORS_VT8231)	+= vt8231.o
+ obj-$(CONFIG_SENSORS_W83627EHF)	+= w83627ehf.o
+ obj-$(CONFIG_SENSORS_W83L785TS)	+= w83l785ts.o
++obj-$(CONFIG_SENSORS_OMAP34XX)  += omap34xx_temp.o
+ 
+ ifeq ($(CONFIG_HWMON_DEBUG_CHIP),y)
+ EXTRA_CFLAGS += -DDEBUG
 --- linux-2.6.24-palm/drivers/hwmon/omap34xx_temp.c	1969-12-31 19:00:00.000000000 -0500
 +++ linux-2.6.24-F105/drivers/hwmon/omap34xx_temp.c	2010-11-26 15:43:41.000000000 -0500
-@@ -0,0 +1,281 @@
+@@ -0,0 +1,285 @@
 +/*
 + * omap34xx_temp.c - Linux kernel module for OMAP34xx hardware monitoring
 + *
@@ -118,7 +141,11 @@
 +		int meh;
 +		clk_enable(data->clk_32k); 
 +		omap_ctrl_writel(0, OMAP343X_CONTROL_TEMP_SENSOR);
++#ifdef CONFIG_MACH_SIRLOIN_3630
++		temp_sensor_reg = 0x200;
++#else
 +		temp_sensor_reg = 0x100;
++#endif
 +		__raw_writel(temp_sensor_reg, 0xd8002524);
 +
 +		if (!wait_for_eocz(EOCZ_MIN_RISING_DELAY, EOCZ_MAX_RISING_DELAY, 1))
