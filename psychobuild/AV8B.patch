@@ -1277,3 +1277,68 @@
  endchoice
  
  comment "Default VDD2 OPP Level Selection"
+--- linux-2.6.24-palm/include/asm-arm/arch-omap/prcm.h	2010-06-11 17:48:35.000000000 -0400
++++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/prcm.h	2010-08-25 14:44:03.000000000 -0400
+@@ -609,7 +609,12 @@
+ 							| ID_OPP_NO(0x4))
+ #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
+ 							| ID_OPP_NO(0x5))
+-#define PRCM_NO_VDD1_OPPS	5
++#define PRCM_VDD1_OPP6          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x6))
++#define PRCM_VDD1_OPP7          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
++                                                        | ID_OPP_NO(0x7))
++
++#define PRCM_NO_VDD1_OPPS	7
+ 
+ /* VDD2 OPPs */
+ #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
+--- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
++++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2010-08-25 14:44:03.000000000 -0400
+@@ -30,14 +30,14 @@
+ 
+ 
+ #define curr_vdd1_opp   3
+-#define curr_vdd2_opp   3
++#define curr_vdd2_opp   2
+ #define min_vdd1_opp    CO_VDD1_OPP1
+-#define max_vdd1_opp    CO_VDD1_OPP5
+-#define min_vdd2_opp    CO_VDD2_OPP2
++#define max_vdd1_opp    CO_VDD1_OPP7
++#define min_vdd2_opp    CO_VDD2_OPP1
+ #define max_vdd2_opp    CO_VDD2_OPP3
+ 
+ #define CURR_VDD1_OPP	3
+-#define CURR_VDD2_OPP	3
++#define CURR_VDD2_OPP	2
+ /* Flags to denote Pool usage */
+ #define RES_UNUSED		0x0
+ #define RES_USED		0x1
+@@ -121,6 +121,8 @@
+ #define CO_VDD1_OPP3		0x3
+ #define CO_VDD1_OPP4		0x4
+ #define CO_VDD1_OPP5		0x5
++#define CO_VDD1_OPP6		0x6
++#define CO_VDD1_OPP7		0x7
+ 
+ /* VDD2 OPP constraint levels */
+ #define CO_VDD2_OPP1		0x1
+@@ -273,13 +275,13 @@
+ #define CURR_DSP_FREQ 	360
+ #define curr_arm_freq 	500
+ #define curr_dsp_freq 	360
+-#define min_arm_freq 	125
+-#define max_arm_freq 	600
++#define min_arm_freq 	500
++#define max_arm_freq 	1005
+ #define min_dsp_freq 	90
+-#define max_dsp_freq 	430
++#define max_dsp_freq 	600
+ #define MIN_VDD1_OPP 	CO_VDD1_OPP1
+-#define MAX_VDD1_OPP 	CO_VDD1_OPP5
+-#define MIN_VDD2_OPP 	CO_VDD2_OPP2
++#define MAX_VDD1_OPP 	CO_VDD1_OPP7
++#define MIN_VDD2_OPP 	CO_VDD2_OPP1
+ #define MAX_VDD2_OPP 	CO_VDD2_OPP3
+ 
+ /* Structure returned to the framework user as handle */
