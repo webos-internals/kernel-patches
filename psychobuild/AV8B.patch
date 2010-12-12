@@ -1,5 +1,5 @@
 --- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/drivers/cpufreq/Kconfig	2010-11-14 17:23:59.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/cpufreq/Kconfig	2010-12-11 11:03:04.000000000 -0500
 @@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
@@ -24,19 +24,10 @@
  choice
  	prompt "Default CPUFreq governor"
  	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
-@@ -87,6 +104,22 @@
+@@ -87,6 +104,13 @@
  	  program shall be able to set the CPU dynamically without having
  	  to enable the userspace governor manually.
  
-+config CPU_FREQ_DEFAULT_GOV_SCREENSTATE
-+        bool "screenstate"
-+        select CPU_FREQ_GOV_SCREENSTATE
-+        help
-+          Use the CPUFreq governor 'screenstate' as default. This will
-+	  scale the CPU frequency down when the LCD is off then scale
-+	  back to max speed when LCD is powered on.  This also will not
-+	  allow to set the CPU frequency manually.
-+
 +config CPU_FREQ_DEFAULT_GOV_VDEMAND
 +	bool "vdemand"
 +	select CPU_FREQ_GOV_VDEMAND
@@ -47,20 +38,10 @@
  config CPU_FREQ_DEFAULT_GOV_ONDEMAND
  	bool "ondemand"
  	select CPU_FREQ_GOV_ONDEMAND
-@@ -149,6 +182,27 @@
+@@ -149,6 +173,17 @@
  
  	  If in doubt, say Y.
  
-+config CPU_FREQ_GOV_SCREENSTATE
-+        tristate "'screenstate' governor for frequency scaling"
-+        help
-+          Enable this cpufreq governor to scale when LCD is on/off.
-+
-+          To compile this driver as a module, choose M here: the
-+          module will be called cpufreq_screenstate.
-+
-+          If in doubt, say Y.
-+
 +config CPU_FREQ_GOV_VDEMAND
 +	tristate "'vdemand' governor for frequency scaling"
 +	help
@@ -76,12 +57,11 @@
  	tristate "'ondemand' cpufreq policy governor"
  	select CPU_FREQ_TABLE
 --- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/Makefile	2010-11-14 17:27:02.000000000 -0500
-@@ -9,7 +9,12 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/Makefile	2010-12-11 11:03:40.000000000 -0500
+@@ -9,7 +9,11 @@
  obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
  obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
-+obj-$(CONFIG_CPU_FREQ_GOV_SCREENSTATE)	+= cpufreq_screenstate.o
 +obj-$(CONFIG_CPU_FREQ_GOV_VDEMAND)	+= cpufreq_vdemand.o
  
  # CPUfreq cross-arch helpers
@@ -91,7 +71,7 @@
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq.c	2010-09-02 13:10:13.000000000 -0400
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq.c	2010-12-11 13:01:36.000000000 -0500
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -104,51 +84,6 @@
  /**
   * The "cpufreq driver" - the arch- or hardware-dependent low
   * level driver of CPUFreq support, and its spinlock. This lock
-@@ -1602,7 +1607,7 @@
- 	int ret = 0;
- 
- 	cpufreq_debug_disable_ratelimit();
--	dprintk("setting new policy for CPU %u: %u - %u kHz\n", policy->cpu,
-+	printk("setting new policy for CPU %u: %u - %u kHz\n", policy->cpu,
- 		policy->min, policy->max);
- 
- 	memcpy(&policy->cpuinfo, &data->cpuinfo,
-@@ -1639,7 +1644,7 @@
- 	data->min = policy->min;
- 	data->max = policy->max;
- 
--	dprintk("new min and max freqs are %u - %u kHz\n",
-+	printk("new min and max freqs are %u - %u kHz\n",
- 					data->min, data->max);
- 
- 	if (cpufreq_driver->setpolicy) {
-@@ -1651,7 +1656,7 @@
- 			/* save old, working values */
- 			struct cpufreq_governor *old_gov = data->governor;
- 
--			dprintk("governor switch\n");
-+			printk("governor switch\n");
- 
- 			/* end old governor */
- 			if (data->governor)
-@@ -1661,7 +1666,7 @@
- 			data->governor = policy->governor;
- 			if (__cpufreq_governor(data, CPUFREQ_GOV_START)) {
- 				/* new governor failed, so re-start old one */
--				dprintk("starting governor %s failed\n",
-+				printk("starting governor %s failed\n",
- 							data->governor->name);
- 				if (old_gov) {
- 					data->governor = old_gov;
-@@ -1673,7 +1678,7 @@
- 			}
- 			/* might be a policy change, too, so fall through */
- 		}
--		dprintk("governor: change or update limits\n");
-+		printk("governor: change or update limits\n");
- 		__cpufreq_governor(data, CPUFREQ_GOV_LIMITS);
- 	}
- 
 @@ -1682,6 +1687,18 @@
  	return ret;
  }
@@ -168,15 +103,6 @@
  /**
   *	cpufreq_update_policy - re-evaluate an existing cpufreq policy
   *	@cpu: CPU which shall be re-evaluated
-@@ -1701,7 +1718,7 @@
- 	if (unlikely(lock_policy_rwsem_write(cpu)))
- 		return -EINVAL;
- 
--	dprintk("updating policy for CPU %u\n", cpu);
-+	printk("updating policy for CPU %u\n", cpu);
- 	memcpy(&policy, data, sizeof(struct cpufreq_policy));
- 	policy.min = data->user_policy.min;
- 	policy.max = data->user_policy.max;
 @@ -1831,6 +1848,10 @@
  		cpufreq_debug_enable_ratelimit();
  	}
@@ -200,14 +126,11 @@
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 --- linux-2.6.24-palm/include/linux/cpufreq.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-AV8B/include/linux/cpufreq.h	2010-11-14 17:28:23.000000000 -0500
-@@ -309,6 +309,12 @@
++++ linux-2.6.24-AV8B/include/linux/cpufreq.h	2010-12-11 11:08:53.000000000 -0500
+@@ -309,6 +309,9 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
  extern struct cpufreq_governor cpufreq_gov_userspace;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_userspace)
-+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE)
-+extern struct cpufreq_governor cpufreq_gov_screenstate;
-+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_screenstate)
 +#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_VDEMAND)
 +extern struct cpufreq_governor cpufreq_gov_vdemand;
 +#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_vdemand)
@@ -215,217 +138,73 @@
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-17 16:01:18.000000000 -0500
-@@ -56,8 +56,8 @@
- 
++++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/prcm_opp.c	2010-12-12 15:09:11.000000000 -0500
+@@ -57,12 +57,12 @@
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
--				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
+ 				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
-+	1.20V (OPP3), 1.27V (OPP4), 1.42V (OPP5), 1.45 (OPP6), 1.46V (OPP7) */
-+		0x1E, 0x24, 0x30, 0x36, 0x42, 0x44, 0x45
++	0x1e, 0x24, 0x30, 0x36, 0x43
  };
  
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
-@@ -155,20 +155,32 @@
- 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
- 	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
- 	/* OPP5 (600 Mhz) */
-+	{0x12C, 0x05, 0x07, 0x01},
-+	/* OPP6 (720 Mhz) */
-+	{0x12C, 0x05, 0x07, 0x01},
-+	/* OPP7 (800 Mhz) */
- 	{0x12C, 0x05, 0x07, 0x01} },
- 	/* 13M values */
- 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	/* Vsel corresponding to 0.975V (OPP1), 1.05V (OPP2), 1.15 (OPP3) */
+-	0x1e, 0x24, 0x2c
++	0x1e, 0x24, 0x2a
+ };
+ 
+ 
+@@ -161,8 +161,8 @@
  	{{0x1F4, 0x0C, 0x03, 0x04}, {0x1F4, 0x0C, 0x03, 0x02},
--	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
--	{0x1F4, 0x0C, 0x03, 0x01}, {0x226, 0x0C, 0x03, 0x01},
+ 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
+ 	{0x1F4, 0x0C, 0x03, 0x01}, {0x226, 0x0C, 0x03, 0x01},
 -	/* OPP5 (600 Mhz) */
 -	{0x258, 0x0C, 0x03, 0x01} },
-+	/* OPP3(500 Mhz) and OPP4(700 Mhz)*/
-+	{0x1F4, 0x0C, 0x03, 0x01}, {0x2BC, 0x0C, 0x03, 0x01},
-+	/* OPP5 (800 Mhz) */
-+	{0x320, 0x0C, 0x03, 0x01},
-+	/* OPP6 (900 Mhz) */
-+	{0x384, 0x0C, 0x03, 0x01},
-+	/* OPP7 (1005 Mhz) */
++	/* OPP5 (1005 Mhz) */
 +	{0x3ED, 0x0C, 0x03, 0x01} },
  	/* 19.2M values */
  	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
  	{{0x271, 0x17, 0x03, 0x04}, {0x271, 0x17, 0x03, 0x02},
- 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
- 	{0x271, 0x17, 0x03, 0x01}, {0x191, 0x0D, 0x05, 0x01},
- 	/* OPP5 (600 Mhz) */
-+	{0x177, 0x0B, 0x06, 0x01},
-+	/* OPP6 (720 Mhz) */
-+	{0x177, 0x0B, 0x06, 0x01},
-+	/* OPP7 (800 Mhz) */
- 	{0x177, 0x0B, 0x06, 0x01} },
- 	/* 26M values */
- 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
-@@ -176,13 +188,21 @@
- 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
- 	{0x0FA, 0x0C, 0x07, 0x01}, {0x113, 0x0C, 0x07, 0x01},
- 	/* OPP5 (600 Mhz) */
--	{0x12C, 0x0C, 0x07, 0x01} },
-+	{0x12C, 0x0C, 0x07, 0x01},
-+	/* OPP6 (720 Mhz) */
-+	{0x168, 0x0C, 0x07, 0x01},
-+	/* OPP7 (800 Mhz) */
-+	{0x190, 0x0C, 0x07, 0x01} },
- 	/* 38.4M values */
- 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
- 	{{0x271, 0x2F, 0x03, 0x04}, {0x271, 0x2F, 0x03, 0x02},
- 	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
- 	{0x271, 0x2F, 0x03, 0x01}, {0x1BC, 0x1E, 0x04, 0x01},
- 	/* OPP5 (600 Mhz) */
-+	{0x177, 0x17, 0x06, 0x01},
-+	/* OPP6 (720 Mhz) */
-+	{0x177, 0x17, 0x06, 0x01},
-+	/* OPP7 (800 Mhz) */
- 	{0x177, 0x17, 0x06, 0x01} },
- };
- 
-@@ -194,7 +214,11 @@
- 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
- 	 {0x0B4, 0x05, 0x07, 0x01}, {0x0C6, 0x05, 0x07, 0x01},
- 	/* OPP5 (430 Mhz) */
--	 {0x0D7, 0x05, 0x07, 0x01} },
-+	 {0x0D7, 0x05, 0x07, 0x01},
-+        /* OPP6 (520 Mhz) */
-+        {0x0D7, 0x05, 0x07, 0x01},
-+        /* OPP7 (600 Mhz) */
-+        {0x0D7, 0x05, 0x07, 0x01} },
- #if 0
- 	/* 13M values */
- 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
-@@ -215,7 +239,11 @@
- 	/* OPP3(360 Mhz) and OPP4(360 Mhz)*/
- 	 {0x168, 0x0C, 0x03, 0x01}, {0x168, 0x0C, 0x03, 0x01},
- 	/* OPP5 (360 Mhz) */
--	 {0x168, 0x0C, 0x03, 0x01} },
-+	 {0x168, 0x0C, 0x03, 0x01},
-+        /* OPP6 (360 Mhz) */
-+	 {0x168, 0x0C, 0x03, 0x01},
-+        /* OPP7 (520 Mhz) */
-+	 {0x208, 0x0C, 0x03, 0x01} },
- #endif
- 	/* 19.2M values */
- 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
-@@ -223,21 +251,33 @@
- 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
- 	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
- 	/* OPP5 (430 Mhz) */
--	 {0x203, 0x16, 0x03, 0x01} },
-+	 {0x203, 0x16, 0x03, 0x01},
-+        /* OPP6 (520 Mhz) */
-+        {0x203, 0x16, 0x03, 0x01},
-+        /* OPP7 (600 Mhz) */
-+        {0x203, 0x16, 0x03, 0x01} },
- 	/* 26M values */
- 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
- 	{{0x0B4, 0x0C, 0x07, 0x04}, {0x0B4, 0x0C, 0x07, 0x02},
- 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
- 	 {0x0B4, 0x0C, 0x07, 0x01}, {0x0C6, 0x0C, 0x07, 0x01},
- 	/* OPP5 (430 Mhz) */
--	 {0x0D7, 0x0C, 0x07, 0x01} },
-+	 {0x0D7, 0x0C, 0x07, 0x01},
-+        /* OPP6 (520 Mhz) */
-+        {0x104, 0x0C, 0x07, 0x01},
-+        /* OPP7 (600 Mhz) */
-+        {0x12c, 0x0C, 0x07, 0x01} },
- 	/* 38.4M values */
- 	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
- 	{{0x0E1, 0x17, 0x06, 0x04}, {0x0E1, 0x17, 0x06, 0x02},
- 	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
- 	 {0x0E1, 0x17, 0x06, 0x01}, {0x14A, 0x1F, 0x04, 0x01},
- 	/* OPP5 (430 Mhz) */
--	 {0x23B, 0x32, 0x01, 0x01} },
-+	 {0x23B, 0x32, 0x01, 0x01},
-+        /* OPP6 (520 Mhz) */
-+        {0x23B, 0x32, 0x03, 0x01},
-+        /* OPP7 (600 Mhz) */
-+        {0x23B, 0x32, 0x03, 0x01} },
- };
- 
- /* CORE parameters */
-@@ -473,11 +513,18 @@
- 			valid_rate = clk_round_rate(p_vdd1_clk, S500M);
- 			break;
- 		case PRCM_VDD1_OPP4:
--			valid_rate = clk_round_rate(p_vdd1_clk, S550M);
-+			valid_rate = clk_round_rate(p_vdd1_clk, S700M);
+@@ -476,7 +476,7 @@
+ 			valid_rate = clk_round_rate(p_vdd1_clk, S550M);
  			break;
  		case PRCM_VDD1_OPP5:
 -			valid_rate = clk_round_rate(p_vdd1_clk, S600M);
-+			valid_rate = clk_round_rate(p_vdd1_clk, S800M);
++			valid_rate = clk_round_rate(p_vdd1_clk, S1005M);
  			break;
-+                case PRCM_VDD1_OPP6:
-+                        valid_rate = clk_round_rate(p_vdd1_clk, S900M);
-+                        break;
-+                case PRCM_VDD1_OPP7:
-+                        valid_rate = clk_round_rate(p_vdd1_clk, S1005M);
-+                        break;
-+
  		}
  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
- 	}
-@@ -490,11 +537,14 @@
- 	unsigned int constraint;
- 	unsigned int opp;
- } vdd1_arm_dsp_freq[MAX_VDD1_OPP] = {
--	{125,  90, CO_VDD1_OPP1, PRCM_VDD1_OPP1},
--	{250, 180, CO_VDD1_OPP2, PRCM_VDD1_OPP2},
-+	{125, 90, CO_VDD1_OPP1, PRCM_VDD1_OPP1},
-+	{250, 90, CO_VDD1_OPP2, PRCM_VDD1_OPP2},
+@@ -494,7 +494,7 @@
+ 	{250, 180, CO_VDD1_OPP2, PRCM_VDD1_OPP2},
  	{500, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
--	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
+ 	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
 -	{600, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
-+	{700, 360, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
-+	{800, 360, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
-+	{900, 360, CO_VDD1_OPP6, PRCM_VDD1_OPP6},
-+	{1005, 520, CO_VDD1_OPP7, PRCM_VDD1_OPP7},
-+
++	{1005, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
-@@ -506,8 +556,8 @@
- 	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
+@@ -507,7 +507,7 @@
  };
  
--static unsigned int rnd_rate_vdd1[5] = {
+ static unsigned int rnd_rate_vdd1[5] = {
 -	S125M, S250M, S500M, S550M, S600M
-+static unsigned int rnd_rate_vdd1[7] = {
-+	S125M, S250M, S500M, S700M, S800M, S900M, S1005M
++	S125M, S250M, S500M, S550M, S1005M
  };
  static unsigned int rnd_rate_vdd2[3] = {
  	0, S83M, S166M
-@@ -1449,6 +1499,11 @@
- 	target_vdd1_opp = PRCM_VDD1_OPP4;
- #elif defined(CONFIG_OMAP3ES2_VDD1_OPP5)
- 	target_vdd1_opp = PRCM_VDD1_OPP5;
-+#elif defined(CONFIG_OMAP3ES2_VDD1_OPP6)
-+        target_vdd1_opp = PRCM_VDD1_OPP6;
-+#elif defined(CONFIG_OMAP3ES2_VDD1_OPP7)
-+        target_vdd1_opp = PRCM_VDD1_OPP7;
-+
- #endif
-         target_mpu_khz  = get_arm_freq_for_opp(get_opp_no(target_vdd1_opp));
- 
-@@ -1523,3 +1578,36 @@
+@@ -1523,3 +1523,36 @@
  
  	return -1;
  }
 +
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]) {
-+	memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++       memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_volts);
 +
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]) {
-+	memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
-+	prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
++       memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++       prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
 +
@@ -441,18 +220,18 @@
 +EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
 +
 +void omap_pm_opp_get_vdd2_freq(u8 *vdd2_freqs[]) {
-+	int i;
-+	u8 f[MAX_VDD2_OPP];
++       int i;
++       u8 f[MAX_VDD2_OPP];
 +
-+	for(i=0;i < MAX_VDD2_OPP;i++)
-+		f[i]=(u8 )vdd2_core_freq[i].freq;
-+	memcpy(vdd2_freqs,f,sizeof(f));
++       for(i=0;i < MAX_VDD2_OPP;i++)
++               f[i]=(u8 )vdd2_core_freq[i].freq;
++       memcpy(vdd2_freqs,f,sizeof(f));
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_freq);
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2010-12-05 15:55:22.000000000 -0500
-@@ -0,0 +1,411 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2010-12-11 14:24:33.000000000 -0500
+@@ -0,0 +1,410 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -631,7 +410,6 @@
 +                                        volt[2],volt[1],volt[0]);
 +#endif
 +}
-+*/
 +
 +static ssize_t show_vdd2_vsel_max(struct cpufreq_policy *policy, char *buf) {
 +        return sprintf(buf, "%hu\n",VDD2_VSEL_MAX);
@@ -657,7 +435,6 @@
 +                                        freqs[1],freqs[0]);
 +}
 +
-+/*
 +static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
 +						size_t count) {
 +        u8 volt[7], i;
@@ -690,7 +467,6 @@
 +        mutex_unlock(&override_mutex);
 +	return count;
 +}
-+*/
 +
 +static ssize_t store_vdd2_vsel(struct cpufreq_policy *policy, char *buf,
 +                                                size_t count) {
@@ -712,7 +488,7 @@
 +        mutex_unlock(&override_mutex);
 +        return count;
 +}
-+
++*/
 +
 +static ssize_t show_hightemp_scaleback(struct cpufreq_policy *policy,
 +						char *buf) {
@@ -747,6 +523,7 @@
 +	return count;
 +}
 +
++/*
 +static ssize_t show_battery_scaleback_speed(struct cpufreq_policy *policy,
 +                                                char *buf) {
 +	return sprintf(buf, "%d\n", battery_scaleback_speed);
@@ -763,6 +540,7 @@
 +
 +	return count;
 +}
++*/
 +
 +static ssize_t show_lowtemp_reset(struct cpufreq_policy *policy, char *buf) {
 +
@@ -806,35 +584,35 @@
 +#endif
 +
 +//CPUFREQ_OVERRIDE_ATTR(vdd1_vsel,0644,show_vdd1_vsel,store_vdd1_vsel);
-+CPUFREQ_OVERRIDE_ATTR(vdd2_vsel,0644,show_vdd2_vsel,store_vdd2_vsel);
++//CPUFREQ_OVERRIDE_ATTR(vdd2_vsel,0644,show_vdd2_vsel,store_vdd2_vsel);
 +CPUFREQ_OVERRIDE_ATTR(battery_scaleback_percent,0644,
 +			show_battery_scaleback_per,
 +			store_battery_scaleback_per);
-+CPUFREQ_OVERRIDE_ATTR(battery_scaleback_speed,0644,
++/* CPUFREQ_OVERRIDE_ATTR(battery_scaleback_speed,0644,
 +			show_battery_scaleback_speed,
 +			store_battery_scaleback_speed);
 +CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_min,0444,show_vdd1_vsel_min);
 +CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_max,0444,show_vdd1_vsel_max);
 +CPUFREQ_OVERRIDE_ATTR2(vdd2_vsel_min,0444,show_vdd2_vsel_min);
 +CPUFREQ_OVERRIDE_ATTR2(vdd2_vsel_max,0444,show_vdd2_vsel_max);
-+CPUFREQ_OVERRIDE_ATTR2(vdd2_freqs,0444,show_vdd2_freqs);
++CPUFREQ_OVERRIDE_ATTR2(vdd2_freqs,0444,show_vdd2_freqs); */
 +CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_alarm,0644,show_hightemp_scaleback,
 +			store_hightemp_scaleback);
 +CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_reset,0644,show_lowtemp_reset,
 +			store_lowtemp_reset);
 +
 +static struct attribute *default_attrs[] = {
-+//        &_attr_vdd1_vsel.attr,
++/*        &_attr_vdd1_vsel.attr,
 +        &_attr_vdd1_vsel_min.attr,
 +        &_attr_vdd1_vsel_max.attr,
 +        &_attr_vdd2_vsel.attr,
 +        &_attr_vdd2_vsel_min.attr,
 +        &_attr_vdd2_vsel_max.attr,
 +        &_attr_vdd2_freqs.attr,
++	&_attr_battery_scaleback_speed.attr, */
 +        &_attr_cpu_hightemp_alarm.attr,
 +        &_attr_cpu_hightemp_reset.attr,
 +	&_attr_battery_scaleback_percent.attr,
-+	&_attr_battery_scaleback_speed.attr,
 +#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
 +	&_attr_override_charger.attr,
 +#endif
@@ -865,8 +643,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2010-12-05 16:39:42.000000000 -0500
-@@ -0,0 +1,256 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2010-12-12 15:09:30.000000000 -0500
+@@ -0,0 +1,262 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
 + *
@@ -902,10 +680,12 @@
 +void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]);
 +void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volts[]);
 +
++int cpufreq_set_policy(struct cpufreq_policy *policy);
++
 +static unsigned int cpu_is_managed=0,last_load=0;
 +static cputime64_t prev_cpu_wall=0,prev_cpu_idle=0;
-+static u8 v_volt[3] = { 0x3c, 0x41, 0x44 };
-+static u8 v_volt_vdd2[3] = { 0x24, 0x26, 0x2b };
++static u8 v_volt[3] = { 0x3c, 0x41, 0x43 };
++static u8 v_volt_vdd2[3] = { 0x24, 0x26, 0x2a };
 +
 +static inline void check_load(struct work_struct *work);
 +
@@ -1062,13 +842,13 @@
 +static int cpufreq_governor_vdemand(struct cpufreq_policy *policy,
 +				   unsigned int event) {
 +	int rc;
++	struct cpufreq_policy new_policy;
 +
 +	switch (event) {
 +		case CPUFREQ_GOV_START:
 +			if(cpu_is_managed) break;
 +
 +			cpu_is_managed = 1;
-+			mutex_lock(&vdemand_mutex);
 +			__cpufreq_driver_target(policy, policy->max,
 +							CPUFREQ_RELATION_H);
 +			prev_cpu_idle = get_cpu_idle_time(0);
@@ -1077,7 +857,11 @@
 +			struct cpufreq_policy *data = cpufreq_cpu_get(0);
 +			rc=sysfs_create_group(&data->kobj,&vdemand_attr_group);
 +			schedule_delayed_work(&dbs_work,200);
-+			mutex_unlock(&vdemand_mutex);
++
++                        cpufreq_get_policy(&new_policy,0);
++			new_policy.min=1005000;
++			new_policy.max=1005000;
++			cpufreq_set_policy(&new_policy);
 +			
 +			break;
 +		case CPUFREQ_GOV_STOP:
@@ -1141,18 +925,19 @@
  		struct device_attribute *devattr, char *buf)
  {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock.c	2010-11-17 16:00:07.000000000 -0500
-@@ -709,6 +709,8 @@
++++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock.c	2010-12-11 13:59:22.000000000 -0500
+@@ -709,6 +709,9 @@
  
  	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;
  	for (; prcm->speed; prcm--) {
-+		// Damn l-users!!!!  This will fix them!!!
-+		if((prcm->speed / 1000) < 1000000) continue;
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++		if((prcm->speed / 1000) < 500000) continue;
++#endif
  		freq_table[i].index = i;
  		freq_table[i].frequency = prcm->speed / 1000;
  		i++;
 --- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-AV8B/drivers/w1/slaves/w1_ds2784.c	2010-08-31 00:26:02.000000000 -0400
++++ linux-2.6.24-AV8B/drivers/w1/slaves/w1_ds2784.c	2010-12-11 12:48:56.000000000 -0500
 @@ -1133,11 +1133,20 @@
  */
  static struct device *battery_device = NULL;
@@ -1174,171 +959,84 @@
  
  static int ds2784_getvoltage(int *ret_voltage)
  {
-@@ -1151,11 +1160,20 @@
- 	return ds2784_gettemperature_dev(battery_device, ret_temperature);
- }
- 
-+#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+int ds2784_getcurrent(int *ret_current)
-+{
-+        if (!battery_device) return -1;
-+        return ds2784_getcurrent_dev(battery_device, ret_current);
-+}
-+EXPORT_SYMBOL(ds2784_getcurrent);
-+#else
- static int ds2784_getcurrent(int *ret_current)
- {
- 	if (!battery_device) return -1;
- 	return ds2784_getcurrent_dev(battery_device, ret_current);
- }
-+#endif
- 
- static struct battery_ops ds2784_battery_ops = {
- 	.get_percent       = ds2784_getpercent,
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock.h	2010-08-25 14:44:03.000000000 -0400
-@@ -47,9 +47,10 @@
- #define S125M	125000000
++++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock.h	2010-12-11 11:33:24.000000000 -0500
+@@ -48,8 +48,7 @@
  #define S250M	250000000
  #define S500M	500000000
--#define S550M	550000000
+ #define S550M	550000000
 -#define S625M	625000000
 -#define S600M	600000000
-+#define S700M	700000000
-+#define S800M	800000000
-+#define S900M	900000000
 +#define S1005M	1005000000
  
  /* Macro to enable clock control via clock framework */
  #define ENABLE_CLOCKCONTROL 1
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock_tree.h	2010-08-25 14:44:03.000000000 -0400
-@@ -90,9 +90,14 @@
- 	/*OPP3*/
- 	{S500M, PRCM_VDD1_OPP3, RATE_IN_343X},
++++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock_tree.h	2010-12-11 11:32:38.000000000 -0500
+@@ -92,7 +92,7 @@
  	/*OPP4*/
--	{S550M, PRCM_VDD1_OPP4, RATE_IN_343X},
-+	{S700M, PRCM_VDD1_OPP4, RATE_IN_343X},
+ 	{S550M, PRCM_VDD1_OPP4, RATE_IN_343X},
  	/*OPP5*/
 -	{S600M, PRCM_VDD1_OPP5, RATE_IN_343X},
-+	{S800M, PRCM_VDD1_OPP5, RATE_IN_343X},
-+        /*OPP6*/
-+        {S900M, PRCM_VDD1_OPP6, RATE_IN_343X},
-+        /*OPP7*/
-+        {S1005M, PRCM_VDD1_OPP7, RATE_IN_343X},
-+
++	{S1005M, PRCM_VDD1_OPP5, RATE_IN_343X},
  };
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/constraint.c	2010-08-25 14:44:03.000000000 -0400
-@@ -67,8 +67,8 @@
- static struct atomic_notifier_head freq_dsp_post_notifier_list;
- 
- #define min_vdd1_opp    CO_VDD1_OPP1
--#define max_vdd1_opp    CO_VDD1_OPP5
--#define min_vdd2_opp    CO_VDD2_OPP2
-+#define max_vdd1_opp    CO_VDD1_OPP7
-+#define min_vdd2_opp    CO_VDD2_OPP1
- #define max_vdd2_opp    CO_VDD2_OPP3
- 
- /******************************************************************************
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/Kconfig	2010-08-25 14:44:03.000000000 -0400
-@@ -132,17 +132,29 @@
- 	  Select this option if you want to boot at OPP3.
- 
- config OMAP3ES2_VDD1_OPP4
--	bool "MPU-550Mhz/DSP-396Mhz(OPP4)"
-+	bool "MPU-7000Mhz/DSP-360Mhz(OPP4)"
- 	depends on OMAP3_PM
- 	help
++++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/Kconfig	2010-12-11 11:23:32.000000000 -0500
+@@ -138,7 +138,7 @@
  	  Select this option if you want to boot at OPP4.
  
  config OMAP3ES2_VDD1_OPP5
 -	bool "MPU-625Mhz/DSP-430Mhz(OPP5)"
-+	bool "MPU-800Mhz/DSP-360Mhz(OPP5)"
++	bool "MPU-1005Mhz/DSP-430Mhz(OPP5)"
  	depends on OMAP3_PM
  	help
  	  Select this option if you want to boot at OPP5.
- 
-+config OMAP3ES2_VDD1_OPP6
-+        bool "MPU-900Mhz/DSP-360Mhz(OPP6)"
-+        depends on OMAP3_PM
-+        help
-+          Select this option if you want to boot at OPP6.
-+
-+config OMAP3ES2_VDD1_OPP7
-+        bool "MPU-1005Mhz/DSP-360Mhz(OPP7)"
-+        depends on OMAP3_PM
-+        help
-+          Select this option if you want to boot at OPP7.
-+
- endchoice
- 
- comment "Default VDD2 OPP Level Selection"
---- linux-2.6.24-palm/include/asm-arm/arch-omap/prcm.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/prcm.h	2010-08-25 14:44:03.000000000 -0400
-@@ -609,7 +609,12 @@
- 							| ID_OPP_NO(0x4))
- #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
- 							| ID_OPP_NO(0x5))
--#define PRCM_NO_VDD1_OPPS	5
-+#define PRCM_VDD1_OPP6          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
-+                                                        | ID_OPP_NO(0x6))
-+#define PRCM_VDD1_OPP7          (OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
-+                                                        | ID_OPP_NO(0x7))
-+
-+#define PRCM_NO_VDD1_OPPS	7
- 
- /* VDD2 OPPs */
- #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2010-08-25 14:44:03.000000000 -0400
-@@ -30,14 +30,14 @@
++++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2010-12-11 11:28:01.000000000 -0500
+@@ -29,14 +29,14 @@
+ #include <linux/notifier.h>
  
  
- #define curr_vdd1_opp   3
--#define curr_vdd2_opp   3
-+#define curr_vdd2_opp   2
+-#define curr_vdd1_opp   3
++#define curr_vdd1_opp   5
+ #define curr_vdd2_opp   3
  #define min_vdd1_opp    CO_VDD1_OPP1
--#define max_vdd1_opp    CO_VDD1_OPP5
--#define min_vdd2_opp    CO_VDD2_OPP2
-+#define max_vdd1_opp    CO_VDD1_OPP7
-+#define min_vdd2_opp    CO_VDD2_OPP1
+ #define max_vdd1_opp    CO_VDD1_OPP5
+ #define min_vdd2_opp    CO_VDD2_OPP2
  #define max_vdd2_opp    CO_VDD2_OPP3
  
- #define CURR_VDD1_OPP	3
--#define CURR_VDD2_OPP	3
-+#define CURR_VDD2_OPP	2
+-#define CURR_VDD1_OPP	3
++#define CURR_VDD1_OPP	5
+ #define CURR_VDD2_OPP	3
  /* Flags to denote Pool usage */
  #define RES_UNUSED		0x0
- #define RES_USED		0x1
-@@ -121,6 +121,8 @@
- #define CO_VDD1_OPP3		0x3
- #define CO_VDD1_OPP4		0x4
- #define CO_VDD1_OPP5		0x5
-+#define CO_VDD1_OPP6		0x6
-+#define CO_VDD1_OPP7		0x7
+@@ -269,12 +269,12 @@
+ #define T2_VUSB3V1_MAX  0x2
  
- /* VDD2 OPP constraint levels */
- #define CO_VDD2_OPP1		0x1
-@@ -273,13 +275,13 @@
+ /* Frequencies and Voltages for OPPs */
+-#define CURR_ARM_FREQ 	500
++#define CURR_ARM_FREQ 	1005
  #define CURR_DSP_FREQ 	360
- #define curr_arm_freq 	500
+-#define curr_arm_freq 	500
++#define curr_arm_freq 	1005
  #define curr_dsp_freq 	360
--#define min_arm_freq 	125
+ #define min_arm_freq 	125
 -#define max_arm_freq 	600
-+#define min_arm_freq 	500
 +#define max_arm_freq 	1005
  #define min_dsp_freq 	90
--#define max_dsp_freq 	430
-+#define max_dsp_freq 	600
+ #define max_dsp_freq 	430
  #define MIN_VDD1_OPP 	CO_VDD1_OPP1
--#define MAX_VDD1_OPP 	CO_VDD1_OPP5
--#define MIN_VDD2_OPP 	CO_VDD2_OPP2
-+#define MAX_VDD1_OPP 	CO_VDD1_OPP7
-+#define MIN_VDD2_OPP 	CO_VDD2_OPP1
- #define MAX_VDD2_OPP 	CO_VDD2_OPP3
+--- linux-2.6.24-palm/drivers/cpufreq/freq_table.c	2008-01-24 17:58:37.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/cpufreq/freq_table.c	2010-12-11 13:04:48.000000000 -0500
+@@ -186,7 +186,8 @@
+ 	table = show_table[cpu];
  
- /* Structure returned to the framework user as handle */
+ 	for (i=0; (table[i].frequency != CPUFREQ_TABLE_END); i++) {
+-		if (table[i].frequency == CPUFREQ_ENTRY_INVALID)
++		if ((table[i].frequency == CPUFREQ_ENTRY_INVALID) ||
++		  (table[i].frequency < 1005000))
+ 			continue;
+ 		count += sprintf(&buf[count], "%d ", table[i].frequency);
+ 	}
