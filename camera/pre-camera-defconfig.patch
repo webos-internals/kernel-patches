@@ -1,0 +1,18 @@
+diff --git a/arch/arm/configs/omap_sirloin_3630_defconfig b/arch/arm/configs/omap_sirloin_3630_defconfig
+index 320a1b6..0411512 100644
+--- a/arch/arm/configs/omap_sirloin_3630_defconfig
++++ b/arch/arm/configs/omap_sirloin_3630_defconfig
+@@ -1163,7 +1163,12 @@ CONFIG_VIDEO_OMAP34XX_ISP_SMIA10=y
+ #
+ CONFIG_VIDEO_OMAP34XX_ISP_VIDEO=y
+ CONFIG_VIDEO_OMAP34XX_ISP_STATS=y
+-# CONFIG_VIDEO_VX6852 is not set
++CONFIG_VIDEO_VX6852=y
++CONFIG_VIDEO_VX6852_SETTING=y
++CONFIG_VIDEO_VX6852_SETTING_PROFILE=y
++CONFIG_VIDEO_VX6852_SILICON_BUG_HACKS=y
++CONFIG_VIDEO_VX6852_DBG=y
++# CONFIG_VIDEO_VX6852_I2C_LOG is not set
+ CONFIG_VIDEO_VX6953=y
+ CONFIG_VIDEO_VX6953_DBG=y
+ # CONFIG_VIDEO_VX6953_I2C_LOG is not set
