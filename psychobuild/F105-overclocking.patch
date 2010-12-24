@@ -95,18 +95,24 @@
  
  comment "Default VDD2 OPP Level Selection"
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/prcm_opp.c	2010-12-23 23:15:40.000000000 -0500
-@@ -56,8 +56,8 @@
++++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/prcm_opp.c	2010-12-24 14:49:13.000000000 -0500
+@@ -56,13 +56,13 @@
  
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
 -				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
 +	1.20V (OPP3), 1.27V (OPP4), 1.42V (OPP5), 1.45V (OPP6), 1.46V (OPP7) */
-+		0x1E, 0x24, 0x26, 0x36, 0x3e, 0x40, 0x42
++		0x1E, 0x24, 0x28, 0x3f, 0x40, 0x42, 0x43
  };
  
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
+ 	/* Vsel corresponding to 0.975V (OPP1), 1.05V (OPP2), 1.15 (OPP3) */
+-	0x1e, 0x24, 0x2c
++	0x1e, 0x24, 0x2e
+ };
+ 
+ 
 @@ -82,7 +82,7 @@
  	 {0x00101001, 0x00040402, 0x0E050E05, 0x020F1010, 0x0F0502C2} }
  	},
