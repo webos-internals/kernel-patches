@@ -1122,8 +1122,8 @@
 +#endif
 +module_exit(cpufreq_gov_screenstate_exit);
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_ondemand_tickle.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_ondemand_tickle.c	2010-12-23 09:19:21.000000000 -0500
-@@ -0,0 +1,1699 @@
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_ondemand_tickle.c	2010-12-23 23:35:52.000000000 -0500
+@@ -0,0 +1,1702 @@
 +/*
 + *  drivers/cpufreq/cpufreq_ondemand_tickle.c
 + *
@@ -1260,7 +1260,7 @@
 +} dbs_tuners_ins = {
 +	.up_threshold = DEF_FREQUENCY_UP_THRESHOLD,
 +	.ignore_nice = 0,
-+	.powersave_bias = 0,
++	.powersave_bias = 1,
 +	.max_tickle_window = DEF_TICKLE_WINDOW,
 +	.max_floor_window = DEF_FLOOR_WINDOW,
 +};
@@ -1508,9 +1508,11 @@
 +
 +static int setup_tickle_device(void)
 +{
++	return 0;
++// Don't need this for webOS 1.4.5... BAD!!!
++#if 0
 +	int res = 0;
 +	struct device *dev = NULL;
-+
 +	res = alloc_chrdev_region(&tickle_dev, 0, 1, "ondemandtcl");
 +	if (res < 0) {
 +		printk(KERN_WARNING "%s: can't alloc major number (%d)\n", __FILE__, res);
@@ -1560,6 +1562,7 @@
 +
 +error:
 +	return res;
++#endif
 +}
 +
 +static void remove_tickle_device(void)
