@@ -1,5 +1,5 @@
---- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/drivers/cpufreq/Kconfig	2010-08-25 14:49:37.000000000 -0400
+--- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-ss/drivers/cpufreq/Kconfig	2010-11-26 11:43:19.000000000 -0500
 @@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
@@ -24,8 +24,8 @@
  choice
  	prompt "Default CPUFreq governor"
  	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
---- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2010-08-25 21:50:26.000000000 -0400
+--- linux-2.6.24-palm/drivers/cpufreq/Makefile	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2010-11-26 11:43:19.000000000 -0500
 @@ -14,3 +14,5 @@ 
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
@@ -33,8 +33,8 @@
 +# CPUfreq override
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)		+= cpufreq_override.o
 +
---- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/drivers/cpufreq/cpufreq.c	2010-09-02 13:10:13.000000000 -0400
+--- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq.c	2010-11-26 11:43:19.000000000 -0500
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -142,22 +142,21 @@
  	return 0;
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-02 23:24:57.000000000 -0400
-@@ -1523,3 +1578,38 @@
- 
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-26 12:48:32.000000000 -0500
+@@ -1889,5 +1991,37 @@
  	return -1;
  }
-+
+ 
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]) {
-+	memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++      memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_volts);
 +
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]) {
-+	memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
-+	prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
++      memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++      prcm_do_voltage_scaling(s_current_vdd1_opp, s_current_vdd1_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
 +
@@ -165,27 +164,27 @@
 +        memcpy(vdd2_volts,core_l3_vdd2_volts,sizeof(core_l3_vdd2_volts));
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_volts);
-+
+ 
 +void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]) {
 +        memcpy(core_l3_vdd2_volts,vdd2_volts,sizeof(core_l3_vdd2_volts));
-+        prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
++        prcm_do_voltage_scaling(s_current_vdd2_opp, s_current_vdd2_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
 +
 +void omap_pm_opp_get_vdd2_freq(u8 *vdd2_freqs[]) {
-+	int i;
-+	u8 f[MAX_VDD2_OPP];
++      int i;
++      u8 f[MAX_VDD2_OPP];
 +
-+	for(i=0;i < MAX_VDD2_OPP;i++)
-+		f[i]=(u8 )vdd2_core_freq[i].freq;
-+	memcpy(vdd2_freqs,f,sizeof(f));
++      for(i=0;i < MAX_VDD2_OPP;i++)
++              f[i]=(u8 )vdd2_core_freq[i].freq;
++      memcpy(vdd2_freqs,f,sizeof(f));
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_freq);
-+
 +#endif
+ 
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-11-02 23:01:54.000000000 -0400
-@@ -0,0 +1,407 @@
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-11-26 14:36:00.000000000 -0500
+@@ -0,0 +1,413 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -274,6 +273,12 @@
 +	.show = _show,\
 +};
 +
++#ifdef CONFIG_MACH_SIRLOIN_3630
++static int tidx = 1;
++#else
++static int tidx = 0;
++#endif
++
 +static inline void check_stuff(struct work_struct *work) {
 +        struct cpufreq_policy new_policy, *policy = cpufreq_cpu_get(0);
 +        u32 cputemp;
@@ -350,17 +355,17 @@
 +}
 +
 +static ssize_t show_vdd1_vsel(struct cpufreq_policy *policy, char *buf) {
-+        u8 volt[7];
++        u8 volt[2][7];
 +
 +        omap_pm_opp_get_volts(&volt);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+        return sprintf(buf, "%hu %hu %hu %hu %hu\n", volt[6],
-+                                        volt[5],volt[4],volt[3],
-+                                        volt[2]);
++        return sprintf(buf, "%hu %hu %hu %hu %hu\n", volt[tidx][6],
++                                        volt[tidx][5],volt[tidx][4],
++                                        volt[tidx][3],volt[tidx][2]);
 +#else
-+        return sprintf(buf, "%hu %hu %hu %hu %hu %hu %hu\n", volt[6],
-+                                        volt[5],volt[4],volt[3],
-+                                        volt[2],volt[1],volt[0]);
++        return sprintf(buf, "%hu %hu %hu %hu %hu %hu %hu\n", volt[tidx][6],
++                                    volt[tidx][5],volt[tidx][4],volt[tidx][3],
++                                    volt[tidx][2],volt[tidx][1],volt[tidx][0]);
 +#endif
 +}
 +
@@ -373,37 +378,37 @@
 +}
 +
 +static ssize_t show_vdd2_vsel(struct cpufreq_policy *policy, char *buf) {
-+        u8 volt[3];
++        u8 volt[2][3];
 +
 +        omap_pm_opp_get_vdd2_volts(&volt);
-+        return sprintf(buf, "%hu %hu %hu\n", volt[2],
-+                                        volt[1],volt[0]);
++        return sprintf(buf, "%hu %hu %hu\n", volt[tidx][2],
++                                        volt[tidx][1],volt[tidx][0]);
 +}
 +
 +static ssize_t show_vdd2_freqs(struct cpufreq_policy *policy, char *buf) {
-+        u8 freqs[3];
++        u8 freqs[2][3];
 +        omap_pm_opp_get_vdd2_freq(&freqs);
 +
-+        return sprintf(buf, "%hu %hu %hu\n", freqs[2],
-+                                        freqs[1],freqs[0]);
++        return sprintf(buf, "%hu %hu %hu\n", freqs[tidx][2],
++                                        freqs[tidx][1],freqs[tidx][0]);
 +}
 +
 +static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
 +						size_t count) {
-+        u8 volt[7], i;
++        u8 volt[2][7], i;
 +
 +        mutex_lock(&override_mutex);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
-+                                                &volt[4],&volt[3],&volt[2]) == 5) {
++        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu", &volt[tidx][6],&volt[tidx][5],
++                       &volt[tidx][4],&volt[tidx][3],&volt[tidx][2]) == 5) {
 +		for(i=0;i < 5;i++) {
 +#else
-+        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
-+                                                &volt[4],&volt[3],&volt[2],
-+                                                &volt[1],&volt[0]) == 7) {
++        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[tidx][6],&volt[tidx][5],
++                                   &volt[tidx][4],&volt[tidx][3],&volt[tidx][2],
++                                   &volt[tidx][1],&volt[tidx][0]) == 7) {
 +		for(i=0;i < 7;i++) {
 +#endif
-+			if((volt[i] < VDD1_VSEL_MIN) || (volt[i] >
++			if((volt[tidx][i] < VDD1_VSEL_MIN) || (volt[tidx][i] >
 +							VDD1_VSEL_MAX)) {
 +				printk("CPUfreq: invalid vsel\n");
 +				break;
@@ -423,12 +428,12 @@
 +
 +static ssize_t store_vdd2_vsel(struct cpufreq_policy *policy, char *buf,
 +                                                size_t count) {
-+        u8 volt[3], i;
++        u8 volt[2][3], i;
 +
 +        mutex_lock(&override_mutex);
-+        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1], &volt[0]) == 3) {
++        if(sscanf(buf, "%hhu %hhu %hhu", &volt[tidx][2],&volt[tidx][1], &volt[tidx][0]) == 3) {
 +                for(i=0;i < 3;i++) {
-+                        if((volt[i] < VDD2_VSEL_MIN) || (volt[i] >
++                        if((volt[tidx][i] < VDD2_VSEL_MIN) || (volt[tidx][i] >
 +                                                        VDD2_VSEL_MAX)) {
 +                                printk("CPUfreq: invalid vsel\n");
 +                                break;
@@ -595,7 +600,7 @@
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/hwmon/omap34xx_temp.c     2010-05-31 12:05:29.000000000 -0400
 +++ linux-2.6.24-ss/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
-@@ -140,6 +140,14 @@
+@@ -149,14 +149,6 @@
 	mutex_unlock(&data->update_lock);
  }
 
@@ -610,9 +615,9 @@
  static ssize_t show_name(struct device *dev,
  		struct device_attribute *devattr, char *buf)
  {
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/arch/arm/mach-omap3pe/clock.c	2010-08-25 14:49:37.000000000 -0400
-@@ -709,6 +709,10 @@
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-ss/arch/arm/mach-omap3pe/clock.c	2010-11-26 11:43:19.000000000 -0500
+@@ -707,6 +707,10 @@
  
  	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;
  	for (; prcm->speed; prcm--) {
@@ -623,8 +628,8 @@
  		freq_table[i].index = i;
  		freq_table[i].frequency = prcm->speed / 1000;
  		i++;
---- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-ss/drivers/w1/slaves/w1_ds2784.c	2010-08-31 00:26:02.000000000 -0400
+--- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-11-23 18:42:42.000000000 -0500
++++ linux-2.6.24-ss/drivers/w1/slaves/w1_ds2784.c	2010-11-26 11:43:19.000000000 -0500
 @@ -1133,11 +1133,20 @@
  */
  static struct device *battery_device = NULL;
@@ -646,3 +651,24 @@
  
  static int ds2784_getvoltage(int *ret_voltage)
  {
+@@ -1151,11 +1160,20 @@
+ 	return ds2784_gettemperature_dev(battery_device, ret_temperature);
+ }
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++int ds2784_getcurrent(int *ret_current)
++{
++        if (!battery_device) return -1;
++        return ds2784_getcurrent_dev(battery_device, ret_current);
++}
++EXPORT_SYMBOL(ds2784_getcurrent);
++#else
+ static int ds2784_getcurrent(int *ret_current)
+ {
+ 	if (!battery_device) return -1;
+ 	return ds2784_getcurrent_dev(battery_device, ret_current);
+ }
++#endif
+ 
+ static struct battery_ops ds2784_battery_ops = {
+ 	.get_percent       = ds2784_getpercent,
