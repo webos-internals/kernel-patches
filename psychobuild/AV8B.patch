@@ -138,7 +138,7 @@
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/prcm_opp.c	2010-12-12 15:09:11.000000000 -0500
++++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/prcm_opp.c	2010-12-26 12:25:53.000000000 -0500
 @@ -57,12 +57,12 @@
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
@@ -174,12 +174,14 @@
  			break;
  		}
  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
-@@ -494,7 +494,7 @@
+@@ -493,8 +493,8 @@
+ 	{125,  90, CO_VDD1_OPP1, PRCM_VDD1_OPP1},
  	{250, 180, CO_VDD1_OPP2, PRCM_VDD1_OPP2},
  	{500, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
- 	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
+-	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
 -	{600, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
-+	{1005, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{550, 360, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
++	{1005, 360, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
@@ -643,8 +645,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2010-12-12 15:09:30.000000000 -0500
-@@ -0,0 +1,262 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2010-12-26 13:12:17.000000000 -0500
+@@ -0,0 +1,270 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
 + *
@@ -675,6 +677,10 @@
 +// VDD1 Vsel min
 +#define VDD1_VSEL_MIN 25
 +
++// VDD defaults
++#define VDD1_VSEL { 0x3a, 0x3f, 0x43 }
++#define VDD2_VSEL { 0x24, 0x26, 0x2b }
++
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]);
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
 +void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]);
@@ -684,8 +690,10 @@
 +
 +static unsigned int cpu_is_managed=0,last_load=0;
 +static cputime64_t prev_cpu_wall=0,prev_cpu_idle=0;
-+static u8 v_volt[3] = { 0x3c, 0x41, 0x43 };
-+static u8 v_volt_vdd2[3] = { 0x24, 0x26, 0x2a };
++static u8 v_volt[3] = VDD1_VSEL;
++static u8 v_volt_vdd2[3] = VDD2_VSEL;
++static u8 vdd1_vsel_def[3] = VDD1_VSEL;
++static u8 vdd2_vsel_def[3] = VDD2_VSEL;
 +
 +static inline void check_load(struct work_struct *work);
 +
@@ -714,7 +722,8 @@
 +                for(i=0;i < 3;i++) {
 +                        if((volt[i] < VDD1_VSEL_MIN) ||
 +				(volt[i] > VDD1_VSEL_MAX)) {
-+                                printk("CPUfreq: invalid vsel\n");
++                                printk("CPUfreq: invalid vsel! Resetting to default!\n");
++				volt[i]=vdd1_vsel_def[i];
 +                                break;
 +                        }
 +                }
@@ -742,7 +751,8 @@
 +                for(i=0;i < 3;i++) {
 +                        if((volt[i] < 25) ||
 +                                (volt[i] > 60)) {
-+                                printk("CPUfreq: invalid vsel\n");
++                                printk("CPUfreq: invalid vsel! Resetting to default!\n");
++				volt[i]=vdd2_vsel_def[i];
 +                                break;
 +                        }
 +                }
