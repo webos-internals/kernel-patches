@@ -232,6 +232,51 @@
 +}
 +EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
 +#endif
+--- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2010-06-11 17:48:35.000000000 -0400
++++ linux-2.6.24-F102/drivers/video/omap/lcd_panel.c	2011-01-03 11:01:07.000000000 -0500
+@@ -31,6 +31,11 @@
+ 
+ #include "lcd.h"
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++void cpufreq_gov_screenstate_lcdon(void);
++void cpufreq_gov_screenstate_lcdoff(void);
++#endif
++
+ #define MOD_NAME 		"LCD: "
+ 
+ #undef MODDEBUG
+@@ -52,7 +57,6 @@
+ #define DISPLAY_BACKLIGHT_STATE_ON     1
+ #define DISPLAY_BACKLIGHT_STATE_OFF    0
+ 
+-
+ struct lcd_params {
+ 	struct display_device *disp_dev;
+ 	struct platform_device *pdev;
+@@ -128,6 +132,11 @@
+ 						DISPLAY_BACKLIGHT_STATE_ON);
+ 		}
+ 		params->panel_state = DISPLAY_DEVICE_STATE_ON;
++
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++		cpufreq_gov_screenstate_lcdon();
++#endif
++
+ 	} else {
+ 		if (params->panel_state == DISPLAY_DEVICE_STATE_OFF) {
+ 			DPRINTK(" %s:  Panel already off, returning...\n",
+@@ -156,6 +165,10 @@
+ 						DISPLAY_CONTROLLER_STATE_OFF);
+ 		}
+ 		params->panel_state = DISPLAY_DEVICE_STATE_OFF;
++
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++		cpufreq_gov_screenstate_lcdoff();
++#endif
+ 	}
+ 
+ unlock:
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
 +++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_override.c	2011-01-03 15:13:32.000000000 -0500
 @@ -0,0 +1,373 @@
