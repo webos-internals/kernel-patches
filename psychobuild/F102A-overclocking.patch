@@ -609,8 +609,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_screenstate.c	2011-01-04 00:14:34.000000000 -0500
-@@ -0,0 +1,426 @@
++++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_screenstate.c	2011-01-06 16:18:16.000000000 -0500
+@@ -0,0 +1,428 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -765,6 +765,8 @@
 +	else goto out2;
 +
 +        if(!last_load) goto out;
++
++	if(opp < 3) goto out;
 +
 +        if((load < 30) && (last_load > 30)) {
 +                volt[opp-1]=opp_volt-(2*sfactor);
@@ -1155,29 +1157,9 @@
  };
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/arch/arm/mach-omap3pe/constraint.c	2011-01-03 11:37:42.000000000 -0500
-@@ -66,7 +66,7 @@
- static struct atomic_notifier_head freq_dsp_pre_notifier_list;
- static struct atomic_notifier_head freq_dsp_post_notifier_list;
- 
--#define min_vdd1_opp    CO_VDD1_OPP1
-+#define min_vdd1_opp    CO_VDD1_OPP3
- #define max_vdd1_opp    CO_VDD1_OPP5
- #define min_vdd2_opp    CO_VDD2_OPP2
- #define max_vdd2_opp    CO_VDD2_OPP3
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-F102/include/asm-arm/arch-omap/resource.h	2011-01-03 11:38:56.000000000 -0500
-@@ -31,7 +31,7 @@
- 
- #define curr_vdd1_opp   3
- #define curr_vdd2_opp   3
--#define min_vdd1_opp    CO_VDD1_OPP1
-+#define min_vdd1_opp    CO_VDD1_OPP3
- #define max_vdd1_opp    CO_VDD1_OPP5
- #define min_vdd2_opp    CO_VDD2_OPP2
- #define max_vdd2_opp    CO_VDD2_OPP3
-@@ -273,11 +273,11 @@
++++ linux-2.6.24-F102/include/asm-arm/arch-omap/resource.h	2011-01-06 16:01:04.000000000 -0500
+@@ -273,8 +273,8 @@
  #define CURR_DSP_FREQ 	360
  #define curr_arm_freq 	500
  #define curr_dsp_freq 	360
@@ -1187,8 +1169,4 @@
 +#define max_arm_freq 	800
  #define min_dsp_freq 	90
  #define max_dsp_freq 	430
--#define MIN_VDD1_OPP 	CO_VDD1_OPP1
-+#define MIN_VDD1_OPP 	CO_VDD1_OPP3
- #define MAX_VDD1_OPP 	CO_VDD1_OPP5
- #define MIN_VDD2_OPP 	CO_VDD2_OPP2
- #define MAX_VDD2_OPP 	CO_VDD2_OPP3
+ #define MIN_VDD1_OPP 	CO_VDD1_OPP1
