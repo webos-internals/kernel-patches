@@ -1,5 +1,5 @@
 --- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/drivers/cpufreq/Kconfig	2010-08-25 14:49:37.000000000 -0400
++++ linux-2.6.24-ss/drivers/cpufreq/Kconfig	2010-12-23 09:26:35.000000000 -0500
 @@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
@@ -25,7 +25,7 @@
  	prompt "Default CPUFreq governor"
  	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
 --- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2010-08-25 21:50:26.000000000 -0400
++++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2010-12-23 09:44:27.000000000 -0500
 @@ -14,3 +14,5 @@ 
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
@@ -47,51 +47,6 @@
  /**
   * The "cpufreq driver" - the arch- or hardware-dependent low
   * level driver of CPUFreq support, and its spinlock. This lock
-@@ -1602,7 +1607,7 @@
- 	int ret = 0;
- 
- 	cpufreq_debug_disable_ratelimit();
--	dprintk("setting new policy for CPU %u: %u - %u kHz\n", policy->cpu,
-+	printk("setting new policy for CPU %u: %u - %u kHz\n", policy->cpu,
- 		policy->min, policy->max);
- 
- 	memcpy(&policy->cpuinfo, &data->cpuinfo,
-@@ -1639,7 +1644,7 @@
- 	data->min = policy->min;
- 	data->max = policy->max;
- 
--	dprintk("new min and max freqs are %u - %u kHz\n",
-+	printk("new min and max freqs are %u - %u kHz\n",
- 					data->min, data->max);
- 
- 	if (cpufreq_driver->setpolicy) {
-@@ -1651,7 +1656,7 @@
- 			/* save old, working values */
- 			struct cpufreq_governor *old_gov = data->governor;
- 
--			dprintk("governor switch\n");
-+			printk("governor switch\n");
- 
- 			/* end old governor */
- 			if (data->governor)
-@@ -1661,7 +1666,7 @@
- 			data->governor = policy->governor;
- 			if (__cpufreq_governor(data, CPUFREQ_GOV_START)) {
- 				/* new governor failed, so re-start old one */
--				dprintk("starting governor %s failed\n",
-+				printk("starting governor %s failed\n",
- 							data->governor->name);
- 				if (old_gov) {
- 					data->governor = old_gov;
-@@ -1673,7 +1678,7 @@
- 			}
- 			/* might be a policy change, too, so fall through */
- 		}
--		dprintk("governor: change or update limits\n");
-+		printk("governor: change or update limits\n");
- 		__cpufreq_governor(data, CPUFREQ_GOV_LIMITS);
- 	}
- 
 @@ -1682,6 +1687,18 @@
  	return ret;
  }
@@ -111,15 +66,6 @@
  /**
   *	cpufreq_update_policy - re-evaluate an existing cpufreq policy
   *	@cpu: CPU which shall be re-evaluated
-@@ -1701,7 +1718,7 @@
- 	if (unlikely(lock_policy_rwsem_write(cpu)))
- 		return -EINVAL;
- 
--	dprintk("updating policy for CPU %u\n", cpu);
-+	printk("updating policy for CPU %u\n", cpu);
- 	memcpy(&policy, data, sizeof(struct cpufreq_policy));
- 	policy.min = data->user_policy.min;
- 	policy.max = data->user_policy.max;
 @@ -1831,6 +1848,10 @@
  		cpufreq_debug_enable_ratelimit();
  	}
@@ -143,8 +89,8 @@
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-02 23:24:57.000000000 -0400
-@@ -1523,3 +1578,38 @@
++++ linux-2.6.24-ss/arch/arm/mach-omap3pe/prcm_opp.c	2010-12-26 19:56:48.000000000 -0500
+@@ -1523,3 +1578,33 @@
  
  	return -1;
  }
@@ -161,31 +107,26 @@
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
 +
-+void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volts[]) {
-+        memcpy(vdd2_volts,core_l3_vdd2_volts,sizeof(core_l3_vdd2_volts));
++void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt) {
++	*(vdd2_volt)=(u8 )core_l3_vdd2_volts[2];
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_volts);
 +
-+void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]) {
-+        memcpy(core_l3_vdd2_volts,vdd2_volts,sizeof(core_l3_vdd2_volts));
++void omap_pm_opp_set_vdd2_volts(u8 vdd2_volt) {
++	core_l3_vdd2_volts[2]=vdd2_volt;
 +        prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
 +
-+void omap_pm_opp_get_vdd2_freq(u8 *vdd2_freqs[]) {
-+	int i;
-+	u8 f[MAX_VDD2_OPP];
-+
-+	for(i=0;i < MAX_VDD2_OPP;i++)
-+		f[i]=(u8 )vdd2_core_freq[i].freq;
-+	memcpy(vdd2_freqs,f,sizeof(f));
++void omap_pm_opp_get_vdd2_freq(unsigned int *vdd2_freq) {
++	*(vdd2_freq)=vdd2_core_freq[2].freq;
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_freq);
 +
 +#endif
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-11-02 23:01:54.000000000 -0400
-@@ -0,0 +1,407 @@
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_override.c	2010-12-26 19:38:29.000000000 -0500
+@@ -0,0 +1,402 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -234,9 +175,9 @@
 +
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]);
-+void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volts[]);
-+void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]);
-+void omap_pm_opp_get_vdd2_freq(u8 *vdd2_freqs[]);
++void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt);
++void omap_pm_opp_set_vdd2_volts(u8 vdd2_volt);
++void omap_pm_opp_get_vdd2_freq(unsigned int *vdd2_freq);
 +int omap34xx_get_temp(void);
 +int cpufreq_set_policy(struct cpufreq_policy *policy);
 +int ds2784_getpercent(int *ret_percent);
@@ -373,19 +314,17 @@
 +}
 +
 +static ssize_t show_vdd2_vsel(struct cpufreq_policy *policy, char *buf) {
-+        u8 volt[3];
++        u8 volt;
 +
 +        omap_pm_opp_get_vdd2_volts(&volt);
-+        return sprintf(buf, "%hu %hu %hu\n", volt[2],
-+                                        volt[1],volt[0]);
++        return sprintf(buf, "%hu\n", volt);
 +}
 +
 +static ssize_t show_vdd2_freqs(struct cpufreq_policy *policy, char *buf) {
-+        u8 freqs[3];
-+        omap_pm_opp_get_vdd2_freq(&freqs);
++        unsigned int freq;
++        omap_pm_opp_get_vdd2_freq(&freq);
 +
-+        return sprintf(buf, "%hu %hu %hu\n", freqs[2],
-+                                        freqs[1],freqs[0]);
++        return sprintf(buf, "%u\n", freq);
 +}
 +
 +static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
@@ -423,18 +362,15 @@
 +
 +static ssize_t store_vdd2_vsel(struct cpufreq_policy *policy, char *buf,
 +                                                size_t count) {
-+        u8 volt[3], i;
++        u8 volt;
 +
 +        mutex_lock(&override_mutex);
-+        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1], &volt[0]) == 3) {
-+                for(i=0;i < 3;i++) {
-+                        if((volt[i] < VDD2_VSEL_MIN) || (volt[i] >
-+                                                        VDD2_VSEL_MAX)) {
-+                                printk("CPUfreq: invalid vsel\n");
-+                                break;
-+                        }
-+                }
-+                if(i == 3) omap_pm_opp_set_vdd2_volts(volt);
++        if(sscanf(buf, "%hhu", &volt) == 1) {
++		if((volt < VDD2_VSEL_MIN) || (volt >
++					VDD2_VSEL_MAX)) {
++			printk("CPUfreq: invalid vsel\n");
++		}
++                else omap_pm_opp_set_vdd2_volts(volt);
 +        }
 +        else printk("CPUfreq: missing vsel values\n");
 +
@@ -546,7 +482,7 @@
 +CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_max,0444,show_vdd1_vsel_max);
 +CPUFREQ_OVERRIDE_ATTR2(vdd2_vsel_min,0444,show_vdd2_vsel_min);
 +CPUFREQ_OVERRIDE_ATTR2(vdd2_vsel_max,0444,show_vdd2_vsel_max);
-+CPUFREQ_OVERRIDE_ATTR2(vdd2_freqs,0444,show_vdd2_freqs);
++CPUFREQ_OVERRIDE_ATTR2(vdd2_freq,0444,show_vdd2_freqs);
 +CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_alarm,0644,show_hightemp_scaleback,
 +			store_hightemp_scaleback);
 +CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_reset,0644,show_lowtemp_reset,
@@ -559,7 +495,7 @@
 +        &_attr_vdd2_vsel.attr,
 +        &_attr_vdd2_vsel_min.attr,
 +        &_attr_vdd2_vsel_max.attr,
-+        &_attr_vdd2_freqs.attr,
++        &_attr_vdd2_freq.attr,
 +        &_attr_cpu_hightemp_alarm.attr,
 +        &_attr_cpu_hightemp_reset.attr,
 +	&_attr_battery_scaleback_percent.attr,
@@ -611,7 +547,7 @@
  		struct device_attribute *devattr, char *buf)
  {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/arch/arm/mach-omap3pe/clock.c	2010-08-25 14:49:37.000000000 -0400
++++ linux-2.6.24-ss/arch/arm/mach-omap3pe/clock.c	2010-11-17 15:36:51.000000000 -0500
 @@ -709,6 +709,10 @@
  
  	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;

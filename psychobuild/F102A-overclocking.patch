@@ -1,5 +1,5 @@
 --- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/drivers/cpufreq/Kconfig	2010-12-11 11:03:04.000000000 -0500
++++ linux-2.6.24-F102/drivers/cpufreq/Kconfig	2011-01-04 00:53:56.000000000 -0500
 @@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
@@ -24,45 +24,46 @@
  choice
  	prompt "Default CPUFreq governor"
  	default CPU_FREQ_DEFAULT_GOV_USERSPACE if CPU_FREQ_SA1100 || CPU_FREQ_SA1110
-@@ -87,6 +104,13 @@
+@@ -87,6 +104,15 @@
  	  program shall be able to set the CPU dynamically without having
  	  to enable the userspace governor manually.
  
-+config CPU_FREQ_DEFAULT_GOV_VDEMAND
-+	bool "vdemand"
-+	select CPU_FREQ_GOV_VDEMAND
-+	help
-+	  Use the CPUFreq governor 'vdemand' as default. This will
-+	  scale the CPU up and down depending on load.
++config CPU_FREQ_DEFAULT_GOV_SCREENSTATE
++        bool "screenstate"
++        select CPU_FREQ_GOV_SCREENSTATE
++        help
++          Use the CPUFreq governor 'screenstate' as default. This will
++	  scale the CPU frequency down when the LCD is off then scale
++	  back to max speed when LCD is powered on.  This also will not
++	  allow to set the CPU frequency manually.
 +
  config CPU_FREQ_DEFAULT_GOV_ONDEMAND
  	bool "ondemand"
  	select CPU_FREQ_GOV_ONDEMAND
-@@ -149,6 +173,17 @@
+@@ -149,6 +175,16 @@
  
  	  If in doubt, say Y.
  
-+config CPU_FREQ_GOV_VDEMAND
-+	tristate "'vdemand' governor for frequency scaling"
-+	help
-+	  Enable this cpufreq governor to scale CPU voltage.
++config CPU_FREQ_GOV_SCREENSTATE
++        tristate "'screenstate' governor for frequency scaling"
++        help
++          Enable this cpufreq governor to scale when LCD is on/off.
 +
-+	  To compile this driver as a module, choose M here: the
-+	  module will be called cpufreq_vdemand.
++          To compile this driver as a module, choose M here: the
++          module will be called cpufreq_screenstate.
 +
-+	  If in doubt, say Y.
-+
++          If in doubt, say Y.
 +
  config CPU_FREQ_GOV_ONDEMAND
  	tristate "'ondemand' cpufreq policy governor"
  	select CPU_FREQ_TABLE
 --- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/Makefile	2010-12-11 11:03:40.000000000 -0500
++++ linux-2.6.24-F102/drivers/cpufreq/Makefile	2011-01-04 00:54:37.000000000 -0500
 @@ -9,7 +9,11 @@
  obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
  obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
-+obj-$(CONFIG_CPU_FREQ_GOV_VDEMAND)	+= cpufreq_vdemand.o
++obj-$(CONFIG_CPU_FREQ_GOV_SCREENSTATE)	+= cpufreq_screenstate.o
  
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
@@ -71,7 +72,7 @@
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq.c	2010-12-11 13:01:36.000000000 -0500
++++ linux-2.6.24-F102/drivers/cpufreq/cpufreq.c	2011-01-03 11:01:07.000000000 -0500
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -126,51 +127,50 @@
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 --- linux-2.6.24-palm/include/linux/cpufreq.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-AV8B/include/linux/cpufreq.h	2010-12-11 11:08:53.000000000 -0500
++++ linux-2.6.24-F102/include/linux/cpufreq.h	2011-01-04 00:57:11.000000000 -0500
 @@ -309,6 +309,9 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
  extern struct cpufreq_governor cpufreq_gov_userspace;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_userspace)
-+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_VDEMAND)
-+extern struct cpufreq_governor cpufreq_gov_vdemand;
-+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_vdemand)
++#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE)
++extern struct cpufreq_governor cpufreq_gov_screenstate;
++#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_screenstate)
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND)
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/prcm_opp.c	2010-12-26 12:25:53.000000000 -0500
-@@ -57,12 +57,12 @@
++++ linux-2.6.24-F102/arch/arm/mach-omap3pe/prcm_opp.c	2011-01-03 18:21:49.000000000 -0500
+@@ -57,7 +57,7 @@
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
  				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
-+	0x1e, 0x24, 0x30, 0x36, 0x43
++	0x1e, 0x24, 0x30, 0x41, 0x42
  };
  
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
- 	/* Vsel corresponding to 0.975V (OPP1), 1.05V (OPP2), 1.15 (OPP3) */
--	0x1e, 0x24, 0x2c
-+	0x1e, 0x24, 0x2a
- };
- 
- 
-@@ -161,8 +161,8 @@
+@@ -160,9 +160,9 @@
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
  	{{0x1F4, 0x0C, 0x03, 0x04}, {0x1F4, 0x0C, 0x03, 0x02},
  	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
- 	{0x1F4, 0x0C, 0x03, 0x01}, {0x226, 0x0C, 0x03, 0x01},
--	/* OPP5 (600 Mhz) */
+-	{0x1F4, 0x0C, 0x03, 0x01}, {0x226, 0x0C, 0x03, 0x01},
++	{0x1F4, 0x0C, 0x03, 0x01}, {0x2D0, 0x0C, 0x03, 0x01},
+ 	/* OPP5 (600 Mhz) */
 -	{0x258, 0x0C, 0x03, 0x01} },
-+	/* OPP5 (1005 Mhz) */
-+	{0x3ED, 0x0C, 0x03, 0x01} },
++	{0x320, 0x0C, 0x03, 0x01} },
  	/* 19.2M values */
  	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
  	{{0x271, 0x17, 0x03, 0x04}, {0x271, 0x17, 0x03, 0x02},
-@@ -476,7 +476,7 @@
- 			valid_rate = clk_round_rate(p_vdd1_clk, S550M);
+@@ -473,10 +473,10 @@
+ 			valid_rate = clk_round_rate(p_vdd1_clk, S500M);
+ 			break;
+ 		case PRCM_VDD1_OPP4:
+-			valid_rate = clk_round_rate(p_vdd1_clk, S550M);
++			valid_rate = clk_round_rate(p_vdd1_clk, S720M);
  			break;
  		case PRCM_VDD1_OPP5:
 -			valid_rate = clk_round_rate(p_vdd1_clk, S600M);
-+			valid_rate = clk_round_rate(p_vdd1_clk, S1005M);
++			valid_rate = clk_round_rate(p_vdd1_clk, S800M);
  			break;
  		}
  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
@@ -180,8 +180,8 @@
  	{500, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
 -	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
 -	{600, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
-+	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
-+	{1005, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{720, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
++	{800, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
@@ -190,50 +190,96 @@
  
  static unsigned int rnd_rate_vdd1[5] = {
 -	S125M, S250M, S500M, S550M, S600M
-+	S125M, S250M, S500M, S550M, S1005M
++	S125M, S250M, S500M, S720M, S800M
  };
  static unsigned int rnd_rate_vdd2[3] = {
  	0, S83M, S166M
-@@ -1523,3 +1523,36 @@
+@@ -1523,3 +1523,37 @@
  
  	return -1;
  }
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]) {
-+       memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++	memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_volts);
 +
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]) {
-+       memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
-+       prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
++	memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++	prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
 +
-+void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volts[]) {
-+        memcpy(vdd2_volts,core_l3_vdd2_volts,sizeof(core_l3_vdd2_volts));
++void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt) {
++	*(vdd2_volt)=(u8 )core_l3_vdd2_volts[2];
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_volts);
 +
-+void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]) {
-+        memcpy(core_l3_vdd2_volts,vdd2_volts,sizeof(core_l3_vdd2_volts));
++void omap_pm_opp_set_vdd2_volts(u8 vdd2_volt) {
++	core_l3_vdd2_volts[2]=vdd2_volt;
 +        prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
 +
-+void omap_pm_opp_get_vdd2_freq(u8 *vdd2_freqs[]) {
-+       int i;
-+       u8 f[MAX_VDD2_OPP];
-+
-+       for(i=0;i < MAX_VDD2_OPP;i++)
-+               f[i]=(u8 )vdd2_core_freq[i].freq;
-+       memcpy(vdd2_freqs,f,sizeof(f));
++void omap_pm_opp_get_vdd2_freq(unsigned int *vdd2_freq) {
++	*(vdd2_freq)=vdd2_core_freq[2].freq;
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_freq);
 +
++unsigned int prcm_get_current_vdd1_opp_no(void) {
++	return get_opp_no(current_vdd1_opp);
++}
++EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
++#endif
+--- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2010-06-11 17:48:35.000000000 -0400
++++ linux-2.6.24-F102/drivers/video/omap/lcd_panel.c	2011-01-03 11:01:07.000000000 -0500
+@@ -31,6 +31,11 @@
+ 
+ #include "lcd.h"
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++void cpufreq_gov_screenstate_lcdon(void);
++void cpufreq_gov_screenstate_lcdoff(void);
++#endif
++
+ #define MOD_NAME 		"LCD: "
+ 
+ #undef MODDEBUG
+@@ -52,7 +57,6 @@
+ #define DISPLAY_BACKLIGHT_STATE_ON     1
+ #define DISPLAY_BACKLIGHT_STATE_OFF    0
+ 
+-
+ struct lcd_params {
+ 	struct display_device *disp_dev;
+ 	struct platform_device *pdev;
+@@ -128,6 +132,11 @@
+ 						DISPLAY_BACKLIGHT_STATE_ON);
+ 		}
+ 		params->panel_state = DISPLAY_DEVICE_STATE_ON;
++
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++		cpufreq_gov_screenstate_lcdon();
++#endif
++
+ 	} else {
+ 		if (params->panel_state == DISPLAY_DEVICE_STATE_OFF) {
+ 			DPRINTK(" %s:  Panel already off, returning...\n",
+@@ -156,6 +165,10 @@
+ 						DISPLAY_CONTROLLER_STATE_OFF);
+ 		}
+ 		params->panel_state = DISPLAY_DEVICE_STATE_OFF;
++
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++		cpufreq_gov_screenstate_lcdoff();
++#endif
+ 	}
+ 
+ unlock:
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2010-12-11 14:24:33.000000000 -0500
-@@ -0,0 +1,410 @@
++++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_override.c	2011-01-10 21:03:34.000000000 -0500
+@@ -0,0 +1,398 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -252,6 +298,7 @@
 +#include <linux/jiffies.h>
 +#include <linux/kobject.h>
 +#include <linux/workqueue.h>
++#include <asm/arch/prcm.h>
 +
 +// VDD1 Vsel max
 +#define VDD1_VSEL_MAX 112
@@ -282,9 +329,9 @@
 +
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]);
-+void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volts[]);
-+void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]);
-+void omap_pm_opp_get_vdd2_freq(u8 *vdd2_freqs[]);
++void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt);
++void omap_pm_opp_set_vdd2_volts(u8 vdd2_volt);
++void omap_pm_opp_get_vdd2_freq(unsigned int *vdd2_freq);
 +int omap34xx_get_temp(void);
 +int cpufreq_set_policy(struct cpufreq_policy *policy);
 +int ds2784_getpercent(int *ret_percent);
@@ -294,9 +341,6 @@
 +int prev_minspeed_temp=0;
 +int prev_maxspeed_bat=0;
 +int prev_minspeed_bat=0;
-+#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+u8 charger_override=0;
-+#endif
 +
 +static u32 override_hightemp=HIGHTEMP_SCALEBACK;
 +static u32 override_lowtemp=LOWTEMP_RESET;
@@ -389,7 +433,7 @@
 +	schedule_delayed_work(&dbs_work,OVERRIDE_POLLING);
 +}
 +
-+static ssize_t show_vdd1_vsel_max(struct cpufreq_policy *policy, char *buf) {
++/* static ssize_t show_vdd1_vsel_max(struct cpufreq_policy *policy, char *buf) {
 +	return sprintf(buf, "%hu\n",VDD1_VSEL_MAX);
 +}
 +
@@ -397,21 +441,28 @@
 +	return sprintf(buf, "%hu\n",VDD1_VSEL_MIN);
 +}
 +
-+/*
 +static ssize_t show_vdd1_vsel(struct cpufreq_policy *policy, char *buf) {
-+        u8 volt[7];
++        u8 volt[PRCM_NO_VDD1_OPPS];
 +
 +        omap_pm_opp_get_volts(&volt);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+        return sprintf(buf, "%hu %hu %hu %hu %hu\n", volt[6],
++	if(PRCM_NO_VDD1_OPPS > 5)
++        	return sprintf(buf, "%hu %hu %hu %hu %hu\n", volt[6],
 +                                        volt[5],volt[4],volt[3],
 +                                        volt[2]);
++	else
++		return sprintf(buf, "%hu %hu %hu\n", volt[4],
++					volt[3],volt[2]);
 +#else
-+        return sprintf(buf, "%hu %hu %hu %hu %hu %hu %hu\n", volt[6],
++	if(PRCM_NO_VDD1_OPPS > 5)
++	        return sprintf(buf, "%hu %hu %hu %hu %hu %hu %hu\n", volt[6],
 +                                        volt[5],volt[4],volt[3],
 +                                        volt[2],volt[1],volt[0]);
++	else
++		return sprintf(buf, "%hu %hu %hu %hu %hu\n", volt[4],
++					volt[3],volt[2],volt[1],volt[0]);
 +#endif
-+}
++} */
 +
 +static ssize_t show_vdd2_vsel_max(struct cpufreq_policy *policy, char *buf) {
 +        return sprintf(buf, "%hu\n",VDD2_VSEL_MAX);
@@ -422,36 +473,45 @@
 +}
 +
 +static ssize_t show_vdd2_vsel(struct cpufreq_policy *policy, char *buf) {
-+        u8 volt[3];
++        u8 volt;
 +
 +        omap_pm_opp_get_vdd2_volts(&volt);
-+        return sprintf(buf, "%hu %hu %hu\n", volt[2],
-+                                        volt[1],volt[0]);
++        return sprintf(buf, "%hu\n", volt);
 +}
 +
 +static ssize_t show_vdd2_freqs(struct cpufreq_policy *policy, char *buf) {
-+        u8 freqs[3];
-+        omap_pm_opp_get_vdd2_freq(&freqs);
++        unsigned int freq;
++        omap_pm_opp_get_vdd2_freq(&freq);
 +
-+        return sprintf(buf, "%hu %hu %hu\n", freqs[2],
-+                                        freqs[1],freqs[0]);
++        return sprintf(buf, "%u\n", freq);
 +}
 +
-+static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
++/* static ssize_t store_vdd1_vsel(struct cpufreq_policy *policy, char *buf,
 +						size_t count) {
-+        u8 volt[7], i;
++        u8 volt[PRCM_NO_VDD1_OPPS], i;
 +
 +        mutex_lock(&override_mutex);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
++ #if PRCM_NO_VDD1_OPPS > 5
++	        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
 +                                                &volt[4],&volt[3],&volt[2]) == 5) {
-+		for(i=0;i < 5;i++) {
++ #else
++	        if(sscanf(buf, "%hhu %hhu %hhu", &volt[4],&volt[3],
++                                                &volt[2]) == 3) {
++ #endif
++
 +#else
++ #if PRCM_NO_VDD1_OPPS > 5
 +        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[6],&volt[5],
 +                                                &volt[4],&volt[3],&volt[2],
 +                                                &volt[1],&volt[0]) == 7) {
-+		for(i=0;i < 7;i++) {
++ #else
++        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[4],&volt[3],
++                                                &volt[2],&volt[1],&volt[0]) == 5) {
++ #endif
++
 +#endif
++		for(i=0;i < PRCM_NO_VDD1_OPPS;i++) {
 +			if((volt[i] < VDD1_VSEL_MIN) || (volt[i] >
 +							VDD1_VSEL_MAX)) {
 +				printk("CPUfreq: invalid vsel\n");
@@ -459,38 +519,42 @@
 +			}
 +		}
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++ #if PRCM_NO_VDD1_OPPS > 5
 +		if(i == 5) omap_pm_opp_set_volts(volt);
++ #else
++		if(i == 3) omap_pm_opp_set_volts(volt);
++ #endif
 +#else
++ #if PRCM_NO_VDD1_OPPS > 5
 +		if(i == 7) omap_pm_opp_set_volts(volt);
++ #else
++		if(i == 5) omap_pm_opp_set_volts(volt);
++ #endif
 +#endif
 +	}
 +	else printk("CPUfreq: missing vsel values\n");
 +
 +        mutex_unlock(&override_mutex);
 +	return count;
-+}
++} */
 +
 +static ssize_t store_vdd2_vsel(struct cpufreq_policy *policy, char *buf,
 +                                                size_t count) {
-+        u8 volt[3], i;
++        u8 volt;
 +
 +        mutex_lock(&override_mutex);
-+        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1], &volt[0]) == 3) {
-+                for(i=0;i < 3;i++) {
-+                        if((volt[i] < VDD2_VSEL_MIN) || (volt[i] >
-+                                                        VDD2_VSEL_MAX)) {
-+                                printk("CPUfreq: invalid vsel\n");
-+                                break;
-+                        }
-+                }
-+                if(i == 3) omap_pm_opp_set_vdd2_volts(volt);
++        if(sscanf(buf, "%hhu", &volt) == 1) {
++		if((volt < VDD2_VSEL_MIN) || (volt >
++					VDD2_VSEL_MAX)) {
++			printk("CPUfreq: invalid vsel\n");
++		}
++                else omap_pm_opp_set_vdd2_volts(volt);
 +        }
 +        else printk("CPUfreq: missing vsel values\n");
 +
 +        mutex_unlock(&override_mutex);
 +        return count;
 +}
-+*/
 +
 +static ssize_t show_hightemp_scaleback(struct cpufreq_policy *policy,
 +						char *buf) {
@@ -525,7 +589,6 @@
 +	return count;
 +}
 +
-+/*
 +static ssize_t show_battery_scaleback_speed(struct cpufreq_policy *policy,
 +                                                char *buf) {
 +	return sprintf(buf, "%d\n", battery_scaleback_speed);
@@ -542,7 +605,6 @@
 +
 +	return count;
 +}
-+*/
 +
 +static ssize_t show_lowtemp_reset(struct cpufreq_policy *policy, char *buf) {
 +
@@ -560,44 +622,19 @@
 +	return count;
 +}
 +
-+#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+static ssize_t show_charger_override(struct cpufreq_policy *policy, char *buf) {
-+	return sprintf(buf, "%hu\n",charger_override);
-+}
-+
-+static ssize_t store_charger_override(struct cpufreq_policy *policy,
-+					char *buf, size_t count) {
-+	u8 override=0;
-+
-+	if(sscanf(buf, "%hhu", &override) == 1)
-+		charger_override=(override) ? 1 : 0;
-+	else printk("CPUfreq: invalid charger override value\n");
-+
-+	return count;
-+}
-+
-+int override_show_chrg_ovrd() {
-+	return charger_override;
-+}
-+EXPORT_SYMBOL(override_show_chrg_ovrd);
-+
-+CPUFREQ_OVERRIDE_ATTR(override_charger,0644,show_charger_override,
-+			store_charger_override);
-+#endif
-+
-+//CPUFREQ_OVERRIDE_ATTR(vdd1_vsel,0644,show_vdd1_vsel,store_vdd1_vsel);
-+//CPUFREQ_OVERRIDE_ATTR(vdd2_vsel,0644,show_vdd2_vsel,store_vdd2_vsel);
++// CPUFREQ_OVERRIDE_ATTR(vdd1_vsel,0644,show_vdd1_vsel,store_vdd1_vsel);
++CPUFREQ_OVERRIDE_ATTR(vdd2_vsel,0644,show_vdd2_vsel,store_vdd2_vsel);
 +CPUFREQ_OVERRIDE_ATTR(battery_scaleback_percent,0644,
 +			show_battery_scaleback_per,
 +			store_battery_scaleback_per);
-+/* CPUFREQ_OVERRIDE_ATTR(battery_scaleback_speed,0644,
++CPUFREQ_OVERRIDE_ATTR(battery_scaleback_speed,0644,
 +			show_battery_scaleback_speed,
 +			store_battery_scaleback_speed);
-+CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_min,0444,show_vdd1_vsel_min);
-+CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_max,0444,show_vdd1_vsel_max);
++/* CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_min,0444,show_vdd1_vsel_min);
++CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_max,0444,show_vdd1_vsel_max); */
 +CPUFREQ_OVERRIDE_ATTR2(vdd2_vsel_min,0444,show_vdd2_vsel_min);
 +CPUFREQ_OVERRIDE_ATTR2(vdd2_vsel_max,0444,show_vdd2_vsel_max);
-+CPUFREQ_OVERRIDE_ATTR2(vdd2_freqs,0444,show_vdd2_freqs); */
++CPUFREQ_OVERRIDE_ATTR2(vdd2_freq,0444,show_vdd2_freqs);
 +CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_alarm,0644,show_hightemp_scaleback,
 +			store_hightemp_scaleback);
 +CPUFREQ_OVERRIDE_ATTR(cpu_hightemp_reset,0644,show_lowtemp_reset,
@@ -606,18 +643,15 @@
 +static struct attribute *default_attrs[] = {
 +/*        &_attr_vdd1_vsel.attr,
 +        &_attr_vdd1_vsel_min.attr,
-+        &_attr_vdd1_vsel_max.attr,
++        &_attr_vdd1_vsel_max.attr, */
 +        &_attr_vdd2_vsel.attr,
 +        &_attr_vdd2_vsel_min.attr,
 +        &_attr_vdd2_vsel_max.attr,
-+        &_attr_vdd2_freqs.attr,
-+	&_attr_battery_scaleback_speed.attr, */
++        &_attr_vdd2_freq.attr,
 +        &_attr_cpu_hightemp_alarm.attr,
 +        &_attr_cpu_hightemp_reset.attr,
 +	&_attr_battery_scaleback_percent.attr,
-+#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+	&_attr_override_charger.attr,
-+#endif
++	&_attr_battery_scaleback_speed.attr,
 +        NULL
 +};
 +
@@ -644,13 +678,15 @@
 +MODULE_AUTHOR ("marco@unixpsycho.com");
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
---- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2010-12-26 13:12:17.000000000 -0500
-@@ -0,0 +1,270 @@
+--- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
++++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_screenstate.c	2011-01-06 16:18:16.000000000 -0500
+@@ -0,0 +1,428 @@
 +/*
-+ *  linux/drivers/cpufreq/cpufreq_vdemand.c
++ *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
 + *  Marco Benton marco@unixpsycho.com 
++ *
++ *   screenstate v2
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -669,112 +705,40 @@
 +#include <linux/mutex.h>
 +#include <asm/uaccess.h>
 +#include <linux/workqueue.h>
++#include <asm/arch/prcm.h>
 +#include <linux/kernel_stat.h>
 +
-+// VDD1 Vsel max
-+#define VDD1_VSEL_MAX 112
++// Cap min freq capped to 500MHz, undef to set to policy->min
++//#define SCREENSTATE_CAP_MIN_FREQ
++#define FACTOR_MIN 1
++#define FACTOR_MAX 4
 +
-+// VDD1 Vsel min
-+#define VDD1_VSEL_MIN 25
++static unsigned int cpu_is_managed=0;
++static unsigned int lcd_state;
++static unsigned int vdemand_enabled,charging_state;
++static unsigned int ch_override=0,opp,last_load=0;
++u8 sfactor=2,opp_volt,volt[PRCM_NO_VDD1_OPPS],volt_def[PRCM_NO_VDD1_OPPS];
++static cputime64_t prev_cpu_wall=0,prev_cpu_idle=0;
++static unsigned int ch_poll=1000,vdemand_poll=200;
 +
-+// VDD defaults
-+#define VDD1_VSEL { 0x3a, 0x3f, 0x43 }
-+#define VDD2_VSEL { 0x24, 0x26, 0x2b }
-+
++int gadget_event_state_current(void);
++int ds2784_getcurrent(int *ret_current);
++unsigned int prcm_get_current_vdd1_opp_no(void);
++static inline void check_charger(struct work_struct *work);
++static inline void check_load(struct work_struct *work);
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]);
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
-+void omap_pm_opp_set_vdd2_volts(u8 vdd2_volts[]);
-+void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volts[]);
 +
-+int cpufreq_set_policy(struct cpufreq_policy *policy);
++static DEFINE_MUTEX(screenstate_mutex);
 +
-+static unsigned int cpu_is_managed=0,last_load=0;
-+static cputime64_t prev_cpu_wall=0,prev_cpu_idle=0;
-+static u8 v_volt[3] = VDD1_VSEL;
-+static u8 v_volt_vdd2[3] = VDD2_VSEL;
-+static u8 vdd1_vsel_def[3] = VDD1_VSEL;
-+static u8 vdd2_vsel_def[3] = VDD2_VSEL;
++static DECLARE_DELAYED_WORK(dbs_work, check_charger);
++static DECLARE_DELAYED_WORK(dbs_work2, check_load);
 +
-+static inline void check_load(struct work_struct *work);
-+
-+static DEFINE_MUTEX(vdemand_mutex);
-+
-+static DECLARE_DELAYED_WORK(dbs_work, check_load);
-+
-+#define CPUFREQ_OVERRIDE_ATTR(_name,_mode,_show,_store) \
++#define CPUFREQ_SCREENSTATE_ATTR(_name,_mode,_show,_store) \
 +static struct freq_attr _attr_##_name = {\
-+	.attr = {.name = __stringify(_name), .mode = _mode, }, \
-+	.show = _show,\
-+	.store = _store,\
-+};
-+
-+static ssize_t show_vdemand_vsel(struct cpufreq_policy *policy, char *buf) {
-+	return sprintf(buf, "%hu %hu %hu\n", v_volt[2],v_volt[1],v_volt[0]);
-+}
-+
-+static ssize_t store_vdemand_vsel(struct cpufreq_policy *policy, char *buf,
-+                                                size_t count) {
-+        u8 volt[3], i;
-+
-+        mutex_lock(&vdemand_mutex);
-+
-+        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1],&volt[0])) {
-+                for(i=0;i < 3;i++) {
-+                        if((volt[i] < VDD1_VSEL_MIN) ||
-+				(volt[i] > VDD1_VSEL_MAX)) {
-+                                printk("CPUfreq: invalid vsel! Resetting to default!\n");
-+				volt[i]=vdd1_vsel_def[i];
-+                                break;
-+                        }
-+                }
-+                if(i == 3) memcpy(v_volt,volt,sizeof(volt));
-+        }
-+        else printk("CPUfreq: missing vsel values\n");
-+
-+        mutex_unlock(&vdemand_mutex);
-+        return count;
-+}
-+
-+CPUFREQ_OVERRIDE_ATTR(vdemand_vsel_vdd1,0644,show_vdemand_vsel,store_vdemand_vsel);
-+
-+static ssize_t show_vdemand_vsel_vdd2(struct cpufreq_policy *policy, char *buf) {
-+        return sprintf(buf, "%hu %hu %hu\n", v_volt_vdd2[2],v_volt_vdd2[1],v_volt_vdd2[0]);
-+}
-+
-+static ssize_t store_vdemand_vsel_vdd2(struct cpufreq_policy *policy, char *buf,
-+                                                size_t count) {
-+        u8 volt[3], i;
-+
-+        mutex_lock(&vdemand_mutex);
-+
-+        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1],&volt[0])) {
-+                for(i=0;i < 3;i++) {
-+                        if((volt[i] < 25) ||
-+                                (volt[i] > 60)) {
-+                                printk("CPUfreq: invalid vsel! Resetting to default!\n");
-+				volt[i]=vdd2_vsel_def[i];
-+                                break;
-+                        }
-+                }
-+                if(i == 3) memcpy(v_volt_vdd2,volt,sizeof(volt));
-+        }
-+        else printk("CPUfreq: missing vsel values\n");
-+
-+        mutex_unlock(&vdemand_mutex);
-+        return count;
-+}
-+
-+CPUFREQ_OVERRIDE_ATTR(vdemand_vsel_vdd2,0644,show_vdemand_vsel_vdd2,store_vdemand_vsel_vdd2);
-+
-+static struct attribute *default_attrs[] = {
-+        &_attr_vdemand_vsel_vdd1.attr,
-+        &_attr_vdemand_vsel_vdd2.attr,
-+        NULL
-+};
-+
-+static struct attribute_group vdemand_attr_group = {
-+        .attrs = default_attrs,
-+        .name = "vdemand"
++        .attr = {.name = __stringify(_name), .mode = _mode, }, \
++        .show = _show,\
++        .store = _store,\
 +};
 +
 +static inline cputime64_t get_cpu_idle_time(unsigned int cpu) {
@@ -794,131 +758,359 @@
 +        return idle_time;
 +}
 +
++void change_freq(void) {
++	if(vdemand_enabled) {
++		mutex_lock(&screenstate_mutex);
++		opp=prcm_get_current_vdd1_opp_no();
++		memcpy(volt,volt_def,sizeof(volt));
++		opp_volt=volt[opp-1];
++		omap_pm_opp_set_volts(volt);
++		mutex_unlock(&screenstate_mutex);
++	}
++}
++
++static inline void check_charger(struct work_struct *work) {
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	int cur=0,current_mA=0;
++
++	ds2784_getcurrent(&cur);
++	current_mA=gadget_event_state_current();
++	if((cur>0) && (current_mA < 500)) {
++		// Assume Touchstone
++		if(!charging_state) {
++			charging_state=1;
++			__cpufreq_driver_target(policy, 500000,
++						CPUFREQ_RELATION_L);
++			change_freq();
++			printk("screenstate: TS found!\n");
++		}
++	} 
++	else {
++		if(current_mA == 1000) {
++			if(!charging_state) {
++				charging_state=1;
++				__cpufreq_driver_target(policy, 500000,
++							CPUFREQ_RELATION_L);
++				change_freq();
++				printk("screenstate: 1000mA charger found!\n");
++			}
++		}
++		else {
++			if(charging_state) {
++				charging_state=0;
++				printk("screenstate: charger unplugged!\n");
++				if(lcd_state) {
++					__cpufreq_driver_target(policy,
++						policy->max, CPUFREQ_RELATION_H);
++					change_freq();
++				}
++			}
++		}
++	}
++	schedule_delayed_work(&dbs_work,ch_poll);
++	return;
++}
++
 +static inline void check_load(struct work_struct *work) {
-+	unsigned int tmp_idle_ticks,idle_ticks,total_ticks,load=0;
-+	cputime64_t total_idle_ticks,cur_jiffies;
-+	u8 volt[7],volt_vdd2[3];
++        unsigned int tmp_idle_ticks,idle_ticks,total_ticks,load=0;
++        cputime64_t total_idle_ticks,cur_jiffies;
 +
-+	omap_pm_opp_get_volts(&volt);
-+	omap_pm_opp_get_vdd2_volts(&volt_vdd2);
++	mutex_lock(&screenstate_mutex);
 +
-+	idle_ticks = UINT_MAX;
++        idle_ticks = UINT_MAX;
 +        cur_jiffies = jiffies64_to_cputime64(get_jiffies_64());
 +        total_ticks = (unsigned int) cputime64_sub(cur_jiffies,prev_cpu_wall);
 +
 +        if (!total_ticks) goto out;
 +
-+	prev_cpu_wall = get_jiffies_64();
-+	total_idle_ticks = get_cpu_idle_time(0);
-+	tmp_idle_ticks = (unsigned int )cputime64_sub(total_idle_ticks,
-+		prev_cpu_idle);
-+	prev_cpu_idle = total_idle_ticks;
++        prev_cpu_wall = get_jiffies_64();
++        total_idle_ticks = get_cpu_idle_time(0);
++        tmp_idle_ticks = (unsigned int )cputime64_sub(total_idle_ticks,
++                prev_cpu_idle);
++        prev_cpu_idle = total_idle_ticks;
 +
-+	if(tmp_idle_ticks < idle_ticks) idle_ticks = tmp_idle_ticks;
-+	if(total_ticks > idle_ticks)
-+		load = (100 * (total_ticks - idle_ticks)) / total_ticks;
++        if(tmp_idle_ticks < idle_ticks) idle_ticks = tmp_idle_ticks;
++        if(total_ticks > idle_ticks)
++                load = (100 * (total_ticks - idle_ticks)) / total_ticks;
++	else goto out2;
 +
-+	if(!last_load) goto out;
++        if(!last_load) goto out;
 +
-+	if((load < 30) && (last_load > 30)) {
-+		volt[5]=v_volt[2]-1;
-+		volt[6]=v_volt[2];
-+		volt_vdd2[2]=v_volt_vdd2[2];
-+		omap_pm_opp_set_volts(volt);
-+		omap_pm_opp_set_vdd2_volts(volt_vdd2);
-+	}
-+        if(((load > 30) && (load < 70)) &&
-+	    ((last_load < 30) || (last_load > 70))) {
-+                volt[6]=v_volt[1];
-+		volt_vdd2[2]=v_volt_vdd2[1];
++	if(opp < 3) goto out;
++
++        if((load < 30) && (last_load > 30)) {
++                volt[opp-1]=opp_volt-(2*sfactor);
 +                omap_pm_opp_set_volts(volt);
-+		omap_pm_opp_set_vdd2_volts(volt_vdd2);
 +        }
-+	if((load > 70) && (last_load < 70)) {
-+                volt[6]=v_volt[0];
-+		volt_vdd2[2]=v_volt_vdd2[0];
++        if(((load > 30) && (load < 70)) &&
++            ((last_load < 30) || (last_load > 70))) {
++                volt[opp-1]=(opp_volt-sfactor);
 +                omap_pm_opp_set_volts(volt);
-+		omap_pm_opp_set_vdd2_volts(volt_vdd2);
++        }
++        if((load > 70) && (last_load < 70)) {
++                volt[opp-1]=opp_volt;
++                omap_pm_opp_set_volts(volt);
 +        }
 +
 +out:
-+	last_load=load;
++        last_load=load;
++out2:
++	mutex_unlock(&screenstate_mutex);
++        schedule_delayed_work(&dbs_work2,vdemand_poll);
 +
-+	schedule_delayed_work(&dbs_work,200);
-+
-+	return;
++        return;
 +}
 +
-+static int cpufreq_governor_vdemand(struct cpufreq_policy *policy,
++static ssize_t show_vdemand_factor(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%hu\n", sfactor);
++}
++
++static ssize_t store_vdemand_factor(struct cpufreq_policy *policy, char *buf,
++                                                size_t count) {
++        u8 i;
++
++	if(sscanf(buf, "%hhu", &i)) {
++		if((i < FACTOR_MIN) || (i > FACTOR_MAX)) {
++			printk("CPUfreq: invalid factor\n");
++		}
++                else sfactor=i;
++        }
++        else printk("CPUfreq: missing factor value\n");
++
++        return count;
++}
++
++static ssize_t show_vdemand_enable(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%hu\n", vdemand_enabled);
++}
++
++static ssize_t store_vdemand_enable(struct cpufreq_policy *policy, char *buf,
++                                                size_t count) {
++        u8 i;
++
++        if(sscanf(buf, "%hhu", &i)) {
++                if((i != 0) && (i != 1))
++                        printk("CPUfreq: invalid \n");
++                else {
++			if((i == 0) && (vdemand_enabled == 1)) {
++				cancel_delayed_work(&dbs_work2);
++				change_freq();
++			}
++			if((i == 1) && (vdemand_enabled == 0)) {
++				change_freq();
++				schedule_delayed_work(&dbs_work2,vdemand_poll);
++			}
++			vdemand_enabled=i;
++		}
++        }
++        else printk("CPUfreq: missing value\n");
++
++        return count;
++}
++
++static ssize_t show_ch_override(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%hu\n", ch_override);
++}
++
++static ssize_t store_ch_override(struct cpufreq_policy *policy, char *buf,
++                                                size_t count) {
++        u8 i;
++
++        if(sscanf(buf, "%hhu", &i)) {
++                if((i != 0) && (i != 1)) 
++                        printk("CPUfreq: invalid \n");
++                else {
++                        if((i == 0) && (ch_override == 1)) {
++				charging_state=0;
++                                cancel_delayed_work(&dbs_work);
++			}
++                        if((i == 1) && (ch_override == 0))
++                                schedule_delayed_work(&dbs_work,ch_poll);
++                        ch_override=i;
++                }
++        }
++        else printk("CPUfreq: missing value\n");
++
++        return count;
++}
++
++static ssize_t show_ch_poll(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%hu\n", ch_poll);
++}
++
++static ssize_t store_ch_poll(struct cpufreq_policy *policy, char *buf,
++                                                size_t count) {
++        unsigned int i;
++
++        if(sscanf(buf, "%u", &i)) {
++                if((i < 50) && (i > 9000))
++                        printk("CPUfreq: invalid \n");
++                else {
++                        ch_poll=i;
++                }
++        }
++        else printk("CPUfreq: missing value\n");
++
++        return count;
++}
++
++static ssize_t show_vdemand_poll(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%hu\n", vdemand_poll);
++}
++
++static ssize_t store_vdemand_poll(struct cpufreq_policy *policy, char *buf,
++                                                size_t count) {
++        unsigned int i;
++
++        if(sscanf(buf, "%u", &i)) {
++                if((i < 50) && (i > 9000))
++                        printk("CPUfreq: invalid \n");
++                else {
++                        vdemand_poll=i;
++                }
++        }
++        else printk("CPUfreq: missing value\n");
++
++        return count;
++}
++
++CPUFREQ_SCREENSTATE_ATTR(vdemand_factor,0644,show_vdemand_factor,store_vdemand_factor);
++CPUFREQ_SCREENSTATE_ATTR(vdemand_enable,0644,show_vdemand_enable,store_vdemand_enable);
++CPUFREQ_SCREENSTATE_ATTR(charger_override,0644,show_ch_override,store_ch_override);
++CPUFREQ_SCREENSTATE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,store_vdemand_poll);
++CPUFREQ_SCREENSTATE_ATTR(charger_poll_rate,0644,show_ch_poll,store_ch_poll);
++
++static struct attribute *default_attrs[] = {
++        &_attr_vdemand_factor.attr,
++        &_attr_vdemand_enable.attr,
++        &_attr_charger_override.attr,
++        &_attr_charger_poll_rate.attr,
++        &_attr_vdemand_poll_rate.attr,
++        NULL
++};
++
++static struct attribute_group screenstate_attr_group = {
++        .attrs = default_attrs,
++        .name = "screenstate-v2"
++};
++
++static int cpufreq_governor_screenstate(struct cpufreq_policy *policy,
 +				   unsigned int event) {
-+	int rc;
-+	struct cpufreq_policy new_policy;
 +
 +	switch (event) {
 +		case CPUFREQ_GOV_START:
 +			if(cpu_is_managed) break;
 +
 +			cpu_is_managed = 1;
-+			__cpufreq_driver_target(policy, policy->max,
-+							CPUFREQ_RELATION_H);
++			lcd_state = 1;
++			charging_state = 0;
++			vdemand_enabled=1;
++			ch_override=0;
 +			prev_cpu_idle = get_cpu_idle_time(0);
 +			prev_cpu_wall = get_jiffies_64();
 +
-+			struct cpufreq_policy *data = cpufreq_cpu_get(0);
-+			rc=sysfs_create_group(&data->kobj,&vdemand_attr_group);
-+			schedule_delayed_work(&dbs_work,200);
++			__cpufreq_driver_target(policy, policy->max,
++							CPUFREQ_RELATION_H);
 +
-+                        cpufreq_get_policy(&new_policy,0);
-+			new_policy.min=1005000;
-+			new_policy.max=1005000;
-+			cpufreq_set_policy(&new_policy);
++			omap_pm_opp_get_volts(&volt_def);
++			change_freq();
++
++			struct cpufreq_policy *data = cpufreq_cpu_get(0);
++			sysfs_create_group(&data->kobj,&screenstate_attr_group);
++			schedule_delayed_work(&dbs_work,ch_poll);
++			schedule_delayed_work(&dbs_work2,vdemand_poll);
 +			
 +			break;
 +		case CPUFREQ_GOV_STOP:
 +			cpu_is_managed = 0;
++			lcd_state = 0;
 +			cancel_delayed_work(&dbs_work);
-+			sysfs_remove_group(&policy->kobj, &vdemand_attr_group);
++			cancel_delayed_work(&dbs_work2);
++			sysfs_remove_group(&policy->kobj, &screenstate_attr_group);
++			omap_pm_opp_set_volts(volt_def);
 +			break;
 +		case CPUFREQ_GOV_LIMITS:
-+			mutex_lock(&vdemand_mutex);
-+			printk("vdemand: policy change\n");
-+			__cpufreq_driver_target(policy,
++	//		mutex_lock(&screenstate_mutex);
++			printk("screenstate: policy change\n");
++			if(charging_state)
++				__cpufreq_driver_target(policy, 500000,
++							CPUFREQ_RELATION_L);
++			else {
++				if(lcd_state) __cpufreq_driver_target(policy,
 +					policy->max, CPUFREQ_RELATION_H);
-+			mutex_unlock(&vdemand_mutex);
++#ifdef SCREENSTATE_CAP_MIN_FREQ
++				else __cpufreq_driver_target(policy, 500000,
++							CPUFREQ_RELATION_L);
++#else
++				else __cpufreq_driver_target(policy,
++					policy->min, CPUFREQ_RELATION_L);
++#endif
++			}
++
++			change_freq();
++	//		mutex_unlock(&screenstate_mutex);
 +			break;
 +		}
 +		return 0;
 +}
 +
-+struct cpufreq_governor cpufreq_gov_vdemand = {
-+	.name		= "vdemand",
-+	.governor	= cpufreq_governor_vdemand,
++struct cpufreq_governor cpufreq_gov_screenstate = {
++	.name		= "screenstate-v2",
++	.governor	= cpufreq_governor_screenstate,
 +	.owner		= THIS_MODULE,
 +};
 +
-+static int __init cpufreq_gov_vdemand_init(void) {
-+	return cpufreq_register_governor(&cpufreq_gov_vdemand);
++static int __init cpufreq_gov_screenstate_init(void) {
++	return cpufreq_register_governor(&cpufreq_gov_screenstate);
 +}
 +
-+static void __exit cpufreq_gov_vdemand_exit(void) {
++static void __exit cpufreq_gov_screenstate_exit(void) {
 +	flush_scheduled_work();
-+	cpufreq_unregister_governor(&cpufreq_gov_vdemand);
++	cpufreq_unregister_governor(&cpufreq_gov_screenstate);
 +}
 +
-+EXPORT_SYMBOL(cpufreq_gov_vdemand);
++void cpufreq_gov_screenstate_lcdoff(void) {
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	if(cpu_is_managed) {
++		printk("screenstate: lcd off\n");
++#ifdef SCREENSTATE_CAP_MIN_FREQ
++		__cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++#else
++		__cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
++#endif
++		lcd_state = 0;
++		change_freq();
++	}
++}
++EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdoff);
++
++void cpufreq_gov_screenstate_lcdon(void) {
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++        if(cpu_is_managed) {
++		printk("screenstate: lcd on\n");
++                if(!charging_state) __cpufreq_driver_target(policy,
++					policy->max, CPUFREQ_RELATION_H);
++		else __cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++		lcd_state = 1;
++		change_freq();
++        }
++}
++EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdon);
++
++EXPORT_SYMBOL(cpufreq_gov_screenstate);
 +
 +MODULE_AUTHOR ("marco@unixpsycho.com");
-+MODULE_DESCRIPTION ("CPUfreq policy governor 'vdemand'");
++MODULE_DESCRIPTION ("CPUfreq policy governor 'screenstatev2'");
 +MODULE_LICENSE ("GPL");
 +
-+#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_VDEMAND
-+fs_initcall(cpufreq_gov_vdemand_init);
++#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE
++fs_initcall(cpufreq_gov_screenstate_init);
 +#else
-+module_init(cpufreq_gov_vdemand_init);
++module_init(cpufreq_gov_screenstate_init);
 +#endif
-+module_exit(cpufreq_gov_vdemand_exit);
++module_exit(cpufreq_gov_screenstate_exit);
 --- linux-2.6.24-palm/drivers/hwmon/omap34xx_temp.c     2010-05-31 12:05:29.000000000 -0400
-+++ linux-2.6.24-AV8B/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
++++ linux-2.6.24-F102/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
 @@ -140,6 +140,14 @@
 	mutex_unlock(&data->update_lock);
  }
@@ -935,19 +1127,20 @@
  		struct device_attribute *devattr, char *buf)
  {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock.c	2010-12-11 13:59:22.000000000 -0500
-@@ -709,6 +709,9 @@
++++ linux-2.6.24-F102/arch/arm/mach-omap3pe/clock.c	2011-01-03 11:01:07.000000000 -0500
+@@ -709,6 +709,10 @@
  
  	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;
  	for (; prcm->speed; prcm--) {
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++		// Damn l-users!!!!  This will fix them!!!
 +		if((prcm->speed / 1000) < 500000) continue;
 +#endif
  		freq_table[i].index = i;
  		freq_table[i].frequency = prcm->speed / 1000;
  		i++;
 --- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-AV8B/drivers/w1/slaves/w1_ds2784.c	2010-12-11 12:48:56.000000000 -0500
++++ linux-2.6.24-F102/drivers/w1/slaves/w1_ds2784.c	2011-01-03 11:01:07.000000000 -0500
 @@ -1133,11 +1133,20 @@
  */
  static struct device *battery_device = NULL;
@@ -969,84 +1162,105 @@
  
  static int ds2784_getvoltage(int *ret_voltage)
  {
+@@ -1151,11 +1160,20 @@
+ 	return ds2784_gettemperature_dev(battery_device, ret_temperature);
+ }
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++int ds2784_getcurrent(int *ret_current)
++{
++        if (!battery_device) return -1;
++        return ds2784_getcurrent_dev(battery_device, ret_current);
++}
++EXPORT_SYMBOL(ds2784_getcurrent);
++#else
+ static int ds2784_getcurrent(int *ret_current)
+ {
+ 	if (!battery_device) return -1;
+ 	return ds2784_getcurrent_dev(battery_device, ret_current);
+ }
++#endif
+ 
+ static struct battery_ops ds2784_battery_ops = {
+ 	.get_percent       = ds2784_getpercent,
+--- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24-F102/drivers/usb/gadget/gadget_event.c	2011-01-03 11:01:07.000000000 -0500
+@@ -282,6 +282,13 @@
+ }
+ EXPORT_SYMBOL(gadget_event_power_state_changed);
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++int gadget_event_state_current(void) {
++	return the_state.current_mA;
++}
++EXPORT_SYMBOL(gadget_event_state_current);
++#endif
++
+ static int __init init(void)
+ {
+ 	int ret = 0;
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock.h	2010-12-11 11:33:24.000000000 -0500
-@@ -48,8 +48,7 @@
++++ linux-2.6.24-F102/arch/arm/mach-omap3pe/clock.h	2011-01-03 11:46:11.000000000 -0500
+@@ -47,9 +47,8 @@
+ #define S125M	125000000
  #define S250M	250000000
  #define S500M	500000000
- #define S550M	550000000
+-#define S550M	550000000
 -#define S625M	625000000
 -#define S600M	600000000
-+#define S1005M	1005000000
++#define S720M	720000000
++#define S800M	800000000
  
  /* Macro to enable clock control via clock framework */
  #define ENABLE_CLOCKCONTROL 1
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/clock_tree.h	2010-12-11 11:32:38.000000000 -0500
-@@ -92,7 +92,7 @@
++++ linux-2.6.24-F102/arch/arm/mach-omap3pe/clock_tree.h	2011-01-02 12:13:02.000000000 -0500
+@@ -90,9 +90,9 @@
+ 	/*OPP3*/
+ 	{S500M, PRCM_VDD1_OPP3, RATE_IN_343X},
  	/*OPP4*/
- 	{S550M, PRCM_VDD1_OPP4, RATE_IN_343X},
+-	{S550M, PRCM_VDD1_OPP4, RATE_IN_343X},
++	{S720M, PRCM_VDD1_OPP4, RATE_IN_343X},
  	/*OPP5*/
 -	{S600M, PRCM_VDD1_OPP5, RATE_IN_343X},
-+	{S1005M, PRCM_VDD1_OPP5, RATE_IN_343X},
++	{S800M, PRCM_VDD1_OPP5, RATE_IN_343X},
  };
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/Kconfig	2010-12-11 11:23:32.000000000 -0500
-@@ -138,7 +138,7 @@
- 	  Select this option if you want to boot at OPP4.
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2010-06-11 17:48:34.000000000 -0400
++++ linux-2.6.24-F102/arch/arm/mach-omap3pe/constraint.c	2011-01-07 17:48:26.000000000 -0500
+@@ -66,7 +66,7 @@
+ static struct atomic_notifier_head freq_dsp_pre_notifier_list;
+ static struct atomic_notifier_head freq_dsp_post_notifier_list;
  
- config OMAP3ES2_VDD1_OPP5
--	bool "MPU-625Mhz/DSP-430Mhz(OPP5)"
-+	bool "MPU-1005Mhz/DSP-430Mhz(OPP5)"
- 	depends on OMAP3_PM
- 	help
- 	  Select this option if you want to boot at OPP5.
---- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2010-12-11 11:28:01.000000000 -0500
-@@ -29,14 +29,14 @@
- #include <linux/notifier.h>
- 
- 
--#define curr_vdd1_opp   3
-+#define curr_vdd1_opp   5
- #define curr_vdd2_opp   3
- #define min_vdd1_opp    CO_VDD1_OPP1
+-#define min_vdd1_opp    CO_VDD1_OPP1
++#define min_vdd1_opp    CO_VDD1_OPP3
  #define max_vdd1_opp    CO_VDD1_OPP5
  #define min_vdd2_opp    CO_VDD2_OPP2
  #define max_vdd2_opp    CO_VDD2_OPP3
+--- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
++++ linux-2.6.24-F102/include/asm-arm/arch-omap/resource.h	2011-01-07 17:48:47.000000000 -0500
+@@ -31,7 +31,7 @@
  
--#define CURR_VDD1_OPP	3
-+#define CURR_VDD1_OPP	5
- #define CURR_VDD2_OPP	3
- /* Flags to denote Pool usage */
- #define RES_UNUSED		0x0
-@@ -269,12 +269,12 @@
- #define T2_VUSB3V1_MAX  0x2
- 
- /* Frequencies and Voltages for OPPs */
--#define CURR_ARM_FREQ 	500
-+#define CURR_ARM_FREQ 	1005
+ #define curr_vdd1_opp   3
+ #define curr_vdd2_opp   3
+-#define min_vdd1_opp    CO_VDD1_OPP1
++#define min_vdd1_opp    CO_VDD1_OPP3
+ #define max_vdd1_opp    CO_VDD1_OPP5
+ #define min_vdd2_opp    CO_VDD2_OPP2
+ #define max_vdd2_opp    CO_VDD2_OPP3
+@@ -273,11 +273,11 @@
  #define CURR_DSP_FREQ 	360
--#define curr_arm_freq 	500
-+#define curr_arm_freq 	1005
+ #define curr_arm_freq 	500
  #define curr_dsp_freq 	360
- #define min_arm_freq 	125
+-#define min_arm_freq 	125
 -#define max_arm_freq 	600
-+#define max_arm_freq 	1005
++#define min_arm_freq 	500
++#define max_arm_freq 	800
  #define min_dsp_freq 	90
  #define max_dsp_freq 	430
- #define MIN_VDD1_OPP 	CO_VDD1_OPP1
---- linux-2.6.24-palm/drivers/cpufreq/freq_table.c	2008-01-24 17:58:37.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/freq_table.c	2010-12-11 13:04:48.000000000 -0500
-@@ -186,7 +186,8 @@
- 	table = show_table[cpu];
- 
- 	for (i=0; (table[i].frequency != CPUFREQ_TABLE_END); i++) {
--		if (table[i].frequency == CPUFREQ_ENTRY_INVALID)
-+		if ((table[i].frequency == CPUFREQ_ENTRY_INVALID) ||
-+		  (table[i].frequency < 1005000))
- 			continue;
- 		count += sprintf(&buf[count], "%d ", table[i].frequency);
- 	}
+-#define MIN_VDD1_OPP 	CO_VDD1_OPP1
++#define MIN_VDD1_OPP 	CO_VDD1_OPP3
+ #define MAX_VDD1_OPP 	CO_VDD1_OPP5
+ #define MIN_VDD2_OPP 	CO_VDD2_OPP2
+ #define MAX_VDD2_OPP 	CO_VDD2_OPP3
