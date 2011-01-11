@@ -1,5 +1,5 @@
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/clock.h	2010-11-02 18:23:45.000000000 -0400
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock.h	2011-01-10 22:44:45.000000000 -0500
 @@ -41,15 +41,16 @@
  #define S38M	38400000
  #define S96M	96000000
@@ -22,7 +22,7 @@
  /* Macro to enable clock control via clock framework */
  #define ENABLE_CLOCKCONTROL 1
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/clock_tree.h	2010-11-02 18:23:45.000000000 -0400
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock_tree.h	2011-01-10 22:44:45.000000000 -0500
 @@ -90,9 +90,14 @@
  	/*OPP3*/
  	{S500M, PRCM_VDD1_OPP3, RATE_IN_343X},
@@ -50,18 +50,20 @@
  
  /* Base external input clocks */
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/constraint.c	2010-12-23 10:04:10.000000000 -0500
-@@ -67,7 +67,7 @@
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/constraint.c	2011-01-10 23:30:49.000000000 -0500
+@@ -66,8 +66,8 @@
+ static struct atomic_notifier_head freq_dsp_pre_notifier_list;
  static struct atomic_notifier_head freq_dsp_post_notifier_list;
  
- #define min_vdd1_opp    CO_VDD1_OPP1
+-#define min_vdd1_opp    CO_VDD1_OPP1
 -#define max_vdd1_opp    CO_VDD1_OPP5
++#define min_vdd1_opp    CO_VDD1_OPP3
 +#define max_vdd1_opp    CO_VDD1_OPP7
  #define min_vdd2_opp    CO_VDD2_OPP2
  #define max_vdd2_opp    CO_VDD2_OPP3
  
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/Kconfig	2010-11-02 18:23:45.000000000 -0400
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/Kconfig	2011-01-10 22:44:45.000000000 -0500
 @@ -132,17 +132,29 @@
  	  Select this option if you want to boot at OPP3.
  
@@ -95,7 +97,7 @@
  
  comment "Default VDD2 OPP Level Selection"
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24.7-F105/arch/arm/mach-omap3pe/prcm_opp.c	2010-12-24 14:49:13.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2011-01-10 23:47:16.000000000 -0500
 @@ -56,13 +56,13 @@
  
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
@@ -103,7 +105,7 @@
 -				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
 +	1.20V (OPP3), 1.27V (OPP4), 1.42V (OPP5), 1.45V (OPP6), 1.46V (OPP7) */
-+		0x1E, 0x24, 0x28, 0x3f, 0x40, 0x42, 0x43
++		0x1E, 0x24, 0x30, 0x3f, 0x41, 0x43, 0x45
  };
  
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
@@ -337,7 +339,7 @@
          target_mpu_khz  = get_arm_freq_for_opp(get_opp_no(target_vdd1_opp));
  
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/prcm.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24.7-F105/include/asm-arm/arch-omap/prcm.h	2010-11-02 18:23:45.000000000 -0400
++++ linux-2.6.24-F105/include/asm-arm/arch-omap/prcm.h	2011-01-10 22:44:45.000000000 -0500
 @@ -609,7 +609,12 @@
  							| ID_OPP_NO(0x4))
  #define PRCM_VDD1_OPP5		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD1)\
@@ -353,12 +355,14 @@
  /* VDD2 OPPs */
  #define PRCM_VDD2_OPP1		(OMAP(AT_3430)| OTHER_ID_TYPE(ID_OPP) | ID_VDD(PRCM_VDD2)\
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24.7-F105/include/asm-arm/arch-omap/resource.h	2010-12-23 10:04:00.000000000 -0500
-@@ -32,7 +32,7 @@
++++ linux-2.6.24-F105/include/asm-arm/arch-omap/resource.h	2011-01-10 23:31:50.000000000 -0500
+@@ -31,8 +31,8 @@
+ 
  #define curr_vdd1_opp   3
  #define curr_vdd2_opp   3
- #define min_vdd1_opp    CO_VDD1_OPP1
+-#define min_vdd1_opp    CO_VDD1_OPP1
 -#define max_vdd1_opp    CO_VDD1_OPP5
++#define min_vdd1_opp    CO_VDD1_OPP3
 +#define max_vdd1_opp    CO_VDD1_OPP7
  #define min_vdd2_opp    CO_VDD2_OPP2
  #define max_vdd2_opp    CO_VDD2_OPP3
@@ -380,12 +384,13 @@
 -#define max_arm_freq 	600
 -#define min_dsp_freq 	90
 -#define max_dsp_freq 	430
+-#define MIN_VDD1_OPP 	CO_VDD1_OPP1
+-#define MAX_VDD1_OPP 	CO_VDD1_OPP5
 +#define min_arm_freq 	500
 +#define max_arm_freq 	1005
 +#define min_dsp_freq 	360
 +#define max_dsp_freq 	520
- #define MIN_VDD1_OPP 	CO_VDD1_OPP1
--#define MAX_VDD1_OPP 	CO_VDD1_OPP5
++#define MIN_VDD1_OPP 	CO_VDD1_OPP3
 +#define MAX_VDD1_OPP 	CO_VDD1_OPP7
  #define MIN_VDD2_OPP 	CO_VDD2_OPP2
  #define MAX_VDD2_OPP 	CO_VDD2_OPP3
