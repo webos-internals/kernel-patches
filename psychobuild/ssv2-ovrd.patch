@@ -587,8 +587,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-01-13 15:47:51.000000000 -0500
-@@ -0,0 +1,438 @@
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-01-14 14:58:05.000000000 -0500
+@@ -0,0 +1,437 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -740,7 +740,6 @@
 +        if(tmp_idle_ticks < idle_ticks) idle_ticks = tmp_idle_ticks;
 +        if(total_ticks > idle_ticks)
 +                load = (100 * (total_ticks - idle_ticks)) / total_ticks;
-+	else goto out2;
 +
 +        if(!last_load) goto out;
 +
@@ -762,7 +761,7 @@
 +
 +out:
 +        last_load=load;
-+out2:
++
 +	mutex_unlock(&screenstate_mutex);
 +        schedule_delayed_work(&dbs_work2,vdemand_poll);
 +
@@ -828,11 +827,11 @@
 +                if((i != 0) && (i != 1)) 
 +                        printk("CPUfreq: invalid \n");
 +                else {
-+                        if((i == 0) && (ch_override == 1)) {
++                        if((i == 1) && (ch_override == 0)) {
 +				charging_state=0;
 +                                cancel_delayed_work(&dbs_work);
 +			}
-+                        if((i == 1) && (ch_override == 0))
++                        if((i == 0) && (ch_override == 1))
 +                                schedule_delayed_work(&dbs_work,ch_poll);
 +                        ch_override=i;
 +                }
