@@ -547,8 +547,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-01-12 21:55:43.000000000 -0500
-@@ -0,0 +1,329 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-01-15 09:36:57.000000000 -0500
+@@ -0,0 +1,327 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
 + *
@@ -780,7 +780,6 @@
 +	if(tmp_idle_ticks < idle_ticks) idle_ticks = tmp_idle_ticks;
 +	if(total_ticks > idle_ticks)
 +		load = (100 * (total_ticks - idle_ticks)) / total_ticks;
-+	else goto out2;
 +
 +	if(!last_load) goto out;
 +
@@ -806,7 +805,6 @@
 +
 +out:
 +	last_load=load;
-+out2:
 +	mutex_unlock(&vdemand_mutex);
 +	schedule_delayed_work(&dbs_work,vdemand_poll_rate);
 +
