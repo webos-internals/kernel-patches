@@ -582,8 +582,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_screenstate.c	2011-01-06 16:18:16.000000000 -0500
-@@ -0,0 +1,428 @@
++++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_screenstate.c	2011-01-13 17:43:11.000000000 -0500
+@@ -0,0 +1,427 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -735,7 +735,6 @@
 +        if(tmp_idle_ticks < idle_ticks) idle_ticks = tmp_idle_ticks;
 +        if(total_ticks > idle_ticks)
 +                load = (100 * (total_ticks - idle_ticks)) / total_ticks;
-+	else goto out2;
 +
 +        if(!last_load) goto out;
 +
@@ -757,7 +756,7 @@
 +
 +out:
 +        last_load=load;
-+out2:
++
 +	mutex_unlock(&screenstate_mutex);
 +        schedule_delayed_work(&dbs_work2,vdemand_poll);
 +
