@@ -71,7 +71,7 @@
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq.c	2010-12-11 13:01:36.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq.c	2011-01-15 09:54:59.000000000 -0500
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -84,6 +84,48 @@
  /**
   * The "cpufreq driver" - the arch- or hardware-dependent low
   * level driver of CPUFreq support, and its spinlock. This lock
+@@ -453,8 +458,8 @@
+ 
+ show_one(cpuinfo_min_freq, cpuinfo.min_freq);
+ show_one(cpuinfo_max_freq, cpuinfo.max_freq);
+-show_one(scaling_min_freq, min);
+-show_one(scaling_max_freq, max);
++//show_one(scaling_min_freq, min);
++//show_one(scaling_max_freq, max);
+ show_one(scaling_cur_freq, cur);
+ 
+ static int __cpufreq_set_policy(struct cpufreq_policy *data,
+@@ -484,8 +489,8 @@
+ 	return ret ? ret : count;					\
+ }
+ 
+-store_one(scaling_min_freq,min);
+-store_one(scaling_max_freq,max);
++//store_one(scaling_min_freq,min);
++//store_one(scaling_max_freq,max);
+ 
+ /**
+  * show_cpuinfo_cur_freq - current CPU frequency as detected by hardware
+@@ -621,15 +626,15 @@
+ define_one_ro(scaling_driver);
+ define_one_ro(scaling_cur_freq);
+ define_one_ro(affected_cpus);
+-define_one_rw(scaling_min_freq);
+-define_one_rw(scaling_max_freq);
++//define_one_rw(scaling_min_freq);
++//define_one_rw(scaling_max_freq);
+ define_one_rw(scaling_governor);
+ 
+ static struct attribute * default_attrs[] = {
+ 	&cpuinfo_min_freq.attr,
+ 	&cpuinfo_max_freq.attr,
+-	&scaling_min_freq.attr,
+-	&scaling_max_freq.attr,
++//	&scaling_min_freq.attr,
++//	&scaling_max_freq.attr,
+ 	&affected_cpus.attr,
+ 	&scaling_governor.attr,
+ 	&scaling_driver.attr,
 @@ -1682,6 +1687,18 @@
  	return ret;
  }
@@ -234,8 +276,8 @@
 +}
 +EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-01-12 14:23:38.000000000 -0500
-@@ -0,0 +1,310 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-01-15 19:16:29.000000000 -0500
+@@ -0,0 +1,318 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -294,10 +336,6 @@
 +int ds2784_getcurrent(int *ret_current);
 +
 +static inline void check_stuff(struct work_struct *work);
-+int prev_maxspeed_temp=0;
-+int prev_minspeed_temp=0;
-+int prev_maxspeed_bat=0;
-+int prev_minspeed_bat=0;
 +
 +static u32 override_hightemp=HIGHTEMP_SCALEBACK;
 +static u32 override_lowtemp=LOWTEMP_RESET;
@@ -372,8 +410,8 @@
 +			else {
 +				if(charging_state) {
 +					charging_state=0;
-+					printk("CPUfreq: charger unplugged!\n");
 +					change_freq_high();
++					printk("CPUfreq: charger unplugged!\n");
 +				}
 +			}
 +		}
@@ -432,6 +470,16 @@
 +}
 +CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_max,0444,show_vdd1_vsel_max);
 +CPUFREQ_OVERRIDE_ATTR2(vdd1_vsel_min,0444,show_vdd1_vsel_min);
++
++static ssize_t show_vdd2_vsel_max(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%hu\n",VDD2_VSEL_MAX);
++}
++
++static ssize_t show_vdd2_vsel_min(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%hu\n",VDD2_VSEL_MIN);
++}
++CPUFREQ_OVERRIDE_ATTR2(vdd2_vsel_min,0444,show_vdd2_vsel_min);
++CPUFREQ_OVERRIDE_ATTR2(vdd2_vsel_max,0444,show_vdd2_vsel_max);
 +
 +static ssize_t show_ch_override(struct cpufreq_policy *policy, char *buf) {
 +        return sprintf(buf, "%hu\n",ch_override);
@@ -516,6 +564,8 @@
 +static struct attribute *default_attrs[] = {
 +        &_attr_vdd1_vsel_min.attr,
 +        &_attr_vdd1_vsel_max.attr,
++	&_attr_vdd2_vsel_min.attr,
++	&_attr_vdd2_vsel_max.attr,
 +        &_attr_cpu_hightemp_alarm.attr,
 +        &_attr_cpu_hightemp_reset.attr,
 +	&_attr_battery_scaleback_percent.attr,
@@ -547,8 +597,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-01-15 09:36:57.000000000 -0500
-@@ -0,0 +1,327 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-01-15 19:56:52.000000000 -0500
+@@ -0,0 +1,351 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
 + *
@@ -580,12 +630,24 @@
 +// VDD1 Vsel min
 +#define VDD1_VSEL_MIN 25
 +
++// VDD2 Vsel max
++#define VDD2_VSEL_MAX 55
++
++// VDD2 Vsel min
++#define VDD2_VSEL_MIN 33
++
 +// VDD defaults
 +#define VDD1_VSEL { 0x40, 0x42, 0x45 }
 +#define VDD2_VSEL { 0x25, 0x26, 0x2b }
 +
 +// vdemand poll rate
 +#define VDEMAND_POLL_RATE 200
++
++// vdemand poll rate min
++#define VDEMAND_POLL_RATE_MIN 10
++
++// vdemand poll rate max
++#define VDEMAND_POLL_RATE_MAX 1000
 +
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]);
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
@@ -674,7 +736,7 @@
 +        unsigned int i;
 +
 +        if(sscanf(buf, "%u", &i)) {
-+                if((i < 50) && (i > 9000))
++                if((i < VDEMAND_POLL_RATE_MIN) && (i > VDEMAND_POLL_RATE_MAX))
 +                        printk("CPUfreq: invalid \n");
 +                else {
 +                        vdemand_poll_rate=i;
@@ -696,6 +758,16 @@
 +							v_volt_vdd2[0]);
 +}
 +
++static ssize_t show_vdemand_poll_rate_min(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%u\n",VDEMAND_POLL_RATE_MIN);
++}
++
++static ssize_t show_vdemand_poll_rate_max(struct cpufreq_policy *policy, char *buf) {
++        return sprintf(buf, "%u\n", VDEMAND_POLL_RATE_MAX);
++}
++CPUFREQ_OVERRIDE_ATTR2(vdemand_poll_rate_min,0444,show_vdemand_poll_rate_min);
++CPUFREQ_OVERRIDE_ATTR2(vdemand_poll_rate_max,0444,show_vdemand_poll_rate_max);
++
 +static ssize_t store_vdemand_vsel_vdd2(struct cpufreq_policy *policy, char *buf,
 +                                                size_t count) {
 +        u8 volt[3], i;
@@ -704,8 +776,8 @@
 +
 +        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1],&volt[0])) {
 +                for(i=0;i < 3;i++) {
-+                        if((volt[i] < 25) ||
-+                                (volt[i] > 60)) {
++                        if((volt[i] < VDD2_VSEL_MIN) ||
++                                (volt[i] > VDD2_VSEL_MAX)) {
 +                                printk("CPUfreq: invalid vsel! Resetting to default!\n");
 +				volt[i]=vdd2_vsel_def[i];
 +                                break;
@@ -728,6 +800,8 @@
 +        &_attr_vdemand_poll_rate.attr,
 +        &_attr_vdemand_vsel_vdd1_default.attr,
 +        &_attr_vdemand_vsel_vdd2_default.attr,
++	&_attr_vdemand_poll_rate_min.attr,
++	&_attr_vdemand_poll_rate_max.attr,
 +        NULL
 +};
 +
