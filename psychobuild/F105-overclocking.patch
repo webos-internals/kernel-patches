@@ -382,10 +382,6 @@
  #endif
          target_mpu_khz  = get_arm_freq_for_opp(get_opp_no(target_vdd1_opp));
  
-@@ -1523,3 +1573,37 @@
- 
- 	return -1;
- }
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/prcm.h	2010-06-11 17:48:35.000000000 -0400
 +++ linux-2.6.24-F105/include/asm-arm/arch-omap/prcm.h	2011-01-10 22:44:45.000000000 -0500
 @@ -609,7 +609,12 @@
