@@ -192,7 +192,7 @@
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-17 18:25:33.000000000 -0500
++++ linux-2.6.24-F14/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-18 13:44:48.000000000 -0500
 @@ -66,14 +66,14 @@
  	{ 0x1e, 0x24, 0x30, 0x36, 0x3C },    /* OLD 3430 values */
  	/* Vsel corresponding to unused (OPP1), 1.0125V (OPP2),
@@ -1097,3 +1097,23 @@
  };
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/board-sirloin-3430.c	2010-11-23 18:42:41.000000000 -0500
++++ linux-2.6.24-F14/arch/arm/mach-omap3pe/board-sirloin-3430.c	2011-02-18 13:04:07.000000000 -0500
+@@ -2067,7 +2067,7 @@
+ 		.options    =  0,
+ 		.irq_config =  0,
+ 	},
+-	{
++/*	{
+ 		.name       =  "irq",
+ 		.gpio       =  WIFI_IRQ_GPIO,
+ 		.options    =  PIN_READ_ONLY,
+@@ -2076,7 +2076,7 @@
+ 		.def_level  =  0, // default level (low)
+ 		.pin_mode   =  WIFI_IRQ_GPIO_PIN_MODE,
+ 		.sysfs_mask =  0444,
+-	},
++	}, */
+ };
+ 
+ /*
