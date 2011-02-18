@@ -1,10 +1,12 @@
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock.h	2011-01-10 22:44:45.000000000 -0500
-@@ -41,15 +41,16 @@
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock.h	2011-02-13 10:15:49.000000000 -0500
+@@ -40,16 +40,17 @@
+ #define S26M	26000000
  #define S38M	38400000
  #define S96M	96000000
- #define S83M	83000000
+-#define S83M	83000000
 -#define S166M	166000000
++#define S100M	100000000
 +#define S200M	200000000
  
  #define S120M	120000000
@@ -22,7 +24,7 @@
  /* Macro to enable clock control via clock framework */
  #define ENABLE_CLOCKCONTROL 1
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock_tree.h	2011-01-10 22:44:45.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock_tree.h	2011-02-13 10:17:06.000000000 -0500
 @@ -90,9 +90,14 @@
  	/*OPP3*/
  	{S500M, PRCM_VDD1_OPP3, RATE_IN_343X},
@@ -40,9 +42,12 @@
  };
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
-@@ -102,7 +107,7 @@
+@@ -100,9 +105,9 @@
+ 	/*OPP1*/
+ 	{S19M, PRCM_VDD2_OPP1, RATE_IN_343X},
  	/*OPP2*/
- 	{S83M, PRCM_VDD2_OPP2, RATE_IN_343X},
+-	{S83M, PRCM_VDD2_OPP2, RATE_IN_343X},
++	{S100M, PRCM_VDD2_OPP2, RATE_IN_343X},
  	/*OPP3*/
 -	{S166M, PRCM_VDD2_OPP3, RATE_IN_343X},
 +	{S200M, PRCM_VDD2_OPP3, RATE_IN_343X},
@@ -97,8 +102,8 @@
  
  comment "Default VDD2 OPP Level Selection"
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2011-01-10 23:47:16.000000000 -0500
-@@ -56,13 +56,13 @@
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-16 22:30:58.000000000 -0500
+@@ -56,41 +56,36 @@
  
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
@@ -111,20 +116,57 @@
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
  	/* Vsel corresponding to 0.975V (OPP1), 1.05V (OPP2), 1.15 (OPP3) */
 -	0x1e, 0x24, 0x2c
-+	0x1e, 0x24, 0x2e
++	0x1e, 0x26, 0x2f
  };
  
  
-@@ -82,7 +82,7 @@
- 	 {0x00101001, 0x00040402, 0x0E050E05, 0x020F1010, 0x0F0502C2} }
- 	},
- 
--	/* SDRC CS0/CS1 values 166MHZ*/
-+	/* SDRC CS0/CS1 values 200MHZ*/
+ static struct dvfs_config omap3_vdd2_config[2] = {
  	{
- 	{{0x0004e201, 0x629db4c6, 0x00012214},
- 	 {0x0004e201, 0x629db4c6, 0x00012214} },
-@@ -155,20 +155,32 @@
+-	/* SDRC CS0/CS1 values 83MHZ*/
+-	{{0x00025801, 0x629db4c6, 0x00012214},
+-	 {0x00025801, 0x629db4c6, 0x00012214} },
+-	/* GPMC CS0/1/2/3 values 83 MHZ*/
+-	/* CS0 values are for NOR */
+-	/* CS1 values are for NAND */
+-	/* CS2 values are for ONE-NAND */
+-	/* CS3 values are for FPGA */
+-	{{0x00101000, 0x00040401, 0x0E050E05, 0x010A1010, 0x100802C1},
+-	 {0x000A0A00, 0x000A0A00, 0x08010801, 0x01060A0A, 0x10080580},
+-	 {0x00080801, 0x00020201, 0x08020802, 0x01080808, 0x10030000},
+-	 {0x00101001, 0x00040402, 0x0E050E05, 0x020F1010, 0x0F0502C2} }
+-	},
+-
+-	/* SDRC CS0/CS1 values 166MHZ*/
+-	{
+-	{{0x0004e201, 0x629db4c6, 0x00012214},
+-	 {0x0004e201, 0x629db4c6, 0x00012214} },
+-	/* GPMC CS0/1/2/3 values 166 MHZ*/
+-	{{0x001f1f00, 0x00080802, 0x1C091C09, 0x01131F1F, 0x1F0F03C2},
+-	 {0x00141400, 0x00141400, 0x0F010F01, 0x010C1414, 0x1F0F0A80},
+-	 {0x000F0F01, 0x00030301, 0x0F040F04, 0x010F1010, 0x1F060000},
+-	 {0x001F1F01, 0x00080803, 0x1D091D09, 0x041D1F1F, 0x1D0904C4} }
++        /* SDRC CS0/CS1 values 100MHZ*/
++        {{0x00025501, 0xc2e1c4c6, 0x00022218},
++         {0x00025501, 0xc2e1c4c6, 0x00022218} },
++        {{0x00101000, 0x00040401, 0x0E050E05, 0x010A1010, 0x100802C1},
++         {0x000A0A00, 0x000A0A00, 0x08010801, 0x01060A0A, 0x10080580},
++         {0x00080801, 0x00020201, 0x08020802, 0x01080808, 0x10030000},
++         {0x00101001, 0x00040402, 0x0E050E05, 0x020F1010, 0x0F0502C2} }
++        },
++
++        /* SDRC CS0/CS1 values 200MHZ*/
++        {
++        {{0x0004e201, 0x629db4c6, 0x00012214},
++         {0x0004e201, 0x629db4c6, 0x00012214} },
++        /* GPMC CS0/1/2/3 values 166 MHZ*/
++        {{0x001f1f00, 0x00080802, 0x1C091C09, 0x01131F1F, 0x1F0F03C2},
++         {0x00141400, 0x00141400, 0x0F010F01, 0x010C1414, 0x1F0F0A80},
++         {0x000F0F01, 0x00030301, 0x0F040F04, 0x010F1010, 0x1F060000},
++         {0x001F1F01, 0x00080803, 0x1D091D09, 0x041D1F1F, 0x1D0904C4} }
+ 	},
+ };
+ 
+@@ -155,20 +150,32 @@
  	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
  	{0x0FA, 0x05, 0x07, 0x01}, {0x113, 0x05, 0x07, 0x01},
  	/* OPP5 (600 Mhz) */
@@ -161,7 +203,7 @@
  	{0x177, 0x0B, 0x06, 0x01} },
  	/* 26M values */
  	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
-@@ -176,13 +188,21 @@
+@@ -176,13 +183,21 @@
  	/* OPP3(500 Mhz) and OPP4(550 Mhz)*/
  	{0x0FA, 0x0C, 0x07, 0x01}, {0x113, 0x0C, 0x07, 0x01},
  	/* OPP5 (600 Mhz) */
@@ -184,7 +226,7 @@
  	{0x177, 0x17, 0x06, 0x01} },
  };
  
-@@ -194,7 +214,11 @@
+@@ -194,7 +209,11 @@
  	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
  	 {0x0B4, 0x05, 0x07, 0x01}, {0x0C6, 0x05, 0x07, 0x01},
  	/* OPP5 (430 Mhz) */
@@ -197,7 +239,7 @@
  #if 0
  	/* 13M values */
  	/* OPP1(90 Mhz) and OPP2(180 Mhz)*/
-@@ -215,6 +239,10 @@
+@@ -215,6 +234,10 @@
  	/* OPP3(360 Mhz) and OPP4(360 Mhz)*/
  	 {0x168, 0x0C, 0x03, 0x01}, {0x168, 0x0C, 0x03, 0x01},
  	/* OPP5 (360 Mhz) */
@@ -208,7 +250,7 @@
  	 {0x168, 0x0C, 0x03, 0x01} },
  #endif
  	/* 19.2M values */
-@@ -223,31 +251,43 @@
+@@ -223,31 +246,43 @@
  	/* OPP3(360 Mhz) and OPP4(396 Mhz)*/
  	 {0x0E1, 0x0B, 0x06, 0x01}, {0x14A, 0x0F, 0x04, 0x01},
  	/* OPP5 (430 Mhz) */
@@ -253,12 +295,12 @@
  	/* 13M values */
 -	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
 -	{{0, 0, 0, 0}, {0x14C, 0x0C, 0x03, 0x02}, {0x14C, 0x0C, 0x03, 0x01} },
-+	/* OPP1(83 Mhz) and OPP2(200 Mhz) */
-+	{{0, 0, 0, 0}, {0x14C, 0x0C, 0x03, 0x02}, {0x190, 0x0C, 0x03, 0x01} },
++	/* OPP1(100 Mhz) and OPP2(200 Mhz) */
++	{{0, 0, 0, 0}, {0x190, 0x0C, 0x03, 0x02}, {0x190, 0x0C, 0x03, 0x01} },
  	/* 19.2M values */
  	/* OPP1(83 Mhz) and OPP2(166 Mhz) */
  	{{0, 0, 0, 0}, {0x19F, 0x17, 0x03, 0x02}, {0x19F, 0x17, 0x03, 0x01} },
-@@ -459,7 +499,7 @@
+@@ -459,7 +494,7 @@
  	/* Scale back to previous OPP for VDD2*/
  	if (current_vdd2_opp != PRCM_VDD2_OPP2) {
  		prcm_do_voltage_scaling(PRCM_VDD2_OPP3, PRCM_VDD2_OPP2);
@@ -267,7 +309,7 @@
  		p_vdd2_clk->set_rate(p_vdd2_clk, valid_rate);
  	}
  
-@@ -473,11 +513,18 @@
+@@ -473,11 +508,18 @@
  			valid_rate = clk_round_rate(p_vdd1_clk, S500M);
  			break;
  		case PRCM_VDD1_OPP4:
@@ -288,7 +330,7 @@
  		}
  		p_vdd1_clk->set_rate(p_vdd1_clk, valid_rate);
  	}
-@@ -490,11 +537,14 @@
+@@ -490,11 +532,14 @@
  	unsigned int constraint;
  	unsigned int opp;
  } vdd1_arm_dsp_freq[MAX_VDD1_OPP] = {
@@ -307,11 +349,13 @@
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
-@@ -503,14 +553,14 @@
+@@ -502,15 +547,15 @@
+ 	unsigned int opp;
  } vdd2_core_freq[MAX_VDD2_OPP] = {
  	{0, CO_VDD2_OPP1, PRCM_VDD2_OPP1},
- 	{83, CO_VDD2_OPP2, PRCM_VDD2_OPP2},
+-	{83, CO_VDD2_OPP2, PRCM_VDD2_OPP2},
 -	{166, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
++	{100, CO_VDD2_OPP2, PRCM_VDD2_OPP2},
 +	{200, CO_VDD2_OPP3, PRCM_VDD2_OPP3},
  };
  
@@ -322,11 +366,11 @@
  };
  static unsigned int rnd_rate_vdd2[3] = {
 -	0, S83M, S166M
-+	0, S83M, S200M
++	0, S100M, S200M
  };
  
  /* To set the opp for vdd1 */
-@@ -1449,6 +1499,11 @@
+@@ -1449,6 +1494,11 @@
  	target_vdd1_opp = PRCM_VDD1_OPP4;
  #elif defined(CONFIG_OMAP3ES2_VDD1_OPP5)
  	target_vdd1_opp = PRCM_VDD1_OPP5;
@@ -338,6 +382,44 @@
  #endif
          target_mpu_khz  = get_arm_freq_for_opp(get_opp_no(target_vdd1_opp));
  
+@@ -1523,3 +1573,37 @@
+ 
+ 	return -1;
+ }
++
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++void omap_pm_opp_get_volts(u8 *vdd1_volts[]) {
++	memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++}
++EXPORT_SYMBOL(omap_pm_opp_get_volts);
++
++void omap_pm_opp_set_volts(u8 vdd1_volts[]) {
++	memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++	prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
++}
++EXPORT_SYMBOL(omap_pm_opp_set_volts);
++
++void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt) {
++	*(vdd2_volt)=(u8 )core_l3_vdd2_volts[2];
++}
++EXPORT_SYMBOL(omap_pm_opp_get_vdd2_volts);
++
++void omap_pm_opp_set_vdd2_volts(u8 vdd2_volt) {
++	core_l3_vdd2_volts[2]=vdd2_volt;
++	prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
++}
++EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
++
++void omap_pm_opp_get_vdd2_freq(unsigned int *vdd2_freq) {
++	*(vdd2_freq)=vdd2_core_freq[2].freq;
++}
++EXPORT_SYMBOL(omap_pm_opp_get_vdd2_freq);
++
++unsigned int prcm_get_current_vdd1_opp_no(void) {
++	return get_opp_no(current_vdd1_opp);
++}
++EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
++#endif
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/prcm.h	2010-06-11 17:48:35.000000000 -0400
 +++ linux-2.6.24-F105/include/asm-arm/arch-omap/prcm.h	2011-01-10 22:44:45.000000000 -0500
 @@ -609,7 +609,12 @@
