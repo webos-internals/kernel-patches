@@ -180,7 +180,7 @@
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/prcm_opp.c	2011-01-12 18:56:57.000000000 -0500
++++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-19 10:07:43.000000000 -0500
 @@ -57,12 +57,12 @@
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
@@ -221,7 +221,7 @@
  	{500, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
  	{550, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
 -	{600, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
-+	{1005, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{1005, 520, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
  };
  static struct vdd2_core_freq_d {
  	unsigned int freq;
@@ -276,8 +276,8 @@
 +}
 +EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-01-15 19:16:29.000000000 -0500
-@@ -0,0 +1,318 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-02-19 18:40:32.000000000 -0500
+@@ -0,0 +1,345 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -316,7 +316,9 @@
 +#define LOWTEMP_RESET 50
 +
 +// Polling frequency jiffies
-+#define OVERRIDE_POLLING 1000
++#define BATTERY_POLLING 30000
++#define TEMP_POLLING 1000
++#define CHARGER_POLLING 3000
 +
 +// Battery scaleback percent
 +#define BATTERY_PERCENT 25
@@ -335,19 +337,23 @@
 +int gadget_event_state_current(void);
 +int ds2784_getcurrent(int *ret_current);
 +
-+static inline void check_stuff(struct work_struct *work);
++static inline void check_temp(struct work_struct *work);
++static inline void check_battery(struct work_struct *work);
++static inline void check_charger(struct work_struct *work);
 +
 +static u32 override_hightemp=HIGHTEMP_SCALEBACK;
 +static u32 override_lowtemp=LOWTEMP_RESET;
 +static int battery_scaleback_percent=BATTERY_PERCENT;
 +
-+static unsigned int overtemp_alarm=0;
-+static unsigned int battery_alarm=0;
++u8 overtemp_alarm=0;
++u8 battery_alarm=0;
 +u8 charging_state=0;
 +u8 ch_override=0;
 +
 +static DEFINE_MUTEX(override_mutex);
-+static DECLARE_DELAYED_WORK(dbs_work, check_stuff);
++static DECLARE_DELAYED_WORK(dbs_work, check_temp);
++static DECLARE_DELAYED_WORK(dbs_work2, check_battery);
++static DECLARE_DELAYED_WORK(dbs_work3, check_charger);
 +
 +#define CPUFREQ_OVERRIDE_ATTR(_name,_mode,_show,_store) \
 +static struct freq_attr _attr_##_name = {\
@@ -380,47 +386,50 @@
 +	cpufreq_set_policy(&new_policy);
 +}
 +
-+static inline void check_stuff(struct work_struct *work) {
-+        u32 cputemp;
-+	int battery_per, cur, current_mA;
++static inline void check_charger(struct work_struct *work) {
++	int cur, current_mA;
 +
-+        mutex_lock(&override_mutex);
-+        cputemp = omap34xx_get_temp();    // Get CPU temp
-+	ds2784_getpercent(&battery_per);  // Get battery percent left
++	if(overtemp_alarm || battery_alarm) goto n1;
 +
-+	if(!ch_override) {
-+		ds2784_getcurrent(&cur);
-+		current_mA=gadget_event_state_current();
-+		if((cur>0) && (current_mA < 500)) {
-+			// Assume Touchstone
++	ds2784_getcurrent(&cur);
++	current_mA=gadget_event_state_current();
++
++	if((cur>0) && (current_mA < 500)) {
++		// Assume Touchstone
++		if(!charging_state) {
++			charging_state=1;
++			change_freq_low();
++			printk("CPUfreq: TS found!\n");
++		}
++	} 
++	else {
++		if(current_mA == 1000) {
 +			if(!charging_state) {
 +				charging_state=1;
 +				change_freq_low();
-+				printk("CPUfreq: TS found!\n");
++				printk("CPUfreq: 1000mA charger found!\n");
 +			}
-+		} 
++		}
 +		else {
-+			if(current_mA == 1000) {
-+				if(!charging_state) {
-+					charging_state=1;
-+					change_freq_low();
-+					printk("CPUfreq: 1000mA charger found!\n");
-+				}
-+			}
-+			else {
-+				if(charging_state) {
-+					charging_state=0;
-+					change_freq_high();
-+					printk("CPUfreq: charger unplugged!\n");
-+				}
++			if(charging_state) {
++				charging_state=0;
++				change_freq_high();
++				printk("CPUfreq: charger unplugged!\n");
 +			}
 +		}
 +	}
++n1:
++	 schedule_delayed_work(&dbs_work3,CHARGER_POLLING);
++}
 +
-+	if(charging_state) goto out;
++static inline void check_temp(struct work_struct *work) {
++        u32 cputemp;
++
++	if(charging_state || battery_alarm) goto out;
++
++        cputemp = omap34xx_get_temp();    // Get CPU temp
 +
 +	// Check values in case driver hasnt polled
-+	battery_per = (battery_per > 0) ? battery_per : 100;
 +	cputemp = (cputemp < 100) ? cputemp : 0;
 +
 +        if(cputemp > override_hightemp) {
@@ -440,16 +449,26 @@
 +			}
 +                }
 +        }
++out:
++	schedule_delayed_work(&dbs_work,TEMP_POLLING);
++}
++
++static inline void check_battery(struct work_struct *work) { 
++        int battery_per;
++
++        if(charging_state || overtemp_alarm) goto out;
++
++        ds2784_getpercent(&battery_per);  // Get battery percent left
 +
 +	if(battery_per<battery_scaleback_percent) {
-+		if((!battery_alarm) && (!overtemp_alarm)) {
++		if(!battery_alarm) {
 +			printk("CPUFreq: battery low! < %d%%\n",battery_per);
 +			battery_alarm = 1;
 +			change_freq_low();
 +		}
 +	}
 +	else {
-+		if((battery_alarm) && (!overtemp_alarm)) {
++		if(battery_alarm) {
 +			printk("CPUFreq: battery OK\n");
 +			change_freq_high();
 +			battery_alarm = 0;
@@ -457,8 +476,7 @@
 +	}
 +
 +out:
-+        mutex_unlock(&override_mutex);
-+	schedule_delayed_work(&dbs_work,OVERRIDE_POLLING);
++	schedule_delayed_work(&dbs_work2,BATTERY_POLLING);
 +}
 +
 +static ssize_t show_vdd1_vsel_max(struct cpufreq_policy *policy, char *buf) {
@@ -490,12 +508,17 @@
 +	u8 override=0;
 +
 +	if(sscanf(buf, "%hhu", &override) == 1) {
-+		ch_override=(override) ? 1 : 0;
-+		if(ch_override) {
++		override=(override) ? 1 : 0;
++		if(override) {
 +			charging_state=0;
++			if(!ch_override) cancel_delayed_work(&dbs_work3);
 +			change_freq_high();
 +			printk("CPUfreq: charger override enabled\n");
 +		}
++		else
++			if(ch_override)
++				schedule_delayed_work(&dbs_work3,CHARGER_POLLING);
++		ch_override=override;
 +	}
 +	else printk("CPUfreq: invalid charger override value\n");
 +
@@ -579,8 +602,10 @@
 +};
 +
 +int cpufreq_override_driver_init(void) {
-+	schedule_delayed_work(&dbs_work,OVERRIDE_POLLING);
 +        struct cpufreq_policy *data = cpufreq_cpu_get(0);
++	schedule_delayed_work(&dbs_work,TEMP_POLLING);
++	schedule_delayed_work(&dbs_work2,BATTERY_POLLING);
++	schedule_delayed_work(&dbs_work3,CHARGER_POLLING);
 +        return sysfs_create_group(&data->kobj,&override_attr_group);
 +}
 +EXPORT_SYMBOL(cpufreq_override_driver_init);
@@ -588,6 +613,8 @@
 +void cpufreq_override_driver_exit(void) {
 +	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
 +	cancel_delayed_work(&dbs_work);
++	cancel_delayed_work(&dbs_work2);
++	cancel_delayed_work(&dbs_work3);
 +	sysfs_remove_group(&policy->kobj, &override_attr_group);
 +	flush_scheduled_work();
 +}
@@ -597,7 +624,7 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-01-15 19:56:52.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-02-19 09:06:01.000000000 -0500
 @@ -0,0 +1,351 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
@@ -641,7 +668,7 @@
 +#define VDD2_VSEL { 0x25, 0x26, 0x2b }
 +
 +// vdemand poll rate
-+#define VDEMAND_POLL_RATE 200
++#define VDEMAND_POLL_RATE 150
 +
 +// vdemand poll rate min
 +#define VDEMAND_POLL_RATE_MIN 10
@@ -1084,7 +1111,7 @@
  	help
  	  Select this option if you want to boot at OPP5.
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2011-01-11 23:48:03.000000000 -0500
++++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2011-02-19 10:35:23.000000000 -0500
 @@ -29,14 +29,14 @@
  #include <linux/notifier.h>
  
@@ -1118,8 +1145,9 @@
 +#define min_arm_freq 	500
 +#define max_arm_freq 	1005
  #define min_dsp_freq 	90
- #define max_dsp_freq 	430
+-#define max_dsp_freq 	430
 -#define MIN_VDD1_OPP 	CO_VDD1_OPP1
++#define max_dsp_freq 	520
 +#define MIN_VDD1_OPP 	CO_VDD1_OPP3
  #define MAX_VDD1_OPP 	CO_VDD1_OPP5
  #define MIN_VDD2_OPP 	CO_VDD2_OPP2
