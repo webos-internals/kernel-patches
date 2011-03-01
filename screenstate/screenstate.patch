@@ -1,6 +1,6 @@
---- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/drivers/cpufreq/Kconfig	2010-08-25 14:49:37.000000000 -0400
-@@ -87,6 +104,15 @@
+--- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-ss/drivers/cpufreq/Kconfig	2011-02-28 19:38:30.000000000 -0500
+@@ -87,6 +138,15 @@
  	  program shall be able to set the CPU dynamically without having
  	  to enable the userspace governor manually.
  
@@ -16,7 +16,7 @@
  config CPU_FREQ_DEFAULT_GOV_ONDEMAND
  	bool "ondemand"
  	select CPU_FREQ_GOV_ONDEMAND
-@@ -149,6 +175,16 @@
+@@ -149,6 +209,16 @@
  
  	  If in doubt, say Y.
  
@@ -34,17 +34,17 @@
  	tristate "'ondemand' cpufreq policy governor"
  	select CPU_FREQ_TABLE
 --- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2010-08-25 14:49:37.000000000 -0400
++++ linux-2.6.24-ss/drivers/cpufreq/Makefile	2011-02-28 19:15:33.000000000 -0500
 @@ -9,6 +9,7 @@
- obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
- obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
+ obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)   += cpufreq_userspace.o
+ obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)    += cpufreq_ondemand.o
  obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
-+obj-$(CONFIG_CPU_FREQ_GOV_SCREENSTATE)	+= cpufreq_screenstate.o
- 
++obj-$(CONFIG_CPU_FREQ_GOV_SCREENSTATE) += cpufreq_screenstate.o
+
  # CPUfreq cross-arch helpers
- obj-$(CONFIG_CPU_FREQ_TABLE)           += freq_table.o
---- linux-2.6.24-palm/include/linux/cpufreq.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-ss/include/linux/cpufreq.h	2010-08-25 14:48:12.000000000 -0400
+ obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
+--- linux-2.6.24-palm/include/linux/cpufreq.h	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-ss/include/linux/cpufreq.h	2011-02-28 18:30:28.000000000 -0500
 @@ -309,6 +309,9 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
  extern struct cpufreq_governor cpufreq_gov_userspace;
@@ -55,8 +55,8 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND)
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
---- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-ss/drivers/video/omap/lcd_panel.c	2010-08-25 14:48:12.000000000 -0400
+--- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-ss/drivers/video/omap/lcd_panel.c	2011-02-28 18:30:28.000000000 -0500
 @@ -31,6 +31,11 @@
  
  #include "lcd.h"
@@ -100,9 +100,9 @@
  	}
  
  unlock:
---- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-ss/drivers/usb/gadget/gadget_event.c	2010-08-25 14:48:12.000000000 -0400
-@@ -282,6 +282,13 @@
+--- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-ss/drivers/usb/gadget/gadget_event.c	2011-02-28 18:30:28.000000000 -0500
+@@ -362,6 +362,13 @@
  }
  EXPORT_SYMBOL(gadget_event_power_state_changed);
  
@@ -116,9 +116,9 @@
  static int __init init(void)
  {
  	int ret = 0;
---- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-ss/drivers/w1/slaves/w1_ds2784.c	2010-08-25 14:48:12.000000000 -0400
-@@ -1151,11 +1151,20 @@
+--- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-ss/drivers/w1/slaves/w1_ds2784.c	2011-02-28 19:38:32.000000000 -0500
+@@ -1151,11 +1160,20 @@
  	return ds2784_gettemperature_dev(battery_device, ret_temperature);
  }
  
@@ -140,7 +140,7 @@
  static struct battery_ops ds2784_battery_ops = {
  	.get_percent       = ds2784_getpercent,
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_screenstate.c	2010-08-25 16:36:44.000000000 -0400
++++ linux-2.6.24-ss/drivers/cpufreq/cpufreq_screenstate.c	2011-02-28 18:30:28.000000000 -0500
 @@ -0,0 +1,212 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
