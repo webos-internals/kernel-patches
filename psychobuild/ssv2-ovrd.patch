@@ -1028,23 +1028,6 @@
 +module_init(cpufreq_gov_screenstate_init);
 +#endif
 +module_exit(cpufreq_gov_screenstate_exit);
---- linux-2.6.24-palm/drivers/hwmon/omap34xx_temp.c     2010-05-31 12:05:29.000000000 -0400
-+++ linux-2.6.24-F105/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
-@@ -140,6 +140,14 @@
-	mutex_unlock(&data->update_lock);
- }
-
-+int omap34xx_get_temp(void) {
-+	struct omap34xx_data *data =
-+		dev_get_drvdata(&omap34xx_temp_device.dev);
-+	omap34xx_update(data);
-+	return adc_to_temp[omap_ctrl_readl(OMAP343X_CONTROL_TEMP_SENSOR) & ((1<<7) - 1)];
-+}
-+EXPORT_SYMBOL(omap34xx_get_temp);
-+
- static ssize_t show_name(struct device *dev,
- 		struct device_attribute *devattr, char *buf)
- {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2011-02-28 17:03:31.000000000 -0500
 +++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock.c	2011-02-28 17:36:28.000000000 -0500
 @@ -709,6 +709,10 @@
