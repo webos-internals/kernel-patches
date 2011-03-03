@@ -72,7 +72,7 @@
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2011-02-28 17:03:32.000000000 -0500
-+++ linux-2.6.24-F105/drivers/cpufreq/cpufreq.c	2011-02-28 17:36:28.000000000 -0500
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq.c	2011-03-01 15:17:56.000000000 -0500
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -85,6 +85,15 @@
  /**
   * The "cpufreq driver" - the arch- or hardware-dependent low
   * level driver of CPUFreq support, and its spinlock. This lock
+@@ -1430,7 +1435,7 @@
+ {
+ 	int retval = -EINVAL;
+ 
+-	dprintk("target for CPU %u: %u kHz, relation %u\n", policy->cpu,
++	printk("target for CPU %u: %u kHz, relation %u\n", policy->cpu,
+ 		target_freq, relation);
+ 	if (cpu_online(policy->cpu) && cpufreq_driver->target)
+ 		retval = cpufreq_driver->target(policy, target_freq, relation);
 @@ -1682,6 +1687,18 @@
  	return ret;
  }
@@ -140,42 +149,54 @@
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c  2010-06-11 17:48:34.000000000 -0400
 +++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c    2010-11-02 23:24:57.000000000 -0400
-@@ -1541,4 +1591,36 @@
+@@ -1541,4 +1591,48 @@
  	return -1;
  }
  
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]) {
-+      memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++	memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_volts);
 +
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]) {
-+      memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
-+      prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
++	memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++	prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_volts);
- 
++
 +void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt) {
-+      *(vdd2_volt)=(u8 )core_l3_vdd2_volts[2];
++	*(vdd2_volt)=(u8 )core_l3_vdd2_volts[2];
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_volts);
 +
 +void omap_pm_opp_set_vdd2_volts(u8 vdd2_volt) {
-+      core_l3_vdd2_volts[2]=vdd2_volt;
-+      prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
++	core_l3_vdd2_volts[2]=vdd2_volt;
++	prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
 +}
 +EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
 +
 +void omap_pm_opp_get_vdd2_freq(unsigned int *vdd2_freq) {
-+      *(vdd2_freq)=vdd2_core_freq[2].freq;
++	*(vdd2_freq)=vdd2_core_freq[2].freq;
 +}
 +EXPORT_SYMBOL(omap_pm_opp_get_vdd2_freq);
-+
+ 
 +unsigned int prcm_get_current_vdd1_opp_no(void) {
-+      return get_opp_no(current_vdd1_opp);
++	return get_opp_no(current_vdd1_opp);
 +}
 +EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
++
++unsigned short get_vdd1_arm_opp_for_freq(unsigned int freq)
++{
++	int i;
++	for (i = 0; i < ARRAY_SIZE(vdd1_arm_dsp_freq); i++) {
++		if (vdd1_arm_dsp_freq[i].freq_mpu == (freq / 1000)) {
++		return i+1;
++		}
++	}
++	return 0;
++}
++EXPORT_SYMBOL(get_vdd1_arm_opp_for_freq);
 +#endif
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
 +++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_override.c	2011-02-28 17:36:28.000000000 -0500
@@ -597,8 +618,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-02-28 17:36:28.000000000 -0500
-@@ -0,0 +1,429 @@
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-03-02 18:11:55.000000000 -0500
+@@ -0,0 +1,475 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -634,6 +655,7 @@
 +static unsigned int vdemand_enabled,charging_state;
 +static unsigned int ch_override=0,opp,last_load=0;
 +u8 sfactor=2,opp_volt,volt[PRCM_NO_VDD1_OPPS],volt_def[PRCM_NO_VDD1_OPPS];
++unsigned short screen_on_opp,screen_off_opp;
 +static cputime64_t prev_cpu_wall=0,prev_cpu_idle=0;
 +static unsigned int ch_poll=7000,vdemand_poll=90;
 +
@@ -642,13 +664,18 @@
 +unsigned int prcm_get_current_vdd1_opp_no(void);
 +static inline void check_charger(struct work_struct *work);
 +static inline void check_load(struct work_struct *work);
++static inline void __cpufreq_gov_screenstate_lcdoff(struct work_struct *work);
++static inline void __cpufreq_gov_screenstate_lcdon(struct work_struct *work);
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]);
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
++unsigned short get_vdd1_arm_opp_for_freq(unsigned int freq);
 +
 +static DEFINE_MUTEX(screenstate_mutex);
 +
 +static DECLARE_DELAYED_WORK(dbs_work, check_charger);
 +static DECLARE_DELAYED_WORK(dbs_work2, check_load);
++static DECLARE_DELAYED_WORK(dbs_work3, __cpufreq_gov_screenstate_lcdoff);
++static DECLARE_DELAYED_WORK(dbs_work4, __cpufreq_gov_screenstate_lcdon);
 +
 +#define CPUFREQ_SCREENSTATE_ATTR(_name,_mode,_show,_store) \
 +static struct freq_attr _attr_##_name = {\
@@ -675,6 +702,10 @@
 +}
 +
 +void change_freq(void) {
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++
++	screen_off_opp=get_vdd1_arm_opp_for_freq(policy->min);
++	screen_on_opp=get_vdd1_arm_opp_for_freq(policy->max);
 +	if(vdemand_enabled) {
 +		mutex_lock(&screenstate_mutex);
 +		opp=prcm_get_current_vdd1_opp_no();
@@ -951,6 +982,9 @@
 +			break;
 +		case CPUFREQ_GOV_LIMITS:
 +			printk("screenstate: policy change\n");
++
++			change_freq();
++
 +			if(charging_state)
 +				__cpufreq_driver_target(policy, 500000,
 +							CPUFREQ_RELATION_L);
@@ -961,7 +995,6 @@
 +					policy->min, CPUFREQ_RELATION_L);
 +			}
 +
-+			change_freq();
 +			break;
 +		}
 +		return 0;
@@ -984,27 +1017,40 @@
 +
 +void cpufreq_gov_screenstate_lcdoff(void) {
 +	if(cpu_is_managed) {
-+		struct cpufreq_policy *policy = cpufreq_cpu_get(0);
-+		printk("screenstate: lcd off\n");
-+		__cpufreq_driver_target(policy,policy->min,CPUFREQ_RELATION_L);
-+		lcd_state = 0;
-+		change_freq();
++		schedule_delayed_work(&dbs_work3,200);
 +	}
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdoff);
 +
++static inline void __cpufreq_gov_screenstate_lcdoff(struct work_struct *work) {
++	mutex_lock(&screenstate_mutex);
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	printk("screenstate: lcd off\n");
++	lcd_state = 0;
++	__cpufreq_driver_target(policy,policy->min,CPUFREQ_RELATION_L);
++	mutex_unlock(&screenstate_mutex);
++	change_freq();
++}
++
 +void cpufreq_gov_screenstate_lcdon(void) {
 +        if(cpu_is_managed) {
-+		struct cpufreq_policy *policy = cpufreq_cpu_get(0);
-+		printk("screenstate: lcd on\n");
-+                if(!charging_state) __cpufreq_driver_target(policy,
-+					policy->max, CPUFREQ_RELATION_H);
-+		else __cpufreq_driver_target(policy,500000,CPUFREQ_RELATION_L);
-+		lcd_state = 1;
-+		change_freq();
++		schedule_delayed_work(&dbs_work4,200);
 +        }
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdon);
++
++static inline void __cpufreq_gov_screenstate_lcdon(struct work_struct *work) {
++	mutex_lock(&screenstate_mutex);
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	printk("screenstate: lcd on\n");
++	lcd_state = 1;
++	if(!charging_state) __cpufreq_driver_target(policy,
++					policy->max, CPUFREQ_RELATION_H);
++	else __cpufreq_driver_target(policy,500000,CPUFREQ_RELATION_L);
++	mutex_unlock(&screenstate_mutex);
++	change_freq();
++}
++
 +
 +void cpufreq_screenstate_getdefvoltage(u8 *dvolt[]) {
 +	memcpy(dvolt,volt_def,sizeof(volt));
@@ -1016,6 +1062,27 @@
 +	change_freq();
 +}
 +EXPORT_SYMBOL(cpufreq_screenstate_setdefvoltage);
++
++unsigned short cpufreq_screenstate_lcd_state() {
++	if(cpu_is_managed) {
++		return lcd_state;
++	}
++	else return 0;
++}
++EXPORT_SYMBOL(cpufreq_screenstate_lcd_state);
++
++unsigned short cpufreq_screenstate_opp_settings(unsigned short *screenon,
++					unsigned short *screenoff) {
++	if(cpu_is_managed) {
++		*(screenon)=(screen_on_opp > 0 && screen_on_opp < 8)
++							? screen_on_opp : 0;
++		*(screenoff)=(screen_off_opp > 0 && screen_off_opp < 8)
++							? screen_off_opp : 0;
++		if(!screen_on_opp || !screen_on_opp) return 0;
++	}
++	else return 0;
++}
++EXPORT_SYMBOL(cpufreq_screenstate_opp_settings);
 +
 +EXPORT_SYMBOL(cpufreq_gov_screenstate);
 +MODULE_AUTHOR ("marco@unixpsycho.com");
@@ -1146,3 +1213,56 @@
  static int __init init(void)
  {
  	int ret = 0;
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2011-02-28 17:03:31.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/constraint.c	2011-03-02 18:34:14.000000000 -0500
+@@ -32,6 +32,11 @@
+ #include <asm/arch/prcm.h>
+ #include "prcm_opp.h"
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++unsigned short cpufreq_screenstate_opp_settings(unsigned short *screenon,
++					unsigned short *screenoff);
++unsigned short cpufreq_screenstate_lcd_state();
++#endif
+ 
+ /******************************************************************************
+  *
+@@ -66,8 +71,8 @@
+ static struct atomic_notifier_head freq_dsp_pre_notifier_list;
+ static struct atomic_notifier_head freq_dsp_post_notifier_list;
+ 
+-#define min_vdd1_opp    CO_VDD1_OPP1
+-#define max_vdd1_opp    CO_VDD1_OPP5
++#define min_vdd1_opp    CO_VDD1_OPP3
++#define max_vdd1_opp    CO_VDD1_OPP7
+ #define min_vdd2_opp    CO_VDD2_OPP2
+ #define max_vdd2_opp    CO_VDD2_OPP3
+ 
+@@ -333,7 +338,27 @@
+ 			return -1;
+ 		}
+ 	} else if (res->prcm_id == PRCM_VDD1_CONSTRAINT) {
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++		unsigned short i=0,screenon,screenoff;
++		if(!cpufreq_screenstate_opp_settings(&screenon,&screenoff))
++			goto out;
++		i=cpufreq_screenstate_lcd_state();
++		if(i && (target_value < screenon)) {
++			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
++			return -1;
++		}
++		if(!i && (target_value > screenoff)) {
++			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
++			return -1;
++		}
++out:
++#endif
+ 		if ((target_value < min_vdd1_opp) ||
++			(target_value > max_vdd1_opp)) {
++			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
++			return -1;
++		}
++		else if ((target_value < min_vdd1_opp) ||
+ 				(target_value > max_vdd1_opp)) {
+ 			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
+ 			return -1;
