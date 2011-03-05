@@ -624,7 +624,7 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-02-19 09:06:01.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-03-05 08:56:03.000000000 -0500
 @@ -0,0 +1,351 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
@@ -665,7 +665,7 @@
 +
 +// VDD defaults
 +#define VDD1_VSEL { 0x40, 0x42, 0x45 }
-+#define VDD2_VSEL { 0x25, 0x26, 0x2b }
++#define VDD2_VSEL { 0x26, 0x28, 0x2b }
 +
 +// vdemand poll rate
 +#define VDEMAND_POLL_RATE 150
@@ -859,9 +859,9 @@
 +	cputime64_t total_idle_ticks,cur_jiffies;
 +	u8 volt[PRCM_NO_VDD1_OPPS],volt_vdd2[3];
 +
-+	if(prcm_get_current_vdd1_opp_no() < PRCM_NO_VDD1_OPPS) goto out;
-+
 +	mutex_lock(&vdemand_mutex);
++
++	if(prcm_get_current_vdd1_opp_no() < PRCM_NO_VDD1_OPPS) goto out;
 +
 +	omap_pm_opp_get_volts(&volt);
 +	omap_pm_opp_get_vdd2_volts(&volt_vdd2);
@@ -885,8 +885,8 @@
 +	if(!last_load) goto out;
 +
 +	if((load < 30) && (last_load > 30)) {
-+		volt[PRCM_NO_VDD1_OPPS-1]=v_volt[2];
-+		volt_vdd2[2]=v_volt_vdd2[2];
++		volt[PRCM_NO_VDD1_OPPS-1]=v_volt[0];
++		volt_vdd2[2]=v_volt_vdd2[0];
 +		omap_pm_opp_set_volts(volt);
 +		omap_pm_opp_set_vdd2_volts(volt_vdd2);
 +	}
@@ -898,8 +898,8 @@
 +		omap_pm_opp_set_vdd2_volts(volt_vdd2);
 +        }
 +	if((load > 70) && (last_load < 70)) {
-+                volt[PRCM_NO_VDD1_OPPS-1]=v_volt[0];
-+		volt_vdd2[2]=v_volt_vdd2[0];
++                volt[PRCM_NO_VDD1_OPPS-1]=v_volt[2];
++		volt_vdd2[2]=v_volt_vdd2[2];
 +                omap_pm_opp_set_volts(volt);
 +		omap_pm_opp_set_vdd2_volts(volt_vdd2);
 +        }
