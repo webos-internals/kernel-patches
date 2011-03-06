@@ -288,7 +288,7 @@
 +EXPORT_SYMBOL(get_vdd1_arm_opp_for_freq);
  
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-03-05 19:53:26.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-03-05 21:59:20.000000000 -0500
 @@ -0,0 +1,351 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
@@ -400,7 +400,7 @@
 +	cpufreq_get_policy(&new_policy,0);
 +	new_policy.min=1005000;
 +	new_policy.max=1005000;
-+	prcm_set_constraint(3,5);
++	prcm_set_constraint(5,5);
 +	cpufreq_set_policy(&new_policy);
 +}
 +
@@ -642,7 +642,7 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-03-05 19:38:03.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-03-05 21:59:01.000000000 -0500
 @@ -0,0 +1,343 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
@@ -944,7 +944,7 @@
 +			prev_cpu_wall = get_jiffies_64();
 +			sysfs_create_group(&policy->kobj,&vdemand_attr_group);
 +			opp=get_vdd1_arm_opp_for_freq(policy->max);
-+			prcm_set_constraint(3,5);
++			prcm_set_constraint(5,5);
 +			__cpufreq_driver_target(policy,
 +				policy->max, CPUFREQ_RELATION_H);
 +			schedule_delayed_work(&dbs_work,vdemand_poll_rate);
@@ -1221,3 +1221,16 @@
  				     by the above parameters. For throughput. */
  
  struct deadline_data {
+--- linux-2.6.24-palm/drivers/media/video/omappe/omap34xx-isp.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/media/video/omappe/omap34xx-isp.c	2011-03-05 21:58:32.000000000 -0500
+@@ -414,8 +414,8 @@
+ 	SPEW(1, "+++ %s\n", __func__);
+ 
+ 	/* constraint values are from ti reference code */
+-	if ((rc = constraint_set(data->vdd1_co, CO_VDD1_OPP3)))
+-		goto exit;
++//	if ((rc = constraint_set(data->vdd1_co, CO_VDD1_OPP3)))
++//		goto exit;
+ 
+ 	if ((rc = constraint_set(data->vdd2_co, CO_VDD2_OPP3)))
+ 		goto constraint_set_vdd2_failed;
