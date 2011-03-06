@@ -618,8 +618,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-03-02 18:11:55.000000000 -0500
-@@ -0,0 +1,475 @@
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-03-05 20:51:43.000000000 -0500
+@@ -0,0 +1,479 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -706,6 +706,7 @@
 +
 +	screen_off_opp=get_vdd1_arm_opp_for_freq(policy->min);
 +	screen_on_opp=get_vdd1_arm_opp_for_freq(policy->max);
++
 +	if(vdemand_enabled) {
 +		mutex_lock(&screenstate_mutex);
 +		opp=prcm_get_current_vdd1_opp_no();
@@ -965,8 +966,7 @@
 +			omap_pm_opp_get_volts(&volt_def);
 +			change_freq();
 +
-+			struct cpufreq_policy *data = cpufreq_cpu_get(0);
-+			sysfs_create_group(&data->kobj,&screenstate_attr_group);
++			sysfs_create_group(&policy->kobj,&screenstate_attr_group);
 +			schedule_delayed_work(&dbs_work,ch_poll);
 +			schedule_delayed_work(&dbs_work2,vdemand_poll);
 +			
@@ -1078,7 +1078,11 @@
 +							? screen_on_opp : 0;
 +		*(screenoff)=(screen_off_opp > 0 && screen_off_opp < 8)
 +							? screen_off_opp : 0;
-+		if(!screen_on_opp || !screen_on_opp) return 0;
++		if(charging_state) {
++			*(screenon)=3;
++			*(screenoff)=3;
++		}
++		if(!screen_on_opp || !screen_off_opp) return 0;
 +	}
 +	else return 0;
 +}
@@ -1255,3 +1259,16 @@
  				(target_value > max_vdd1_opp)) {
  			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
  			return -1;
+--- linux-2.6.24-palm/drivers/media/video/omappe/omap34xx-isp.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-F105/drivers/media/video/omappe/omap34xx-isp.c	2011-03-05 21:26:24.000000000 -0500
+@@ -414,8 +414,8 @@
+ 	SPEW(1, "+++ %s\n", __func__);
+ 
+ 	/* constraint values are from ti reference code */
+-	if ((rc = constraint_set(data->vdd1_co, CO_VDD1_OPP3)))
+-		goto exit;
++//	if ((rc = constraint_set(data->vdd1_co, CO_VDD1_OPP7)))
++//		goto exit;
+ 
+ 	if ((rc = constraint_set(data->vdd2_co, CO_VDD2_OPP3)))
+ 		goto constraint_set_vdd2_failed;
