@@ -50,18 +50,20 @@
  
  /* Base external input clocks */
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2011-02-28 17:03:31.000000000 -0500
-+++ linux-2.6.24-F105/arch/arm/mach-omap3pe/constraint.c	2011-03-02 18:34:14.000000000 -0500
-@@ -66,8 +71,8 @@
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/constraint.c	2011-03-06 16:35:33.000000000 -0500
+@@ -66,9 +66,9 @@
  static struct atomic_notifier_head freq_dsp_pre_notifier_list;
  static struct atomic_notifier_head freq_dsp_post_notifier_list;
  
 -#define min_vdd1_opp    CO_VDD1_OPP1
 -#define max_vdd1_opp    CO_VDD1_OPP5
+-#define min_vdd2_opp    CO_VDD2_OPP2
 +#define min_vdd1_opp    CO_VDD1_OPP3
 +#define max_vdd1_opp    CO_VDD1_OPP7
- #define min_vdd2_opp    CO_VDD2_OPP2
++#define min_vdd2_opp    CO_VDD2_OPP3
  #define max_vdd2_opp    CO_VDD2_OPP3
  
+ /******************************************************************************
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/Kconfig	2011-02-28 17:03:31.000000000 -0500
 +++ linux-2.6.24-F105/arch/arm/mach-omap3pe/Kconfig	2011-02-28 17:26:34.000000000 -0500
 @@ -132,17 +132,29 @@
@@ -424,3 +426,23 @@
  				     by the above parameters. For throughput. */
  
  struct deadline_data {
+--- linux-2.6.24-palm/drivers/misc/lowmemnotify.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-F105/drivers/misc/lowmemnotify.c	2011-03-06 10:59:45.000000000 -0500
+@@ -194,7 +194,7 @@
+ 	if (other_free > totalreserve_pages)
+ 		free += other_free - totalreserve_pages;
+ 
+-	return free;
++	return free * 2;
+ }
+ EXPORT_SYMBOL(memnotify_get_free);
+ 
+@@ -351,7 +351,7 @@
+ 	int i;
+ 
+ 	used = memnotify_get_used();
+-	total_mem = totalram_pages;
++	total_mem = totalram_pages * 2;
+ 
+ 	threshold = memnotify_threshold();
+ 	last_threshold = atomic_read(&memnotify_last_threshold);

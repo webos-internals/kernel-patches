@@ -1222,7 +1222,7 @@
  
  struct deadline_data {
 --- linux-2.6.24-palm/drivers/media/video/omappe/omap34xx-isp.c	2011-02-28 17:03:32.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/media/video/omappe/omap34xx-isp.c	2011-03-05 21:58:32.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/media/video/omappe/omap34xx-isp.c	2011-03-06 11:58:52.000000000 -0500
 @@ -414,8 +414,8 @@
  	SPEW(1, "+++ %s\n", __func__);
  
@@ -1234,3 +1234,56 @@
  
  	if ((rc = constraint_set(data->vdd2_co, CO_VDD2_OPP3)))
  		goto constraint_set_vdd2_failed;
+@@ -484,7 +484,7 @@
+ 	clk_disable(data->iclk);
+ 	constraint_remove(data->lat_co);
+ 	constraint_remove(data->vdd2_co);
+-	constraint_remove(data->vdd1_co);
++//	constraint_remove(data->vdd1_co);
+ 
+ 	SPEW(1, "--- %s\n", __func__);
+ }
+@@ -625,10 +625,10 @@
+ 	data->ccdc_cfg_bswd = pdata->ccdc_cfg_bswd;
+ 	data->ccdc_fmtcfg_vpin = pdata->ccdc_fmtcfg_vpin;
+ 
+-	if (IS_ERR(data->vdd1_co = constraint_get("cam_vdd1", &vdd1_co_id))) {
+-		rc = PTR_ERR(data->vdd1_co);
+-		goto constraint_get_vdd1_failed;
+-	}
++//	if (IS_ERR(data->vdd1_co = constraint_get("cam_vdd1", &vdd1_co_id))) {
++//		rc = PTR_ERR(data->vdd1_co);
++//		goto constraint_get_vdd1_failed;
++//	}
+ 
+ 	if (IS_ERR(data->vdd2_co = constraint_get("cam_vdd2", &vdd2_co_id))) {
+ 		rc = PTR_ERR(data->vdd2_co);
+@@ -742,7 +742,7 @@
+ 	clk_put(data->iclk);
+ 	constraint_put(data->lat_co);
+ 	constraint_put(data->vdd2_co);
+-	constraint_put(data->vdd1_co);
++//	constraint_put(data->vdd1_co);
+ 	kfree(data);
+ 
+ 	SPEW(1, "--- %s\n", __func__);
+--- linux-2.6.24-palm/drivers/misc/lowmemnotify.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/misc/lowmemnotify.c	2011-03-06 10:40:00.000000000 -0500
+@@ -194,7 +194,7 @@
+ 	if (other_free > totalreserve_pages)
+ 		free += other_free - totalreserve_pages;
+ 
+-	return free;
++	return free * 2;
+ }
+ EXPORT_SYMBOL(memnotify_get_free);
+ 
+@@ -351,7 +351,7 @@
+ 	int i;
+ 
+ 	used = memnotify_get_used();
+-	total_mem = totalram_pages;
++	total_mem = totalram_pages * 2;
+ 
+ 	threshold = memnotify_threshold();
+ 	last_threshold = atomic_read(&memnotify_last_threshold);
