@@ -42,7 +42,7 @@
 +obj-$(CONFIG_CPU_FREQ_GOV_SCREENSTATE)	+= cpufreq_screenstate.o
 
  # CPUfreq cross-arch helpers
- obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
+ obj-$(CONFIG_CPU_FREQ_TABLE)	+= freq_table.o
 --- linux-2.6.24-palm/include/linux/cpufreq.h	2011-02-28 17:03:32.000000000 -0500
 +++ linux-2.6.24-uber/include/linux/cpufreq.h	2011-02-28 22:26:46.000000000 -0500
 @@ -309,6 +309,9 @@
@@ -139,45 +139,9 @@
  
  static struct battery_ops ds2784_battery_ops = {
  	.get_percent       = ds2784_getpercent,
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2011-02-28 17:03:31.000000000 -0500
-+++ linux-2.6.24-uber/arch/arm/mach-omap3pe/constraint.c	2011-03-02 23:03:32.000000000 -0500
-@@ -32,6 +32,11 @@
- #include <asm/arch/prcm.h>
- #include "prcm_opp.h"
- 
-+#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+unsigned short cpufreq_screenstate_opp_settings(unsigned short *screenon,
-+                                        unsigned short *screenoff);
-+unsigned short cpufreq_screenstate_lcd_state();
-+#endif
- 
- /******************************************************************************
-  *
-@@ -333,6 +338,21 @@
- 			return -1;
- 		}
- 	} else if (res->prcm_id == PRCM_VDD1_CONSTRAINT) {
-+#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+                unsigned short i=0,screenon,screenoff;
-+                if(!cpufreq_screenstate_opp_settings(&screenon,&screenoff))
-+                        goto out;
-+                i=cpufreq_screenstate_lcd_state();
-+                if(i && (target_value < screenon)) {
-+                        printk(KERN_ERR "Invalid VDD1 OPP requested\n");
-+                        return -1;
-+                }
-+                if(!i && (target_value > screenoff)) {
-+                        printk(KERN_ERR "Invalid VDD1 OPP requested\n");
-+                        return -1;
-+                }
-+out:
-+#endif
- 		if ((target_value < min_vdd1_opp) ||
- 				(target_value > max_vdd1_opp)) {
- 			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-uber/drivers/cpufreq/cpufreq_screenstate.c	2011-03-02 23:06:27.000000000 -0500
-@@ -0,0 +1,244 @@
++++ linux-2.6.24-uber/drivers/cpufreq/cpufreq_screenstate.c	2011-03-06 20:32:47.000000000 -0500
+@@ -0,0 +1,209 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -212,7 +176,6 @@
 +static int ds2784_getcurrent(int *ret_current);
 +static inline void check_charger(struct work_struct *work);
 +unsigned short get_vdd1_arm_opp_for_freq(unsigned int freq);
-+unsigned short screen_off_opp,screen_on_opp;
 +
 +static DEFINE_MUTEX(screenstate_mutex);
 +
@@ -297,14 +260,9 @@
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE
 +			ch_override = override_show_chrg_ovrd();
 +#endif
-+			screen_off_opp=get_vdd1_arm_opp_for_freq(policy->min);
-+			screen_on_opp=get_vdd1_arm_opp_for_freq(policy->max);
-+
-+			mutex_lock(&screenstate_mutex);
 +			__cpufreq_driver_target(policy, policy->max,
 +							CPUFREQ_RELATION_H);
 +			schedule_delayed_work(&dbs_work,1000);
-+			mutex_unlock(&screenstate_mutex);
 +			
 +			break;
 +		case CPUFREQ_GOV_STOP:
@@ -316,10 +274,7 @@
 +			cancel_delayed_work(&dbs_work);
 +			break;
 +		case CPUFREQ_GOV_LIMITS:
-+			mutex_lock(&screenstate_mutex);
 +			printk("screenstate: policy change\n");
-+			screen_off_opp=get_vdd1_arm_opp_for_freq(policy->min);
-+			screen_on_opp=get_vdd1_arm_opp_for_freq(policy->max);
 +			if(charging_state)
 +				__cpufreq_driver_target(policy, 500000,
 +							CPUFREQ_RELATION_L);
@@ -334,7 +289,6 @@
 +					policy->min, CPUFREQ_RELATION_L);
 +#endif
 +			}
-+			mutex_unlock(&screenstate_mutex);
 +			break;
 +		}
 +		return 0;
@@ -356,9 +310,9 @@
 +}
 +
 +void cpufreq_gov_screenstate_lcdoff(void) {
-+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
-+	mutex_lock(&screenstate_mutex);
 +	if(cpu_is_managed) {
++		struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++		mutex_lock(&screenstate_mutex);
 +		printk("screenstate: lcd off\n");
 +		lcd_state = 0;
 +#ifdef SCREENSTATE_CAP_MIN_FREQ
@@ -366,49 +320,24 @@
 +#else
 +		__cpufreq_driver_target(policy, policy->min, CPUFREQ_RELATION_L);
 +#endif
++		mutex_unlock(&screenstate_mutex);
 +	}
-+	mutex_unlock(&screenstate_mutex);
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdoff);
 +
 +void cpufreq_gov_screenstate_lcdon(void) {
-+	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
-+	mutex_lock(&screenstate_mutex);
 +        if(cpu_is_managed) {
++		struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++		mutex_lock(&screenstate_mutex);
 +		printk("screenstate: lcd on\n");
 +		lcd_state = 1;
 +                if(!charging_state) __cpufreq_driver_target(policy,
 +					policy->max, CPUFREQ_RELATION_H);
 +		else __cpufreq_driver_target(policy, 500000, CPUFREQ_RELATION_L);
++		mutex_unlock(&screenstate_mutex);
 +        }
-+	mutex_unlock(&screenstate_mutex);
 +}
 +EXPORT_SYMBOL(cpufreq_gov_screenstate_lcdon);
-+
-+unsigned short cpufreq_screenstate_lcd_state() {
-+        if(cpu_is_managed) {
-+                return lcd_state;
-+        }
-+        else return 0;
-+}
-+EXPORT_SYMBOL(cpufreq_screenstate_lcd_state);
-+
-+unsigned short cpufreq_screenstate_opp_settings(unsigned short *screenon,
-+                                        unsigned short *screenoff) {
-+        if(cpu_is_managed) {
-+                *(screenon)=(screen_on_opp > 0 && screen_on_opp < 8)
-+                                                        ? screen_on_opp : 0;
-+                *(screenoff)=(screen_off_opp > 0 && screen_off_opp < 8)
-+                                                        ? screen_off_opp : 0;
-+		if(charging_state) {
-+			*(screenon)=3;
-+			*(screenoff)=3;
-+		}
-+                if(!screen_on_opp || !screen_on_opp) return 0;
-+        }
-+        else return 0; 
-+}
-+EXPORT_SYMBOL(cpufreq_screenstate_opp_settings);
 +
 +EXPORT_SYMBOL(cpufreq_gov_screenstate);
 +
@@ -422,16 +351,3 @@
 +module_init(cpufreq_gov_screenstate_init);
 +#endif
 +module_exit(cpufreq_gov_screenstate_exit);
---- linux-2.6.24-palm/drivers/media/video/omappe/omap34xx-isp.c 2011-02-28 17:03:32.000000000 -0500
-+++ linux-2.6.24-F105/drivers/media/video/omappe/omap34xx-isp.c 2011-03-05 21:26:24.000000000 -0500
-@@ -414,8 +414,8 @@
- 	SPEW(1, "+++ %s\n", __func__);
-
- 	/* constraint values are from ti reference code */
--	if ((rc = constraint_set(data->vdd1_co, CO_VDD1_OPP3)))
--		goto exit;
-+//	if ((rc = constraint_set(data->vdd1_co, CO_VDD1_OPP7)))
-+//		goto exit;
-
- 	if ((rc = constraint_set(data->vdd2_co, CO_VDD2_OPP3)))
- 		goto constraint_set_vdd2_failed;

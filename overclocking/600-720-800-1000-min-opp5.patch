@@ -95,7 +95,7 @@
  u32 omap3_max_vdd1_opp(void)
  {
 -	return 5;
-+	return 7;
++	return 0;
  
  	/* This function call is used in the bridgedriver.
  	 *
