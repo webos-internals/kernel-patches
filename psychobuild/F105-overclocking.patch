@@ -99,7 +99,7 @@
  
  comment "Default VDD2 OPP Level Selection"
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-28 17:03:31.000000000 -0500
-+++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2011-03-02 18:55:41.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2011-03-06 19:47:19.000000000 -0500
 @@ -56,13 +56,13 @@
  
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
@@ -122,7 +122,7 @@
  u32 omap3_max_vdd1_opp(void)
  {
 -	return 5;
-+	return 7;
++	return 0;
  
  	/* This function call is used in the bridgedriver.
  	 *
