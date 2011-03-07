@@ -1267,23 +1267,3 @@
  	kfree(data);
  
  	SPEW(1, "--- %s\n", __func__);
---- linux-2.6.24-palm/drivers/misc/lowmemnotify.c	2011-02-28 17:03:32.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/misc/lowmemnotify.c	2011-03-06 10:40:00.000000000 -0500
-@@ -194,7 +194,7 @@
- 	if (other_free > totalreserve_pages)
- 		free += other_free - totalreserve_pages;
- 
--	return free;
-+	return free * 2;
- }
- EXPORT_SYMBOL(memnotify_get_free);
- 
-@@ -351,7 +351,7 @@
- 	int i;
- 
- 	used = memnotify_get_used();
--	total_mem = totalram_pages;
-+	total_mem = totalram_pages * 2;
- 
- 	threshold = memnotify_threshold();
- 	last_threshold = atomic_read(&memnotify_last_threshold);
