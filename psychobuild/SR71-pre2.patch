@@ -104,7 +104,3 @@
  };
  static unsigned int rnd_rate_vdd2[3] = {
  	0, S100M, S200M
-@@ -1890,4 +1890,72 @@
- }
- 
- 
