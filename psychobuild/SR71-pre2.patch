@@ -1,0 +1,110 @@
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-SR71/arch/arm/mach-omap3pe/clock.h	2011-03-10 19:58:23.000000000 -0500
+@@ -53,9 +53,9 @@
+ #define S500M	500000000
+ #define S550M	550000000
+ #define S625M	625000000
+-#define S600M	600000000
+-#define S800M	800000000
+-#define S1000M	1000000000
++#define S700M	700000000
++#define S900M	900000000
++#define S1200M	1200000000
+ 
+ /* Macro to enable clock control via clock framework */
+ #define ENABLE_CLOCKCONTROL 1
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-SR71/arch/arm/mach-omap3pe/clock_tree.h	2011-03-10 19:58:23.000000000 -0500
+@@ -89,11 +89,11 @@
+ 	/*OPP2*/
+ 	{S300M, PRCM_VDD1_OPP2, RATE_IN_343X},
+ 	/*OPP3*/
+-	{S600M, PRCM_VDD1_OPP3, RATE_IN_343X},
++	{S700M, PRCM_VDD1_OPP3, RATE_IN_343X},
+ 	/*OPP4*/
+-	{S800M, PRCM_VDD1_OPP4, RATE_IN_343X},
++	{S900M, PRCM_VDD1_OPP4, RATE_IN_343X},
+ 	/*OPP5*/
+-	{S1000M, PRCM_VDD1_OPP5, RATE_IN_343X},
++	{S1200M, PRCM_VDD1_OPP5, RATE_IN_343X},
+ };
+ 
+ static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-SR71/arch/arm/mach-omap3pe/prcm_opp.c	2011-03-12 21:49:52.000000000 -0500
+@@ -66,7 +66,7 @@
+ 	{ 0x1e, 0x24, 0x30, 0x36, 0x3C },    /* OLD 3430 values */
+ 	/* Vsel corresponding to unused (OPP1), 1.0125V (OPP2),
+ 				1.2V (OPP3), 1.325V (OPP4), 1.375 (OPP5) */
+-	{ 0x21, 0x21, 0x30, 0x3a, 0x3e },    /* NEW 3630 values */
++	{ 0x21, 0x21, 0x32, 0x3f, 0x44 },    /* NEW 3630 values */
+ };
+ 
+ static u8 core_l3_vdd2_volts [2][PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
+@@ -226,7 +226,7 @@
+ 
+ u32 omap3_max_vdd1_opp(void)
+ {
+-	return 5;
++	return 0;
+ 
+ 	/* This function call is used in the bridgedriver.
+ 	 *
+@@ -332,10 +332,10 @@
+ 	/* 26M values */
+ 	/* OPP1(150 Mhz) and OPP2(300 Mhz)*/
+ 	{{0x12c, 0x0C, 0x07, 0x04}, {0x12c, 0x0C, 0x07, 0x02},
+-	/* OPP3(600 Mhz) and OPP4(800 Mhz)*/
+-	{0x12c, 0x0C, 0x07, 0x01}, {0x190, 0x0C, 0x07, 0x01},
+-	/* OPP5 (1000 Mhz) */
+-	{0x1f4, 0x0C, 0x07, 0x01} },
++	/* OPP3(700 Mhz) and OPP4(900 Mhz)*/
++	{0x15E, 0x0C, 0x07, 0x01}, {0x1C2, 0x0C, 0x07, 0x01},
++	/* OPP5 (1200 Mhz) */
++	{0x258, 0x0C, 0x07, 0x01} },
+ 	/* 38.4M values */
+ 	/* OPP1(125 Mhz) and OPP2(250 Mhz)*/
+ 	{{0x271, 0x2F, 0x03, 0x04}, {0x271, 0x2F, 0x03, 0x02},
+@@ -694,13 +694,13 @@
+ 			valid_rate = clk_round_rate(p_vdd1_clk, S300M);
+ 			break;
+ 		case PRCM_VDD1_OPP3:
+-			valid_rate = clk_round_rate(p_vdd1_clk, S600M);
++			valid_rate = clk_round_rate(p_vdd1_clk, S700M);
+ 			break;
+ 		case PRCM_VDD1_OPP4:
+-			valid_rate = clk_round_rate(p_vdd1_clk, S800M);
++			valid_rate = clk_round_rate(p_vdd1_clk, S900M);
+ 			break;
+ 		case PRCM_VDD1_OPP5:
+-			valid_rate = clk_round_rate(p_vdd1_clk, S1000M);
++			valid_rate = clk_round_rate(p_vdd1_clk, S1200M);
+ 			break;
+ #else
+ 		case PRCM_VDD1_OPP2:
+@@ -731,9 +731,9 @@
+ } vdd1_arm_dsp_freq[MAX_VDD1_OPP] = {
+ 	{150,  90, CO_VDD1_OPP1, PRCM_VDD1_OPP1},
+ 	{300, 180, CO_VDD1_OPP2, PRCM_VDD1_OPP2},
+-	{600, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
+-	{800, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
+-	{1000, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
++	{700, 360, CO_VDD1_OPP3, PRCM_VDD1_OPP3},
++	{900, 396, CO_VDD1_OPP4, PRCM_VDD1_OPP4},
++	{1200, 430, CO_VDD1_OPP5, PRCM_VDD1_OPP5},
+ };
+ static struct vdd2_core_freq_d {
+ 	unsigned int freq;
+@@ -746,7 +746,7 @@
+ };
+ 
+ static unsigned int rnd_rate_vdd1[5] = {
+-	S150M, S300M, S600M, S800M, S1000M
++	S150M, S300M, S700M, S900M, S1200M
+ };
+ static unsigned int rnd_rate_vdd2[3] = {
+ 	0, S100M, S200M
+@@ -1890,4 +1890,72 @@
+ }
+ 
+ 
