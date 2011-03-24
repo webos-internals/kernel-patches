@@ -642,8 +642,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-03-05 21:59:01.000000000 -0500
-@@ -0,0 +1,343 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-03-23 21:00:27.000000000 -0400
+@@ -0,0 +1,372 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
 + *
@@ -669,6 +669,10 @@
 +#include <linux/kernel_stat.h>
 +#include <asm/arch/prcm.h>
 +
++#define LOW 0
++#define MED 1
++#define HIGH 2
++
 +// VDD1 Vsel max
 +#define VDD1_VSEL_MAX 112
 +
@@ -682,11 +686,11 @@
 +#define VDD2_VSEL_MIN 33
 +
 +// VDD defaults
-+#define VDD1_VSEL { 0x40, 0x42, 0x45 }
-+#define VDD2_VSEL { 0x26, 0x28, 0x2b }
++#define VDD1_VSEL { 0x3b, 0x40, 0x44 }
++#define VDD2_VSEL { 0x25, 0x28, 0x2b }
 +
 +// vdemand poll rate
-+#define VDEMAND_POLL_RATE 100
++#define VDEMAND_POLL_RATE 10
 +
 +// vdemand poll rate min
 +#define VDEMAND_POLL_RATE_MIN 10
@@ -705,11 +709,13 @@
 +int cpufreq_set_policy(struct cpufreq_policy *policy);
 +
 +static unsigned int cpu_is_managed=0,last_load=0;
-+static cputime64_t prev_cpu_wall=0,prev_cpu_idle=0;
++static cputime64_t cur_cpu_time=0,prev_cpu_time=0,prev_cpu_idle=0;
++static cputime64_t volt_stats[3]={ 0,0,0 };
 +static u8 v_volt[3] = VDD1_VSEL;
 +static u8 v_volt_vdd2[3] = VDD2_VSEL;
 +static u8 vdd1_vsel_def[3] = VDD1_VSEL;
 +static u8 vdd2_vsel_def[3] = VDD2_VSEL;
++static u8 curr_volt_idx=HIGH;
 +static unsigned int vdemand_poll_rate=VDEMAND_POLL_RATE;
 +static unsigned short opp=0;
 +
@@ -775,6 +781,13 @@
 +        return count;
 +}
 +
++static ssize_t show_vdemand_stats(struct cpufreq_policy *policy, char *buf) {
++	return sprintf(buf, "%hu %llu\n%hu %llu\n%hu %llu\n", v_volt[2],volt_stats[2],v_volt[1],volt_stats[1],v_volt[0],volt_stats[0]);
++}
++CPUFREQ_OVERRIDE_ATTR2(vdemand_stats,0444,show_vdemand_stats);
++
++/* Take out vdemand poll for now... no reason to make this selectable just yet.
++
 +static ssize_t show_vdemand_poll(struct cpufreq_policy *policy, char *buf) {
 +        return sprintf(buf, "%hu\n", vdemand_poll_rate);
 +}
@@ -795,10 +808,12 @@
 +        return count;
 +}
 +
++*/
++
 +CPUFREQ_OVERRIDE_ATTR(vdemand_vsel_vdd1,0644,show_vdemand_vsel,
 +						store_vdemand_vsel);
-+CPUFREQ_OVERRIDE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,
-+						store_vdemand_poll);
++/* CPUFREQ_OVERRIDE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,
++						store_vdemand_poll); */
 +
 +static ssize_t show_vdemand_vsel_vdd2(struct cpufreq_policy *policy,
 +								char *buf) {
@@ -806,7 +821,7 @@
 +							v_volt_vdd2[0]);
 +}
 +
-+static ssize_t show_vdemand_poll_rate_min(struct cpufreq_policy *policy, char *buf) {
++/* static ssize_t show_vdemand_poll_rate_min(struct cpufreq_policy *policy, char *buf) {
 +        return sprintf(buf, "%u\n",VDEMAND_POLL_RATE_MIN);
 +}
 +
@@ -815,6 +830,8 @@
 +}
 +CPUFREQ_OVERRIDE_ATTR2(vdemand_poll_rate_min,0444,show_vdemand_poll_rate_min);
 +CPUFREQ_OVERRIDE_ATTR2(vdemand_poll_rate_max,0444,show_vdemand_poll_rate_max);
++
++*/
 +
 +static ssize_t store_vdemand_vsel_vdd2(struct cpufreq_policy *policy, char *buf,
 +                                                size_t count) {
@@ -845,11 +862,12 @@
 +static struct attribute *default_attrs[] = {
 +        &_attr_vdemand_vsel_vdd1.attr,
 +        &_attr_vdemand_vsel_vdd2.attr,
-+        &_attr_vdemand_poll_rate.attr,
++	&_attr_vdemand_stats,
++//        &_attr_vdemand_poll_rate.attr,
 +        &_attr_vdemand_vsel_vdd1_default.attr,
 +        &_attr_vdemand_vsel_vdd2_default.attr,
-+	&_attr_vdemand_poll_rate_min.attr,
-+	&_attr_vdemand_poll_rate_max.attr,
++//	&_attr_vdemand_poll_rate_min.attr,
++//	&_attr_vdemand_poll_rate_max.attr,
 +        NULL
 +};
 +
@@ -889,14 +907,14 @@
 +
 +	idle_ticks = UINT_MAX;
 +        cur_jiffies = jiffies64_to_cputime64(get_jiffies_64());
-+        total_ticks = (unsigned int) cputime64_sub(cur_jiffies,prev_cpu_wall);
++        total_ticks = (unsigned int) cputime64_sub(cur_jiffies,cur_cpu_time);
 +
 +        if (!total_ticks) goto out;
 +
-+	prev_cpu_wall = get_jiffies_64();
++	cur_cpu_time = get_jiffies_64();
 +	total_idle_ticks = get_cpu_idle_time(0);
 +	tmp_idle_ticks = (unsigned int )cputime64_sub(total_idle_ticks,
-+		prev_cpu_idle);
++								prev_cpu_idle);
 +	prev_cpu_idle = total_idle_ticks;
 +
 +	if(tmp_idle_ticks < idle_ticks) idle_ticks = tmp_idle_ticks;
@@ -905,24 +923,33 @@
 +
 +	if(!last_load) goto out;
 +
-+	if((load < 30) && (last_load > 30)) {
++	volt_stats[curr_volt_idx] = cputime64_add(volt_stats[curr_volt_idx],
++				cputime_sub(cur_cpu_time,prev_cpu_time));
++	prev_cpu_time = cur_cpu_time;
++
++	if((load < 30) && (last_load > 29)) {
 +		volt[opp-1]=v_volt[0];
 +		volt_vdd2[2]=v_volt_vdd2[0];
 +		omap_pm_opp_set_volts(volt);
 +		omap_pm_opp_set_vdd2_volts(volt_vdd2);
++		curr_volt_idx=LOW;
++		goto out;
 +	}
-+        if(((load > 30) && (load < 70)) &&
-+	    ((last_load < 30) || (last_load > 70))) {
-+                volt[opp-1]=v_volt[1];
++        if(((load > 29) && (load < 70)) &&
++	    ((last_load < 30) || (last_load > 69))) {
++                volt[opp-1]=(load < 50) ? v_volt[1] - 2 : v_volt[1] ;
 +		volt_vdd2[2]=v_volt_vdd2[1];
 +                omap_pm_opp_set_volts(volt);
 +		omap_pm_opp_set_vdd2_volts(volt_vdd2);
++		curr_volt_idx=MED;
++		goto out;
 +        }
-+	if((load > 70) && (last_load < 70)) {
-+                volt[opp-1]=v_volt[2];
++	if((load > 69) && (last_load < 70)) {
++                volt[opp-1]=(load < 90) ? v_volt[2] - 2 : v_volt[2];
 +		volt_vdd2[2]=v_volt_vdd2[2];
 +                omap_pm_opp_set_volts(volt);
 +		omap_pm_opp_set_vdd2_volts(volt_vdd2);
++		curr_volt_idx=HIGH;
 +        }
 +
 +out:
@@ -941,7 +968,9 @@
 +			if(cpu_is_managed) break;
 +			cpu_is_managed = 1;
 +			prev_cpu_idle = get_cpu_idle_time(0);
-+			prev_cpu_wall = get_jiffies_64();
++			cur_cpu_time = get_jiffies_64();
++			curr_volt_idx=HIGH;
++			prev_cpu_time=cur_cpu_time;
 +			sysfs_create_group(&policy->kobj,&vdemand_attr_group);
 +			opp=get_vdd1_arm_opp_for_freq(policy->max);
 +			prcm_set_constraint(5,5);
@@ -1142,7 +1171,7 @@
  	help
  	  Select this option if you want to boot at OPP5.
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2011-02-28 17:03:32.000000000 -0500
-+++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2011-03-04 14:10:53.000000000 -0500
++++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2011-03-23 20:31:40.000000000 -0400
 @@ -29,14 +29,14 @@
  #include <linux/notifier.h>
  
@@ -1167,12 +1196,13 @@
  
  /* Frequencies and Voltages for OPPs */
 -#define CURR_ARM_FREQ 	500
-+#define CURR_ARM_FREQ 	1005
- #define CURR_DSP_FREQ 	360
+-#define CURR_DSP_FREQ 	360
 -#define curr_arm_freq 	500
 -#define curr_dsp_freq 	360
 -#define min_arm_freq 	125
 -#define max_arm_freq 	600
++#define CURR_ARM_FREQ 	1005
++#define CURR_DSP_FREQ 	430
 +#define curr_arm_freq 	1005
 +#define curr_dsp_freq 	430
 +#define min_arm_freq 	500
