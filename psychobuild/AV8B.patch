@@ -288,8 +288,8 @@
 +EXPORT_SYMBOL(get_vdd1_arm_opp_for_freq);
  
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-03-05 21:59:20.000000000 -0500
-@@ -0,0 +1,351 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-03-29 20:35:28.000000000 -0400
+@@ -0,0 +1,346 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -330,7 +330,7 @@
 +// Polling frequency jiffies
 +#define BATTERY_POLLING 30000
 +#define TEMP_POLLING 1000
-+#define CHARGER_POLLING 3000
++#define CHARGER_POLLING 1500
 +
 +// Battery scaleback percent
 +#define BATTERY_PERCENT 25
@@ -348,7 +348,6 @@
 +int ds2784_getpercent(int *ret_percent);
 +int gadget_event_state_current(void);
 +int ds2784_getcurrent(int *ret_current);
-+void prcm_set_constraint(u8 vdd1_min,u8 vdd1_max);
 +unsigned short get_vdd1_arm_opp_for_freq(unsigned int freq);
 +
 +static inline void check_temp(struct work_struct *work);
@@ -384,13 +383,10 @@
 +
 +static void change_freq_low(void) {
 +	struct cpufreq_policy new_policy;
-+	unsigned short vopp;
 +
 +	cpufreq_get_policy(&new_policy,0);
 +	new_policy.min=SCALEBACK_SPEED;
 +	new_policy.max=SCALEBACK_SPEED;
-+	vopp=get_vdd1_arm_opp_for_freq(SCALEBACK_SPEED);
-+	prcm_set_constraint(vopp,vopp);
 +	cpufreq_set_policy(&new_policy);
 +}
 +
@@ -400,7 +396,6 @@
 +	cpufreq_get_policy(&new_policy,0);
 +	new_policy.min=1005000;
 +	new_policy.max=1005000;
-+	prcm_set_constraint(5,5);
 +	cpufreq_set_policy(&new_policy);
 +}
 +
@@ -642,8 +637,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-03-23 21:00:27.000000000 -0400
-@@ -0,0 +1,372 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-03-29 20:51:55.000000000 -0400
+@@ -0,0 +1,373 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
 + *
@@ -972,10 +967,10 @@
 +			curr_volt_idx=HIGH;
 +			prev_cpu_time=cur_cpu_time;
 +			sysfs_create_group(&policy->kobj,&vdemand_attr_group);
++			policy->min=1005000;
++			policy->max=1005000;
++			cpufreq_set_policy(policy);
 +			opp=get_vdd1_arm_opp_for_freq(policy->max);
-+			prcm_set_constraint(5,5);
-+			__cpufreq_driver_target(policy,
-+				policy->max, CPUFREQ_RELATION_H);
 +			schedule_delayed_work(&dbs_work,vdemand_poll_rate);
 +			break;
 +		case CPUFREQ_GOV_STOP:
@@ -985,9 +980,10 @@
 +			break;
 +		case CPUFREQ_GOV_LIMITS:
 +			mutex_lock(&vdemand_mutex);
-+			opp=get_vdd1_arm_opp_for_freq(policy->max);
 +			__cpufreq_driver_target(policy,
 +					policy->max, CPUFREQ_RELATION_H);
++			printk("vdemand: policy change\n");
++			opp=get_vdd1_arm_opp_for_freq(policy->max);
 +			mutex_unlock(&vdemand_mutex);
 +			break;
 +		}
@@ -1111,7 +1107,7 @@
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2011-02-28 17:03:31.000000000 -0500
-+++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/constraint.c	2011-03-05 19:36:56.000000000 -0500
++++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/constraint.c	2011-03-29 19:06:41.000000000 -0400
 @@ -32,7 +32,6 @@
  #include <asm/arch/prcm.h>
  #include "prcm_opp.h"
@@ -1120,7 +1116,7 @@
  /******************************************************************************
   *
   * DEBUG
-@@ -66,11 +65,19 @@
+@@ -66,9 +65,9 @@
  static struct atomic_notifier_head freq_dsp_pre_notifier_list;
  static struct atomic_notifier_head freq_dsp_post_notifier_list;
  
@@ -1131,34 +1127,18 @@
 +#define min_vdd2_opp    CO_VDD2_OPP3
  #define max_vdd2_opp    CO_VDD2_OPP3
  
-+static unsigned int vdd1_min_opp=CO_VDD1_OPP3,vdd1_max_opp=CO_VDD1_OPP5;
-+
-+void prcm_set_constraint(u8 vdd1_min,u8 vdd1_max) {
-+	vdd1_min_opp=vdd1_min;
-+	vdd1_max_opp=vdd1_max;
-+}
-+EXPORT_SYMBOL(prcm_set_constraint);
-+
  /******************************************************************************
-  *
-  * Notifier functions
-@@ -333,8 +340,14 @@
- 			return -1;
- 		}
- 	} else if (res->prcm_id == PRCM_VDD1_CONSTRAINT) {
--		if ((target_value < min_vdd1_opp) ||
--				(target_value > max_vdd1_opp)) {
-+//		if ((target_value < min_vdd1_opp) ||
-+		if ((target_value < vdd1_min_opp) ||
-+//				(target_value > max_vdd1_opp)) {
-+				(target_value > vdd1_max_opp)) {
-+			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
-+			return -1;
-+		}
-+		if(target_value == 4) {
+@@ -338,6 +337,10 @@
  			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
  			return -1;
  		}
++		if(target_value == 4) {
++			printk(KERN_ERR "Invalid VDD1 OPP requested\n");
++			return -1;
++		}
+ 	} else if (res->prcm_id == PRCM_VDD2_CONSTRAINT) {
+ 		if ((target_value < min_vdd2_opp) ||
+ 				(target_value > max_vdd2_opp)) {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/Kconfig	2011-02-28 17:03:31.000000000 -0500
 +++ linux-2.6.24-AV8B/arch/arm/mach-omap3pe/Kconfig	2011-03-03 16:09:44.000000000 -0500
 @@ -138,7 +138,7 @@
@@ -1171,7 +1151,7 @@
  	help
  	  Select this option if you want to boot at OPP5.
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2011-02-28 17:03:32.000000000 -0500
-+++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2011-03-23 20:31:40.000000000 -0400
++++ linux-2.6.24-AV8B/include/asm-arm/arch-omap/resource.h	2011-03-29 19:07:09.000000000 -0400
 @@ -29,14 +29,14 @@
  #include <linux/notifier.h>
  
