@@ -1255,8 +1255,8 @@
  {
  	int ret = 0;
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-28 17:03:31.000000000 -0500
-+++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2011-04-13 16:53:33.000000000 -0400
-@@ -1541,4 +1596,74 @@
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2011-04-13 17:46:47.000000000 -0400
+@@ -1541,4 +1596,73 @@
  	return -1;
  }
  
@@ -1278,7 +1278,6 @@
 +        prcm_do_voltage_scaling(s_current_vdd1_opp, s_current_vdd1_opp-1);
 + #else
 +        memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
-+	printk("opp: %hu %hu %hu %hu %hu %hu %hu\n",mpu_iva2_vdd1_volts[0],mpu_iva2_vdd1_volts[1],mpu_iva2_vdd1_volts[2],mpu_iva2_vdd1_volts[3],mpu_iva2_vdd1_volts[4],mpu_iva2_vdd1_volts[5],mpu_iva2_vdd1_volts[6]);
 +        prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
 + #endif
 +}
