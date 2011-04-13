@@ -1,5 +1,5 @@
---- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/cpufreq/Kconfig	2011-03-11 17:05:39.000000000 -0500
+--- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-F105/drivers/cpufreq/Kconfig	2011-02-28 17:36:28.000000000 -0500
 @@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
@@ -40,7 +40,7 @@
  config CPU_FREQ_DEFAULT_GOV_ONDEMAND
  	bool "ondemand"
  	select CPU_FREQ_GOV_ONDEMAND
-@@ -162,6 +188,16 @@
+@@ -149,6 +175,16 @@
  
  	  If in doubt, say Y.
  
@@ -57,11 +57,11 @@
  config CPU_FREQ_GOV_ONDEMAND
  	tristate "'ondemand' cpufreq policy governor"
  	select CPU_FREQ_TABLE
---- linux-2.6.24-palm/drivers/cpufreq/Makefile	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/cpufreq/Makefile	2011-03-11 17:05:55.000000000 -0500
-@@ -10,7 +10,11 @@
+--- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
++++ linux-2.6.24-F105/drivers/cpufreq/Makefile	2011-02-28 17:36:28.000000000 -0500
+@@ -9,7 +9,11 @@
+ obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
- obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE)	+= cpufreq_ondemand_tickle.o
  obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
 +obj-$(CONFIG_CPU_FREQ_GOV_SCREENSTATE)	+= cpufreq_screenstate.o
  
@@ -71,8 +71,8 @@
 +# CPUfreq override
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
 +
---- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq.c	2011-03-10 19:58:23.000000000 -0500
+--- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq.c	2011-03-01 15:17:56.000000000 -0500
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -126,9 +126,9 @@
  	return 0;
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
---- linux-2.6.24-palm/include/linux/cpufreq.h	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/include/linux/cpufreq.h	2011-03-11 17:06:09.000000000 -0500
-@@ -355,6 +355,9 @@
+--- linux-2.6.24-palm/include/linux/cpufreq.h	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-F105/include/linux/cpufreq.h	2011-02-28 17:36:28.000000000 -0500
+@@ -309,6 +309,9 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
  extern struct cpufreq_governor cpufreq_gov_userspace;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_userspace)
@@ -138,83 +138,8 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND)
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c  2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-SR71/arch/arm/mach-omap3pe/prcm_opp.c    2010-11-02 23:24:57.000000000 -0400
-@@ -1890,4 +1890,72 @@
- }
- 
- 
-+#ifdef CONFIG_CPU_FREQ_OVERRIDE
-+void omap_pm_opp_get_volts(unsigned short *vdd1_volts[]) {
-+ #ifdef CONFIG_MACH_SIRLOIN_3630
-+	memcpy(vdd1_volts,mpu_iva2_vdd1_volts[tidx],
-+					    sizeof(mpu_iva2_vdd1_volts[tidx]));
-+ #else
-+	memcpy(vdd1_volts,mpu_iva2_vdd1_volts+tidx,sizeof(vdd1_volts));
-+ #endif
-+}
-+EXPORT_SYMBOL(omap_pm_opp_get_volts);
-+
-+void omap_pm_opp_set_volts(unsigned short vdd1_volts[]) {
-+ #ifdef CONFIG_MACH_SIRLOIN_3630
-+	memcpy(mpu_iva2_vdd1_volts[tidx],vdd1_volts,
-+					    sizeof(mpu_iva2_vdd1_volts[tidx]));
-+	prcm_do_voltage_scaling(s_current_vdd1_opp, s_current_vdd1_opp-1);
-+ #else
-+	memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
-+	prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
-+ #endif
-+}
-+EXPORT_SYMBOL(omap_pm_opp_set_volts);
-+
-+void omap_pm_opp_get_vdd2_volts(unsigned short *vdd2_volt) {
-+ #ifdef CONFIG_MACH_SIRLOIN_3630
-+	*(vdd2_volt)=(u8 )core_l3_vdd2_volts[tidx][2];
-+ #else
-+	*(vdd2_volt)=(u8 )core_l3_vdd2_volts[2];
-+ #endif
-+}
-+EXPORT_SYMBOL(omap_pm_opp_get_vdd2_volts);
-+
-+void omap_pm_opp_set_vdd2_volts(unsigned short vdd2_volt) {
-+ #ifdef CONFIG_MACH_SIRLOIN_3630
-+	core_l3_vdd2_volts[tidx][2]=vdd2_volt;
-+	prcm_do_voltage_scaling(s_current_vdd2_opp, s_current_vdd2_opp-1);
-+ #else
-+	core_l3_vdd2_volts[2]=vdd2_volt;
-+	prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
-+ #endif
-+}
-+EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
-+
-+void omap_pm_opp_get_vdd2_freq(unsigned int *vdd2_freq) {
-+	*(vdd2_freq)=vdd2_core_freq[2].freq;
-+}
-+EXPORT_SYMBOL(omap_pm_opp_get_vdd2_freq);
-+
-+unsigned int prcm_get_current_vdd1_opp_no(void) {
-+ #ifdef CONFIG_MACH_SIRLOIN_3630
-+	return get_opp_no(s_current_vdd1_opp);
-+ #else
-+	return get_opp_no(current_vdd1_opp);
-+ #endif
-+}
-+EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
- 
-+unsigned short get_vdd1_arm_opp_for_freq(unsigned int freq)
-+{
-+	int i;
-+	for (i = 0; i < ARRAY_SIZE(vdd1_arm_dsp_freq); i++) {
-+		 if (vdd1_arm_dsp_freq[i].freq_mpu == (freq / 1000)) {
-+		 return i+1;
-+		 }
-+	}
-+	return 0;
-+}
-+EXPORT_SYMBOL(get_vdd1_arm_opp_for_freq);
-+#endif
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq_override.c	2011-04-13 16:26:05.000000000 -0400
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_override.c	2011-04-13 16:46:36.000000000 -0400
 @@ -0,0 +1,474 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
@@ -691,7 +616,7 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq_screenstate.c	2011-04-13 16:01:40.000000000 -0400
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-04-13 16:46:18.000000000 -0400
 @@ -0,0 +1,513 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
@@ -1206,24 +1131,21 @@
 +module_init(cpufreq_gov_screenstate_init);
 +#endif
 +module_exit(cpufreq_gov_screenstate_exit);
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/arch/arm/mach-omap3pe/clock.c	2011-03-12 19:41:51.000000000 -0500
-@@ -707,6 +707,13 @@
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2011-02-28 17:03:31.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/clock.c	2011-02-28 17:36:28.000000000 -0500
+@@ -709,6 +709,10 @@
  
  	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;
  	for (; prcm->speed; prcm--) {
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+ #ifdef CONFIG_MACH_SIRLOIN_3630
-+		if((prcm->speed / 1000) < 300000) continue;
-+ #else
++		// Damn l-users!!!!  This will fix them!!!
 +		if((prcm->speed / 1000) < 500000) continue;
-+ #endif
 +#endif
  		freq_table[i].index = i;
  		freq_table[i].frequency = prcm->speed / 1000;
  		i++;
---- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/w1/slaves/w1_ds2784.c	2011-03-11 17:07:25.000000000 -0500
+--- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-F105/drivers/w1/slaves/w1_ds2784.c	2011-02-28 17:36:28.000000000 -0500
 @@ -1133,11 +1133,20 @@
  */
  static struct device *battery_device = NULL;
@@ -1266,8 +1188,8 @@
  
  static struct battery_ops ds2784_battery_ops = {
  	.get_percent       = ds2784_getpercent,
---- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/video/omap/lcd_panel.c	2011-04-11 22:08:29.000000000 -0400
+--- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-F105/drivers/video/omap/lcd_panel.c	2011-04-13 17:17:07.000000000 -0400
 @@ -31,6 +31,11 @@
  
  #include "lcd.h"
@@ -1288,31 +1210,36 @@
  struct lcd_params {
  	struct display_device *disp_dev;
  	struct platform_device *pdev;
-@@ -126,8 +130,12 @@
- 		    params->bl_ops->bl_set_state) {
- 			params->bl_ops->bl_set_state(params->bl_dev,
- 						DISPLAY_BACKLIGHT_STATE_ON);
+@@ -119,6 +123,9 @@
+ 		    params->pnl_ops->pnl_set_state) {
+ 			params->pnl_ops->pnl_set_state(params->pnl_dev,
+ 						DISPLAY_PANEL_STATE_ON);
 +#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
 +			cpufreq_gov_screenstate_lcdon();
 +#endif
+ 		}
+ 
+ 		/* Backlight ON */
+@@ -128,6 +135,7 @@
+ 						DISPLAY_BACKLIGHT_STATE_ON);
  		}
  		params->panel_state = DISPLAY_DEVICE_STATE_ON;
 +
  	} else {
  		if (params->panel_state == DISPLAY_DEVICE_STATE_OFF) {
  			DPRINTK(" %s:  Panel already off, returning...\n",
-@@ -154,6 +162,9 @@
- 		    params->ctrl_ops->ctrl_set_state) {
- 			params->ctrl_ops->ctrl_set_state(params->ctrl_dev,
- 						DISPLAY_CONTROLLER_STATE_OFF);
+@@ -147,6 +155,9 @@
+ 		    params->pnl_ops->pnl_set_state) {
+ 			params->pnl_ops->pnl_set_state(params->pnl_dev,
+ 						DISPLAY_PANEL_STATE_OFF);
 +#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
 +			cpufreq_gov_screenstate_lcdoff();
 +#endif
  		}
- 		params->panel_state = DISPLAY_DEVICE_STATE_OFF;
- 	}
---- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/usb/gadget/gadget_event.c	2011-03-11 17:07:55.000000000 -0500
+ 
+ 		/* Controller OFF */
+--- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2011-02-28 17:03:32.000000000 -0500
++++ linux-2.6.24-F105/drivers/usb/gadget/gadget_event.c	2011-02-28 17:36:28.000000000 -0500
 @@ -362,6 +362,13 @@
  }
  EXPORT_SYMBOL(gadget_event_power_state_changed);
@@ -1327,3 +1254,80 @@
  static int __init init(void)
  {
  	int ret = 0;
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-28 17:03:31.000000000 -0500
++++ linux-2.6.24-F105/arch/arm/mach-omap3pe/prcm_opp.c	2011-04-13 16:53:33.000000000 -0400
+@@ -1541,4 +1596,74 @@
+ 	return -1;
+ }
+ 
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++void omap_pm_opp_get_volts(u8 *vdd1_volts[]) {
++ #ifdef CONFIG_MACH_SIRLOIN_3630
++        memcpy(vdd1_volts,mpu_iva2_vdd1_volts[tidx],
++                                        sizeof(mpu_iva2_vdd1_volts[tidx]));
++ #else
++        memcpy(vdd1_volts,mpu_iva2_vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++ #endif
++}
++EXPORT_SYMBOL(omap_pm_opp_get_volts);
++
++void omap_pm_opp_set_volts(u8 vdd1_volts[]) {
++ #ifdef CONFIG_MACH_SIRLOIN_3630
++        memcpy(mpu_iva2_vdd1_volts[tidx],vdd1_volts,
++                                        sizeof(mpu_iva2_vdd1_volts[tidx]));
++        prcm_do_voltage_scaling(s_current_vdd1_opp, s_current_vdd1_opp-1);
++ #else
++        memcpy(mpu_iva2_vdd1_volts,vdd1_volts,sizeof(mpu_iva2_vdd1_volts));
++	printk("opp: %hu %hu %hu %hu %hu %hu %hu\n",mpu_iva2_vdd1_volts[0],mpu_iva2_vdd1_volts[1],mpu_iva2_vdd1_volts[2],mpu_iva2_vdd1_volts[3],mpu_iva2_vdd1_volts[4],mpu_iva2_vdd1_volts[5],mpu_iva2_vdd1_volts[6]);
++        prcm_do_voltage_scaling(current_vdd1_opp, current_vdd1_opp-1);
++ #endif
++}
++EXPORT_SYMBOL(omap_pm_opp_set_volts);
++
++void omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt) {
++ #ifdef CONFIG_MACH_SIRLOIN_3630
++        *(vdd2_volt)=(u8 )core_l3_vdd2_volts[tidx][2];
++ #else
++        *(vdd2_volt)=(u8 )core_l3_vdd2_volts[2];
++ #endif
++}
++EXPORT_SYMBOL(omap_pm_opp_get_vdd2_volts);
++
++void omap_pm_opp_set_vdd2_volts(u8 vdd2_volt) {
++ #ifdef CONFIG_MACH_SIRLOIN_3630
++        core_l3_vdd2_volts[tidx][2]=vdd2_volt;
++        prcm_do_voltage_scaling(s_current_vdd2_opp, s_current_vdd2_opp-1);
++ #else
++        core_l3_vdd2_volts[2]=vdd2_volt;
++        prcm_do_voltage_scaling(current_vdd2_opp, current_vdd2_opp-1);
++ #endif
++}
++EXPORT_SYMBOL(omap_pm_opp_set_vdd2_volts);
++
++void omap_pm_opp_get_vdd2_freq(u8 *vdd2_freq) {
++        *(vdd2_freq)=vdd2_core_freq[2].freq;
++}
++EXPORT_SYMBOL(omap_pm_opp_get_vdd2_freq);
++
++unsigned int prcm_get_current_vdd1_opp_no(void) {
++ #ifdef CONFIG_MACH_SIRLOIN_3630
++        return get_opp_no(s_current_vdd1_opp);
++ #else
++        return get_opp_no(current_vdd1_opp);
++ #endif
++}
++EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
++
++unsigned short get_vdd1_arm_opp_for_freq(unsigned int freq)
++{
++        int i;
++        for (i = 0; i < ARRAY_SIZE(vdd1_arm_dsp_freq); i++) {
++                if (vdd1_arm_dsp_freq[i].freq_mpu == (freq / 1000)) {
++                return i+1;
++                }
++        }
++        return 0;
++}
++EXPORT_SYMBOL(get_vdd1_arm_opp_for_freq);
++#endif
+ 
