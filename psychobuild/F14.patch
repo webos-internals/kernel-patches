@@ -1,5 +1,5 @@
---- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/drivers/cpufreq/Kconfig	2011-01-18 22:15:06.000000000 -0500
+--- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/drivers/cpufreq/Kconfig	2011-03-09 13:50:23.000000000 -0500
 @@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
@@ -57,8 +57,8 @@
  config CPU_FREQ_GOV_ONDEMAND
  	tristate "'ondemand' cpufreq policy governor"
  	select CPU_FREQ_TABLE
---- linux-2.6.24-palm/drivers/cpufreq/Makefile	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/drivers/cpufreq/Makefile	2011-01-18 22:15:11.000000000 -0500
+--- linux-2.6.24-palm/drivers/cpufreq/Makefile	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/drivers/cpufreq/Makefile	2011-03-09 13:50:23.000000000 -0500
 @@ -10,7 +10,10 @@
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE)	+= cpufreq_ondemand_tickle.o
@@ -70,8 +70,8 @@
  
 +# CPUfreq override
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)		+= cpufreq_override.o
---- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/drivers/cpufreq/cpufreq.c	2011-01-18 22:22:07.000000000 -0500
+--- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/drivers/cpufreq/cpufreq.c	2011-03-09 13:50:23.000000000 -0500
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -84,51 +84,6 @@
  /**
   * The "cpufreq driver" - the arch- or hardware-dependent low
   * level driver of CPUFreq support, and its spinlock. This lock
-@@ -1602,7 +1607,7 @@
- 	int ret = 0;
- 
- 	cpufreq_debug_disable_ratelimit();
--	dprintk("setting new policy for CPU %u: %u - %u kHz\n", policy->cpu,
-+	printk("setting new policy for CPU %u: %u - %u kHz\n", policy->cpu,
- 		policy->min, policy->max);
- 
- 	memcpy(&policy->cpuinfo, &data->cpuinfo,
-@@ -1639,7 +1644,7 @@
- 	data->min = policy->min;
- 	data->max = policy->max;
- 
--	dprintk("new min and max freqs are %u - %u kHz\n",
-+	printk("new min and max freqs are %u - %u kHz\n",
- 					data->min, data->max);
- 
- 	if (cpufreq_driver->setpolicy) {
-@@ -1651,7 +1656,7 @@
- 			/* save old, working values */
- 			struct cpufreq_governor *old_gov = data->governor;
- 
--			dprintk("governor switch\n");
-+			printk("governor switch\n");
- 
- 			/* end old governor */
- 			if (data->governor)
-@@ -1661,7 +1666,7 @@
- 			data->governor = policy->governor;
- 			if (__cpufreq_governor(data, CPUFREQ_GOV_START)) {
- 				/* new governor failed, so re-start old one */
--				dprintk("starting governor %s failed\n",
-+				printk("starting governor %s failed\n",
- 							data->governor->name);
- 				if (old_gov) {
- 					data->governor = old_gov;
-@@ -1673,7 +1678,7 @@
- 			}
- 			/* might be a policy change, too, so fall through */
- 		}
--		dprintk("governor: change or update limits\n");
-+		printk("governor: change or update limits\n");
- 		__cpufreq_governor(data, CPUFREQ_GOV_LIMITS);
- 	}
- 
 @@ -1682,6 +1687,18 @@
  	return ret;
  }
@@ -148,15 +103,6 @@
  /**
   *	cpufreq_update_policy - re-evaluate an existing cpufreq policy
   *	@cpu: CPU which shall be re-evaluated
-@@ -1701,7 +1718,7 @@
- 	if (unlikely(lock_policy_rwsem_write(cpu)))
- 		return -EINVAL;
- 
--	dprintk("updating policy for CPU %u\n", cpu);
-+	printk("updating policy for CPU %u\n", cpu);
- 	memcpy(&policy, data, sizeof(struct cpufreq_policy));
- 	policy.min = data->user_policy.min;
- 	policy.max = data->user_policy.max;
 @@ -1831,6 +1848,10 @@
  		cpufreq_debug_enable_ratelimit();
  	}
@@ -179,8 +125,8 @@
  	return 0;
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
---- linux-2.6.24-palm/include/linux/cpufreq.h	2010-11-23 18:42:42.000000000 -0500
-+++ linux-2.6.24-F14/include/linux/cpufreq.h	2011-01-18 22:20:10.000000000 -0500
+--- linux-2.6.24-palm/include/linux/cpufreq.h	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/include/linux/cpufreq.h	2011-03-09 13:50:23.000000000 -0500
 @@ -355,6 +355,9 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
  extern struct cpufreq_governor cpufreq_gov_userspace;
@@ -191,9 +137,9 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND)
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-18 13:44:48.000000000 -0500
-@@ -66,14 +66,14 @@
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/arch/arm/mach-omap3pe/prcm_opp.c	2011-04-16 17:23:39.000000000 -0400
+@@ -66,7 +66,7 @@
  	{ 0x1e, 0x24, 0x30, 0x36, 0x3C },    /* OLD 3430 values */
  	/* Vsel corresponding to unused (OPP1), 1.0125V (OPP2),
  				1.2V (OPP3), 1.325V (OPP4), 1.375 (OPP5) */
@@ -202,14 +148,15 @@
  };
  
  static u8 core_l3_vdd2_volts [2][PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
- 	/* Vsel corresponding to 0.975V (OPP1), 1.05V (OPP2), 1.15V (OPP3) */
- 	{ 0x1e, 0x24, 0x2c },    /* OLD 3430 values */
- 	/* Vsel corresponding to unused (OPP1), 0.9375 (OPP2), 1.1375V (OPP3) */
--	{ 0x14, 0x1b, 0x2b },    /* NEW 3630 values */
-+	{ 0x14, 0x1b, 0x2f },    /* NEW 3630 values */
- };
+@@ -226,7 +226,7 @@
  
- u8 get_mpu_iva2_vdd1_volts(int opp_num)
+ u32 omap3_max_vdd1_opp(void)
+ {
+-	return 5;
++	return 0;
+ 
+ 	/* This function call is used in the bridgedriver.
+ 	 *
 @@ -332,10 +332,10 @@
  	/* 26M values */
  	/* OPP1(150 Mhz) and OPP2(300 Mhz)*/
@@ -296,8 +243,8 @@
 +EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
 +#endif
  
---- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2010-11-23 18:42:42.000000000 -0500
-+++ linux-2.6.24-F14/drivers/video/omap/lcd_panel.c	2011-01-18 22:56:38.000000000 -0500
+--- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/drivers/video/omap/lcd_panel.c	2011-04-17 12:27:00.000000000 -0400
 @@ -31,6 +31,11 @@
  
  #include "lcd.h"
@@ -318,32 +265,37 @@
  struct lcd_params {
  	struct display_device *disp_dev;
  	struct platform_device *pdev;
-@@ -128,6 +132,11 @@
+@@ -119,6 +123,9 @@
+ 		    params->pnl_ops->pnl_set_state) {
+ 			params->pnl_ops->pnl_set_state(params->pnl_dev,
+ 						DISPLAY_PANEL_STATE_ON);
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++	                cpufreq_gov_screenstate_lcdon();
++#endif
+ 		}
+ 
+ 		/* Backlight ON */
+@@ -128,6 +135,7 @@
  						DISPLAY_BACKLIGHT_STATE_ON);
  		}
  		params->panel_state = DISPLAY_DEVICE_STATE_ON;
 +
-+#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+		cpufreq_gov_screenstate_lcdon();
-+#endif
-+
  	} else {
  		if (params->panel_state == DISPLAY_DEVICE_STATE_OFF) {
  			DPRINTK(" %s:  Panel already off, returning...\n",
-@@ -156,6 +165,10 @@
- 						DISPLAY_CONTROLLER_STATE_OFF);
- 		}
- 		params->panel_state = DISPLAY_DEVICE_STATE_OFF;
-+
+@@ -147,6 +155,9 @@
+ 		    params->pnl_ops->pnl_set_state) {
+ 			params->pnl_ops->pnl_set_state(params->pnl_dev,
+ 						DISPLAY_PANEL_STATE_OFF);
 +#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
-+		cpufreq_gov_screenstate_lcdoff();
++	                cpufreq_gov_screenstate_lcdoff();
 +#endif
- 	}
+ 		}
  
- unlock:
+ 		/* Controller OFF */
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F14/drivers/cpufreq/cpufreq_override.c	2011-02-17 17:24:52.000000000 -0500
-@@ -0,0 +1,459 @@
++++ linux-2.6.24-F14/drivers/cpufreq/cpufreq_override.c	2011-04-17 12:10:51.000000000 -0400
+@@ -0,0 +1,462 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -377,14 +329,14 @@
 +#define VDD2_VSEL_MIN 25
 +
 +// High temp alarm and cap
-+#define HIGHTEMP_SCALEBACK 45
++#define HIGHTEMP_SCALEBACK 50
 +
 +//Reset temp from alarm
-+#define LOWTEMP_RESET 40
++#define LOWTEMP_RESET 45
 +
 +// Polling frequency jiffies
 +#define TEMP_POLLING 100
-+#define BATTERY_POLLING 17000
++#define BATTERY_POLLING 30000
 +
 +// Battery scaleback percent
 +#define BATTERY_PERCENT 25
@@ -460,7 +412,7 @@
 +                        cpufreq_get_policy(&new_policy,0);
 +                        prev_minspeed_temp=policy->min;
 +                        prev_maxspeed_temp=policy->max;
-+                        new_policy.min=1000000;
++                        new_policy.min=policy->min;
 +                        new_policy.max=1000000;
 +			cpufreq_set_policy(&new_policy);
 +                }
@@ -501,7 +453,7 @@
 +			cpufreq_get_policy(&new_policy,0);
 +			prev_minspeed_bat=policy->min;
 +			prev_maxspeed_bat=policy->max;
-+			new_policy.min=battery_scaleback_speed;
++			new_policy.min=policy->min;
 +			new_policy.max=battery_scaleback_speed;
 +		}	cpufreq_set_policy(&new_policy);
 +	}
@@ -581,6 +533,9 @@
 +        u8 volt[2][PRCM_NO_VDD1_OPPS], i;
 +
 +        mutex_lock(&override_mutex);
++
++        omap_pm_opp_get_volts(&volt);
++
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
 + #if PRCM_NO_VDD1_OPPS > 5
 +        if(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu", &volt[tidx][6],
@@ -804,7 +759,7 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F14/drivers/cpufreq/cpufreq_screenstate.c	2011-02-17 16:50:46.000000000 -0500
++++ linux-2.6.24-F14/drivers/cpufreq/cpufreq_screenstate.c	2011-03-09 13:50:23.000000000 -0500
 @@ -0,0 +1,194 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
@@ -1000,8 +955,8 @@
 +module_init(cpufreq_gov_screenstate_init);
 +#endif
 +module_exit(cpufreq_gov_screenstate_exit);
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/arch/arm/mach-omap3pe/clock.c	2011-01-28 17:52:08.000000000 -0500
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/arch/arm/mach-omap3pe/clock.c	2011-03-09 13:50:23.000000000 -0500
 @@ -707,6 +707,10 @@
  
  	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;
@@ -1013,8 +968,8 @@
  		freq_table[i].index = i;
  		freq_table[i].frequency = prcm->speed / 1000;
  		i++;
---- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-11-23 18:42:42.000000000 -0500
-+++ linux-2.6.24-F14/drivers/w1/slaves/w1_ds2784.c	2011-01-18 22:20:51.000000000 -0500
+--- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/drivers/w1/slaves/w1_ds2784.c	2011-03-09 13:50:23.000000000 -0500
 @@ -1133,11 +1133,20 @@
  */
  static struct device *battery_device = NULL;
@@ -1057,8 +1012,8 @@
  
  static struct battery_ops ds2784_battery_ops = {
  	.get_percent       = ds2784_getpercent,
---- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2010-11-23 18:42:42.000000000 -0500
-+++ linux-2.6.24-F14/drivers/usb/gadget/gadget_event.c	2011-01-18 22:57:01.000000000 -0500
+--- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/drivers/usb/gadget/gadget_event.c	2011-03-09 13:50:23.000000000 -0500
 @@ -362,6 +362,13 @@
  }
  EXPORT_SYMBOL(gadget_event_power_state_changed);
@@ -1073,8 +1028,8 @@
  static int __init init(void)
  {
  	int ret = 0;
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/arch/arm/mach-omap3pe/clock.h	2011-02-17 17:21:02.000000000 -0500
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/arch/arm/mach-omap3pe/clock.h	2011-04-16 17:25:17.000000000 -0400
 @@ -56,6 +56,7 @@
  #define S600M	600000000
  #define S800M	800000000
@@ -1083,8 +1038,8 @@
  
  /* Macro to enable clock control via clock framework */
  #define ENABLE_CLOCKCONTROL 1
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/arch/arm/mach-omap3pe/clock_tree.h	2011-02-17 17:25:12.000000000 -0500
+--- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2011-03-09 12:54:14.000000000 -0500
++++ linux-2.6.24-F14/arch/arm/mach-omap3pe/clock_tree.h	2011-03-09 13:50:23.000000000 -0500
 @@ -91,9 +91,9 @@
  	/*OPP3*/
  	{S600M, PRCM_VDD1_OPP3, RATE_IN_343X},
@@ -1097,23 +1052,3 @@
  };
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
---- linux-2.6.24-palm/arch/arm/mach-omap3pe/board-sirloin-3430.c	2010-11-23 18:42:41.000000000 -0500
-+++ linux-2.6.24-F14/arch/arm/mach-omap3pe/board-sirloin-3430.c	2011-02-18 13:04:07.000000000 -0500
-@@ -2067,7 +2067,7 @@
- 		.options    =  0,
- 		.irq_config =  0,
- 	},
--	{
-+/*	{
- 		.name       =  "irq",
- 		.gpio       =  WIFI_IRQ_GPIO,
- 		.options    =  PIN_READ_ONLY,
-@@ -2076,7 +2076,7 @@
- 		.def_level  =  0, // default level (low)
- 		.pin_mode   =  WIFI_IRQ_GPIO_PIN_MODE,
- 		.sysfs_mask =  0444,
--	},
-+	}, */
- };
- 
- /*
