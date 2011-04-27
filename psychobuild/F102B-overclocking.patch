@@ -895,22 +895,22 @@
 +        return count;
 +}
 +
-+//CPUFREQ_SCREENSTATE_ATTR(vdemand_factor,0644,show_vdemand_factor,
-+//							store_vdemand_factor);
++CPUFREQ_SCREENSTATE_ATTR(vdemand_factor,0644,show_vdemand_factor,
++							store_vdemand_factor);
 +CPUFREQ_SCREENSTATE_ATTR(vdemand_enable,0644,show_vdemand_enable,
 +							store_vdemand_enable);
 +CPUFREQ_SCREENSTATE_ATTR(charger_override,0644,show_ch_override,
 +							store_ch_override);
-+CPUFREQ_SCREENSTATE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,
-+							store_vdemand_poll);
++//CPUFREQ_SCREENSTATE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,
++//							store_vdemand_poll);
 +CPUFREQ_SCREENSTATE_ATTR(charger_poll_rate,0644,show_ch_poll,store_ch_poll);
 +
 +static struct attribute *default_attrs[] = {
-+//        &_attr_vdemand_factor.attr,
++        &_attr_vdemand_factor.attr,
 +        &_attr_vdemand_enable.attr,
 +        &_attr_charger_override.attr,
 +        &_attr_charger_poll_rate.attr,
-+        &_attr_vdemand_poll_rate.attr,
++//        &_attr_vdemand_poll_rate.attr,
 +        NULL
 +};
 +
