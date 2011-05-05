@@ -1,0 +1,26 @@
+# -*- mode: shell-script; -*-
+description "PsychoKernel Upstart Script"
+
+start on stopped finish
+stop on runlevel [!2]
+
+script
+
+echo "0" > /proc/sys/vm/dirty_expire_centisecs
+echo "0" > /proc/sys/vm/dirty_writeback_centisecs
+echo "50" > /proc/sys/vm/dirty_background_ratio
+echo "95" > /proc/sys/vm/dirty_ratio
+echo "0" > /proc/sys/vm/swappiness
+sysctl -w vm.vfs_cache_pressure=10
+
+[ "`/usr/bin/lunaprop -m com.palm.properties.prevBootPanicked`" = "false" ] || exit 0
+[ "`/usr/bin/lunaprop -m com.palm.properties.prevShutdownClean`" = "true" ] || exit 0
+[ "`/usr/bin/lunaprop -m -n com.palm.system last_umount_clean`"  = "true" ] || exit 0
+
+swapoff -a
+insmod /lib/modules/`uname -r`/extra/xvmalloc.ko
+insmod /lib/modules/`uname -r`/extra/ramzswap.ko memlimit_kb=20480 backing_swap=/dev/mapper/store-swap
+sleep 3
+swapon /dev/ramzswap0 -p 1
+
+end script
