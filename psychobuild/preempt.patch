@@ -1,0 +1,10 @@
+--- linux-2.6.24-palm/include/linux/kernel.h	2008-01-24 17:58:37.000000000 -0500
++++ linux-2.6.24-F102B/include/linux/kernel.h	2011-03-18 18:54:51.000000000 -0400
+@@ -104,6 +104,7 @@
+  * be bitten later when the calling function happens to sleep when it is not
+  * supposed to.
+  */
++#define CONFIG_PREEMPT_VOLUNTARY
+ #ifdef CONFIG_PREEMPT_VOLUNTARY
+ extern int cond_resched(void);
+ # define might_resched() cond_resched()
