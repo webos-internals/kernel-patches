@@ -85,51 +85,6 @@
  /**
   * The "cpufreq driver" - the arch- or hardware-dependent low
   * level driver of CPUFreq support, and its spinlock. This lock
-@@ -1602,7 +1607,7 @@
- 	int ret = 0;
- 
- 	cpufreq_debug_disable_ratelimit();
--	dprintk("setting new policy for CPU %u: %u - %u kHz\n", policy->cpu,
-+	printk("setting new policy for CPU %u: %u - %u kHz\n", policy->cpu,
- 		policy->min, policy->max);
- 
- 	memcpy(&policy->cpuinfo, &data->cpuinfo,
-@@ -1639,7 +1644,7 @@
- 	data->min = policy->min;
- 	data->max = policy->max;
- 
--	dprintk("new min and max freqs are %u - %u kHz\n",
-+	printk("new min and max freqs are %u - %u kHz\n",
- 					data->min, data->max);
- 
- 	if (cpufreq_driver->setpolicy) {
-@@ -1651,7 +1656,7 @@
- 			/* save old, working values */
- 			struct cpufreq_governor *old_gov = data->governor;
- 
--			dprintk("governor switch\n");
-+			printk("governor switch\n");
- 
- 			/* end old governor */
- 			if (data->governor)
-@@ -1661,7 +1666,7 @@
- 			data->governor = policy->governor;
- 			if (__cpufreq_governor(data, CPUFREQ_GOV_START)) {
- 				/* new governor failed, so re-start old one */
--				dprintk("starting governor %s failed\n",
-+				printk("starting governor %s failed\n",
- 							data->governor->name);
- 				if (old_gov) {
- 					data->governor = old_gov;
-@@ -1673,7 +1678,7 @@
- 			}
- 			/* might be a policy change, too, so fall through */
- 		}
--		dprintk("governor: change or update limits\n");
-+		printk("governor: change or update limits\n");
- 		__cpufreq_governor(data, CPUFREQ_GOV_LIMITS);
- 	}
- 
 @@ -1682,6 +1687,18 @@
  	return ret;
  }
@@ -149,15 +104,6 @@
  /**
   *	cpufreq_update_policy - re-evaluate an existing cpufreq policy
   *	@cpu: CPU which shall be re-evaluated
-@@ -1701,7 +1718,7 @@
- 	if (unlikely(lock_policy_rwsem_write(cpu)))
- 		return -EINVAL;
- 
--	dprintk("updating policy for CPU %u\n", cpu);
-+	printk("updating policy for CPU %u\n", cpu);
- 	memcpy(&policy, data, sizeof(struct cpufreq_policy));
- 	policy.min = data->user_policy.min;
- 	policy.max = data->user_policy.max;
 @@ -1831,6 +1848,10 @@
  		cpufreq_debug_enable_ratelimit();
  	}
@@ -193,8 +139,8 @@
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F104/drivers/cpufreq/cpufreq_override.c	2011-05-05 01:02:00.000000000 -0400
-@@ -0,0 +1,470 @@
++++ linux-2.6.24-F104/drivers/cpufreq/cpufreq_override.c	2011-05-09 01:32:17.000000000 -0400
+@@ -0,0 +1,460 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -236,7 +182,7 @@
 +
 +//Reset temp from alarm
 +#ifdef CONFIG_MACH_SIRLOIN_3630
-+ #define LOWTEMP_RESET 43
++ #define LOWTEMP_RESET 45
 +#else
 + #define LOWTEMP_RESET 50
 +#endif
@@ -265,9 +211,6 @@
 +			omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt),
 +			omap_pm_opp_set_vdd2_volts(u8 vdd2_volt),
 +			omap_pm_opp_get_vdd2_freq(u8 *vdd2_freq);
-+
-+void			cpufreq_screenstate_getdefvoltage(u8 dvolt[]),
-+			cpufreq_screenstate_setdefvoltage(u8 dvolt[]);
 +
 +int			omap34xx_get_temp(void),
 +			cpufreq_set_policy(struct cpufreq_policy *policy),
@@ -390,9 +333,7 @@
 +static ssize_t show_vdd1_vsel(struct cpufreq_policy *policy, char *buf) {
 +        u8 volt[PRCM_NO_VDD1_OPPS];
 +
-+	if(!strnicmp(policy->governor->name,"screenstate-v2",CPUFREQ_NAME_LEN))
-+		cpufreq_screenstate_getdefvoltage(volt);
-+	else omap_pm_opp_get_volts(volt);
++	omap_pm_opp_get_volts(volt);
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
 + #if PRCM_NO_VDD1_OPPS > 5
@@ -454,9 +395,7 @@
 +						size_t count) {
 +        u8 volt[PRCM_NO_VDD1_OPPS], i;
 +
-+	if(!strnicmp(policy->governor->name,"screenstate",CPUFREQ_NAME_LEN))
-+		cpufreq_screenstate_getdefvoltage(volt);
-+	else omap_pm_opp_get_volts(volt);
++	omap_pm_opp_get_volts(volt);
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
 + #if PRCM_NO_VDD1_OPPS > 5
@@ -509,10 +448,7 @@
 +			}
 +		}
 +		if(i == PRCM_NO_VDD1_OPPS) {
-+			if(!strnicmp(policy->governor->name, "screenstate",
-+							CPUFREQ_NAME_LEN))
-+					cpufreq_screenstate_setdefvoltage(volt);
-+			else omap_pm_opp_set_volts(volt);
++			omap_pm_opp_set_volts(volt);
 +		}
 +		else printk("override: missing vsel values\n");
 +	}
@@ -666,8 +602,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F104/drivers/cpufreq/cpufreq_screenstate.c	2011-05-05 15:43:45.000000000 -0400
-@@ -0,0 +1,628 @@
++++ linux-2.6.24-F104/drivers/cpufreq/cpufreq_screenstate.c	2011-05-09 19:02:08.000000000 -0400
+@@ -0,0 +1,620 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -699,18 +635,18 @@
 +#define FACTOR_MAX 4
 +
 +// charger poll is in secs converted to jiffies
-+#define CHPOLLMIN 90
-+#define CHPOLLMAX 90000
++#define CHPOLLMIN 10
++#define CHPOLLMAX 9000
 +
 +// vDemand poll is in msecs converted to jiffies
 +#define VDPOLLMIN 10
 +#define VDPOLLMAX 1500
 +
 +// default charger poll
-+#define CHARGER_POLL 3000
++#define CHARGER_POLL 30
 +
 +// default vdemand poll
-+#define VDEMAND_POLL 20
++#define VDEMAND_POLL 200
 +
 +// default factor
 +#define VDEMAND_FACTOR 2
@@ -732,25 +668,22 @@
 +	unsigned int vdemand_poll;
 +	unsigned short sfactor;
 +	unsigned int freq_scale_mid;
-+} sscfg={0,1,1,0,0,1,CHARGER_POLL,VDEMAND_POLL,VDEMAND_FACTOR,0};
++} sscfg={0,1,1,0,0,0,0,0,VDEMAND_FACTOR,0};
 +
 +static struct ss_params *ss_cfg=&sscfg;
 +
 +static unsigned int	opp,last_load;
 +
-+static u8		opp_volt,
-+			volt[PRCM_NO_VDD1_OPPS],
-+			volt_def[PRCM_NO_VDD1_OPPS];
-+
 +static cputime64_t	prev_cpu_wall=0,
 +			prev_cpu_idle=0;
 +
 +int			gadget_event_state_current(void),
-+			ds2784_getcurrent(int *ret_current);
++			ds2784_getcurrent(int *ret_current),
++			set_voltage_level(u8 vdd, u8 vsel);
 +
 +unsigned int		prcm_get_current_vdd1_opp_no(void);
 +
-+void			omap_pm_opp_set_volts(u8 vdd1_volts[]),
++void			omap_pm_opp_get_vdd2_volts(u8 *vdd2_volt),
 +			omap_pm_opp_get_volts(u8 vdd1_volts[]);
 +
 +unsigned short		get_vdd1_arm_opp_for_freq(unsigned int freq);
@@ -803,23 +736,27 @@
 +        return idle_time;
 +}
 +
++static void reset_voltage(void) {
++	u8 vdd2_volt,volt[PRCM_NO_VDD1_OPPS];
++
++	omap_pm_opp_get_volts(volt);
++        omap_pm_opp_get_vdd2_volts(&vdd2_volt);
++	set_voltage_level(1,volt[opp-1]);
++	set_voltage_level(2,vdd2_volt);
++}
++
 +static void change_freq(void) {
-+	mutex_lock(&screenstate_mutex);
 +	opp=prcm_get_current_vdd1_opp_no();
-+	memcpy(volt,volt_def,sizeof(volt));
-+	opp_volt=volt[opp-1];
-+	omap_pm_opp_set_volts(volt);
-+	mutex_unlock(&screenstate_mutex);
 +}
 +
 +static int screenstate_notifier(struct notifier_block *nb, unsigned long val,
 +								void *data) {
 +	if(ss_cfg->vdemand_enabled) {
-+		// this is ugly!  too lazy to make it clean
-+		if(!ss_cfg->lcd_state && ss_cfg->ondemand)
++		// this is ugly!  no mutex??? too lazy to make it clean,
++		//    but it gets around a deadlock
++		if((!ss_cfg->lcd_state && ss_cfg->ondemand) ||
++		   (!ss_cfg->ondemand))
 +        		change_freq();
-+		if(!ss_cfg->ondemand)
-+			change_freq();
 +	}
 +
 +	return 0;
@@ -876,6 +813,7 @@
 +        unsigned int tmp_idle_ticks,idle_ticks,total_ticks,load=0;
 +        cputime64_t total_idle_ticks,cur_jiffies;
 +	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
++	u8 vdd1_volt,vdd2_volt,volt[PRCM_NO_VDD1_OPPS];
 +
 +	mutex_lock(&screenstate_mutex);
 +
@@ -901,20 +839,24 @@
 +
 +	if(ss_cfg->lcd_state && ss_cfg->ondemand) goto on_demand;
 +
++        omap_pm_opp_get_volts(volt);
++        omap_pm_opp_get_vdd2_volts(&vdd2_volt);
++        vdd1_volt=volt[opp-1];
++
 +        if((load < 30) && (last_load > 29)) {
-+                volt[opp-1]=opp_volt - (2 * ss_cfg->sfactor);
-+                omap_pm_opp_set_volts(volt);
++                set_voltage_level(1,vdd1_volt - (2 * ss_cfg->sfactor));
++                set_voltage_level(2,vdd2_volt - (2 * ss_cfg->sfactor));
 +		goto out;
 +        }
 +        if(((load > 29) && (load < 70)) &&
 +            ((last_load < 30) || (last_load > 69))) {
-+		volt[opp-1]=opp_volt - ss_cfg->sfactor;
-+                omap_pm_opp_set_volts(volt);
++                set_voltage_level(1,vdd1_volt - ss_cfg->sfactor);
++                set_voltage_level(2,vdd2_volt - ss_cfg->sfactor);
 +		goto out;
 +        }
 +        if((load > 69) && (last_load < 70)) {
-+		volt[opp-1]=opp_volt;
-+                omap_pm_opp_set_volts(volt);
++                set_voltage_level(1,vdd1_volt);
++                set_voltage_level(2,vdd2_volt);
 +		goto out;
 +        }
 +
@@ -922,24 +864,18 @@
 +
 +on_demand:
 +
++        if((load > 19) && (load < 50)) {
++                if(policy->cur != ss_cfg->freq_scale_mid) {
++                        __cpufreq_driver_target(policy, ss_cfg->freq_scale_mid,
++                                                        CPUFREQ_RELATION_L);
++                }
++                goto out;
++        }
++
 +        if((load < 20) && (last_load < 41)) {
 +                if(policy->cur != policy->min) {
 +                        __cpufreq_driver_target(policy, policy->min,
 +                                                        CPUFREQ_RELATION_L);
-+                }
-+                goto out;
-+        }
-+        if((load < 20) && (last_load > 80)) {
-+                if(policy->cur != ss_cfg->freq_scale_mid) {
-+                        __cpufreq_driver_target(policy, ss_cfg->freq_scale_mid,
-+                                                        CPUFREQ_RELATION_L);
-+                }
-+                goto out;
-+        }
-+        if((load > 19) && (load < 40 ) && (last_load > 80)) {
-+                if(policy->cur != ss_cfg->freq_scale_mid) {
-+                        __cpufreq_driver_target(policy, ss_cfg->freq_scale_mid,
-+                                                        CPUFREQ_RELATION_H);
 +                }
 +                goto out;
 +        }
@@ -973,7 +909,11 @@
 +		if((i < FACTOR_MIN) || (i > FACTOR_MAX)) {
 +			printk("screenstate: invalid factor\n");
 +		}
-+                else ss_cfg->sfactor=i;
++                else {
++			mutex_lock(&screenstate_mutex);
++			ss_cfg->sfactor=i;
++			mutex_unlock(&screenstate_mutex);
++		}
 +        }
 +        else printk("screenstate: missing factor value\n");
 +
@@ -995,10 +935,9 @@
 +                else {
 +			if((!i) && (ss_cfg->vdemand_enabled)) {
 +				cancel_delayed_work(&worker2);
-+				change_freq();
++				reset_voltage();
 +			}
 +			if((i) && (!ss_cfg->vdemand_enabled)) {
-+				change_freq();
 +				schedule_delayed_work(&worker2,
 +							ss_cfg->vdemand_poll);
 +			}
@@ -1046,11 +985,10 @@
 +        unsigned int i;
 +
 +        if(sscanf(buf, "%u", &i)) {
-+		i=secs_to_jiffies(i);
 +                if((i < CHPOLLMIN) || (i > CHPOLLMAX))
 +                        printk("screenstate: invalid chrg poll value\n");
 +                else {
-+                        ss_cfg->ch_poll=i;
++                        ss_cfg->ch_poll=secs_to_jiffies(i);;
 +                }
 +        }
 +        else printk("screenstate: missing value\n");
@@ -1067,11 +1005,10 @@
 +        unsigned int i;
 +
 +        if(sscanf(buf, "%u", &i)) {
-+		i=msecs_to_jiffies(i);
 +                if((i < VDPOLLMIN) || (i > VDPOLLMAX))
 +                        printk("screenstate: invalid poll time\n");
 +                else {
-+                        ss_cfg->vdemand_poll=i;
++                        ss_cfg->vdemand_poll=msecs_to_jiffies(i);
 +                }
 +        }
 +        else printk("screenstate: missing value\n");
@@ -1092,9 +1029,11 @@
 +                        printk("screenstate: invalid entry\n");
 +                }
 +                else {
++			mutex_lock(&screenstate_mutex);
++			reset_voltage();
 +			ss_cfg->ondemand=i;
-+			__cpufreq_driver_target(policy, policy->max,
-+							CPUFREQ_RELATION_H);
++			mutex_unlock(&screenstate_mutex);
++			printk("screenstate: set ondemand\n");
 +		}
 +        }
 +        else printk("screenstate: missing value\n");
@@ -1103,15 +1042,15 @@
 +}
 +
 +CPUFREQ_SCREENSTATE_ATTR(vdemand_factor,show_vdemand_factor,
-+							store_vdemand_factor);
++						store_vdemand_factor);
 +CPUFREQ_SCREENSTATE_ATTR(vdemand_enable,show_vdemand_enable,
-+							store_vdemand_enable);
++						store_vdemand_enable);
 +CPUFREQ_SCREENSTATE_ATTR(charger_override,show_ch_override,store_ch_override);
 +CPUFREQ_SCREENSTATE_ATTR(vdemand_poll_rate,show_vdemand_poll,
-+							store_vdemand_poll);
++						store_vdemand_poll);
 +CPUFREQ_SCREENSTATE_ATTR(charger_poll_rate,show_ch_poll,store_ch_poll);
 +CPUFREQ_SCREENSTATE_ATTR(ondemand_enable,show_ondemand_enable,
-+							store_ondemand_enable);
++						store_ondemand_enable);
 +static struct attribute *default_attrs[] = {
 +        &_attr_vdemand_factor.attr,
 +        &_attr_vdemand_enable.attr,
@@ -1151,14 +1090,13 @@
 +			ss_cfg->charging_state = 0;
 +			ss_cfg->vdemand_enabled = 1;
 +			ss_cfg->ch_override = 0;
-+			ss_cfg->ondemand = 1;
++			ss_cfg->ondemand = 0;
++			ss_cfg->vdemand_poll=msecs_to_jiffies(VDEMAND_POLL);
++			ss_cfg->ch_poll=secs_to_jiffies(CHARGER_POLL);
 +
 +			last_load = 0;
 +			prev_cpu_idle = get_cpu_idle_time(0);
 +			prev_cpu_wall = get_jiffies_64();
-+
-+			omap_pm_opp_get_volts(volt_def);
-+			change_freq();
 +
 +			ss_cfg->freq_scale_mid=get_freq_mid(policy);
 +
@@ -1167,12 +1105,14 @@
 +						CPUFREQ_TRANSITION_NOTIFIER);
 +
 +			__cpufreq_driver_target(policy, policy->max,
-+							CPUFREQ_RELATION_H);
++						CPUFREQ_RELATION_H);
 +
 +			rc=sysfs_create_group(&policy->kobj,
 +						&screenstate_attr_group);
 +			schedule_delayed_work(&worker,ss_cfg->ch_poll);
-+			schedule_delayed_work(&worker2,ss_cfg->vdemand_poll);
++			if(ss_cfg->vdemand_enabled)
++				schedule_delayed_work(&worker2,
++						ss_cfg->vdemand_poll);
 +			
 +			break;
 +		case CPUFREQ_GOV_STOP:
@@ -1181,12 +1121,12 @@
 +			ss_cfg->lcd_state = 0;
 +			cancel_delayed_work(&worker);
 +			cancel_delayed_work(&worker2);
++			reset_voltage();
 +			cpufreq_unregister_notifier(
 +						&screenstate_notifier_block,
-+						 CPUFREQ_TRANSITION_NOTIFIER);
++						CPUFREQ_TRANSITION_NOTIFIER);
 +			sysfs_remove_group(&policy->kobj,
 +						&screenstate_attr_group);
-+			omap_pm_opp_set_volts(volt_def);
 +			mutex_unlock(&screenstate_mutex);
 +
 +			break;
@@ -1197,7 +1137,7 @@
 +
 +                        if(ss_cfg->charging_state) {
 +                                __cpufreq_driver_target(policy,SCALEBACK_SPEED,
-+                                                        CPUFREQ_RELATION_L);
++                                                CPUFREQ_RELATION_L);
 +                        }
 +                        else {
 +                                if(ss_cfg->lcd_state) {
@@ -1256,7 +1196,7 @@
 +	printk("screenstate: lcd on\n");
 +	if(ss_cfg->charging_state) {
 +		__cpufreq_driver_target(policy, SCALEBACK_SPEED,
-+							CPUFREQ_RELATION_L);
++						CPUFREQ_RELATION_L);
 +	}
 +	else {
 +		__cpufreq_driver_target(policy,policy->max,CPUFREQ_RELATION_H);
@@ -1264,18 +1204,6 @@
 +	}
 +	ss_cfg->lcd_state = 1; // order is important
 +}
-+
-+
-+void cpufreq_screenstate_getdefvoltage(u8 dvolt[]) {
-+	memcpy(dvolt,volt_def,sizeof(volt));
-+}
-+EXPORT_SYMBOL(cpufreq_screenstate_getdefvoltage);
-+
-+void cpufreq_screenstate_setdefvoltage(u8 dvolt[]) {
-+        memcpy(volt_def,dvolt,sizeof(volt));
-+	change_freq();
-+}
-+EXPORT_SYMBOL(cpufreq_screenstate_setdefvoltage);
 +
 +unsigned short cpufreq_screenstate_lcd_state(void) {
 +	if(ss_cfg->cpu_is_managed) {
