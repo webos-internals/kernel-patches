@@ -1,0 +1,11 @@
+--- a/arch/arm/Kconfig	2011-02-28 17:03:31.000000000 -0500
++++ b/arch/arm/Kconfig	2011-05-10 00:47:57.000000000 -0400
+@@ -686,7 +686,7 @@
+ 	default 128 if ARCH_L7200
+ 	default 200 if ARCH_EBSA110 || ARCH_S3C2410
+ 	default OMAP_32K_TIMER_HZ if ARCH_OMAP && OMAP_32K_TIMER
+-	default 100
++	default 250
+ 
+ config AEABI
+ 	bool "Use the ARM EABI to compile the kernel"
