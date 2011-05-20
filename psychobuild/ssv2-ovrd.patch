@@ -664,7 +664,7 @@
 +#define VDPOLLMAX 1500
 +
 +// default charger poll
-+#define CHARGER_POLL 30
++#define CHARGER_POLL 1
 +
 +// default vdemand poll
 +#define VDEMAND_POLL 200
