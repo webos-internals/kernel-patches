@@ -276,7 +276,7 @@
 +}
 +EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-02-19 18:40:32.000000000 -0500
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-05-21 13:08:11.000000000 -0400
 @@ -0,0 +1,345 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
@@ -317,8 +317,8 @@
 +
 +// Polling frequency jiffies
 +#define BATTERY_POLLING 30000
-+#define TEMP_POLLING 1000
-+#define CHARGER_POLLING 3000
++#define TEMP_POLLING 500
++#define CHARGER_POLLING 300
 +
 +// Battery scaleback percent
 +#define BATTERY_PERCENT 25
@@ -394,7 +394,7 @@
 +	ds2784_getcurrent(&cur);
 +	current_mA=gadget_event_state_current();
 +
-+	if((cur>0) && (current_mA < 500)) {
++	if((cur>0) && (current_mA != 100 && current_mA < 500)) {
 +		// Assume Touchstone
 +		if(!charging_state) {
 +			charging_state=1;
@@ -624,8 +624,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-05-05 13:37:50.000000000 -0400
-@@ -0,0 +1,355 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-05-21 13:07:16.000000000 -0400
+@@ -0,0 +1,337 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
 + *
@@ -674,7 +674,7 @@
 +#define VDEMAND_POLL_RATE_MIN 10
 +
 +// vdemand poll rate max
-+#define VDEMAND_POLL_RATE_MAX 1000
++#define VDEMAND_POLL_RATE_MAX 1500
 +
 +void omap_pm_opp_set_volts(u8 vdd1_volts[]);
 +void omap_pm_opp_get_volts(u8 *vdd1_volts[]);
@@ -754,9 +754,8 @@
 +        return count;
 +}
 +
-+/*
 +static ssize_t show_vdemand_poll(struct cpufreq_policy *policy, char *buf) {
-+        return sprintf(buf, "%hu\n", vdemand_poll_rate);
++        return sprintf(buf, "%hu\n", jiffies_to_msecs(vdemand_poll_rate));
 +}
 +
 +static ssize_t store_vdemand_poll(struct cpufreq_policy *policy, char *buf,
@@ -764,7 +763,8 @@
 +        unsigned int i;
 +
 +        if(sscanf(buf, "%u", &i)) {
-+                if((i < VDEMAND_POLL_RATE_MIN) && (i > VDEMAND_POLL_RATE_MAX))
++		i=msecs_to_jiffies(i);
++                if((i < VDEMAND_POLL_RATE_MIN) || (i > VDEMAND_POLL_RATE_MAX))
 +                        printk("CPUfreq: invalid \n");
 +                else {
 +                        vdemand_poll_rate=i;
@@ -774,29 +774,17 @@
 +
 +        return count;
 +}
-+*/
 +
 +CPUFREQ_OVERRIDE_ATTR(vdemand_vsel_vdd1,0644,show_vdemand_vsel,
 +						store_vdemand_vsel);
-+//CPUFREQ_OVERRIDE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,
-+//						store_vdemand_poll);
++CPUFREQ_OVERRIDE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,
++						store_vdemand_poll);
 +
 +static ssize_t show_vdemand_vsel_vdd2(struct cpufreq_policy *policy,
 +								char *buf) {
 +        return sprintf(buf, "%hu %hu %hu\n", v_volt_vdd2[2],v_volt_vdd2[1],
 +							v_volt_vdd2[0]);
 +}
-+
-+/* static ssize_t show_vdemand_poll_rate_min(struct cpufreq_policy *policy, char *buf) {
-+        return sprintf(buf, "%u\n",VDEMAND_POLL_RATE_MIN);
-+}
-+
-+static ssize_t show_vdemand_poll_rate_max(struct cpufreq_policy *policy, char *buf) {
-+        return sprintf(buf, "%u\n", VDEMAND_POLL_RATE_MAX);
-+}
-+CPUFREQ_OVERRIDE_ATTR2(vdemand_poll_rate_min,0444,show_vdemand_poll_rate_min);
-+CPUFREQ_OVERRIDE_ATTR2(vdemand_poll_rate_max,0444,show_vdemand_poll_rate_max);
-+*/
 +
 +static ssize_t store_vdemand_vsel_vdd2(struct cpufreq_policy *policy, char *buf,
 +                                                size_t count) {
@@ -827,11 +815,9 @@
 +static struct attribute *default_attrs[] = {
 +        &_attr_vdemand_vsel_vdd1.attr,
 +        &_attr_vdemand_vsel_vdd2.attr,
-+//        &_attr_vdemand_poll_rate.attr,
++        &_attr_vdemand_poll_rate.attr,
 +        &_attr_vdemand_vsel_vdd1_default.attr,
 +        &_attr_vdemand_vsel_vdd2_default.attr,
-+//	&_attr_vdemand_poll_rate_min.attr,
-+//	&_attr_vdemand_poll_rate_max.attr,
 +        NULL
 +};
 +
@@ -975,11 +961,7 @@
 +MODULE_DESCRIPTION ("CPUfreq policy governor 'vdemand'");
 +MODULE_LICENSE ("GPL");
 +
-+#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_VDEMAND
 +fs_initcall(cpufreq_gov_vdemand_init);
-+#else
-+module_init(cpufreq_gov_vdemand_init);
-+#endif
 +module_exit(cpufreq_gov_vdemand_exit);
 --- linux-2.6.24-palm/drivers/hwmon/omap34xx_temp.c     2010-05-31 12:05:29.000000000 -0400
 +++ linux-2.6.24-AV8B/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
