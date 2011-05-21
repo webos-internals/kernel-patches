@@ -602,8 +602,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F104/drivers/cpufreq/cpufreq_screenstate.c	2011-05-09 19:02:08.000000000 -0400
-@@ -0,0 +1,620 @@
++++ linux-2.6.24-F104/drivers/cpufreq/cpufreq_screenstate.c	2011-05-21 16:32:23.000000000 -0400
+@@ -0,0 +1,623 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -635,17 +635,17 @@
 +#define FACTOR_MAX 4
 +
 +// charger poll is in secs converted to jiffies
-+#define CHPOLLMIN 10
-+#define CHPOLLMAX 9000
++#define CHPOLLMIN 1
++#define CHPOLLMAX 300
 +
 +// vDemand poll is in msecs converted to jiffies
 +#define VDPOLLMIN 10
 +#define VDPOLLMAX 1500
 +
-+// default charger poll
++// default charger poll secs
 +#define CHARGER_POLL 30
 +
-+// default vdemand poll
++// default vdemand poll msecs
 +#define VDEMAND_POLL 200
 +
 +// default factor
@@ -746,7 +746,9 @@
 +}
 +
 +static void change_freq(void) {
++	mutex_lock(&screenstate_mutex);
 +	opp=prcm_get_current_vdd1_opp_no();
++	mutex_unlock(&screenstate_mutex);
 +}
 +
 +static int screenstate_notifier(struct notifier_block *nb, unsigned long val,
@@ -1091,6 +1093,7 @@
 +			ss_cfg->vdemand_enabled = 1;
 +			ss_cfg->ch_override = 0;
 +			ss_cfg->ondemand = 0;
++			ss_cfg->sfactor = VDEMAND_FACTOR;
 +			ss_cfg->vdemand_poll=msecs_to_jiffies(VDEMAND_POLL);
 +			ss_cfg->ch_poll=secs_to_jiffies(CHARGER_POLL);
 +
