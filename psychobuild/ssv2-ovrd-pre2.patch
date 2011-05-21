@@ -72,7 +72,7 @@
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq.c	2011-03-10 19:58:23.000000000 -0500
++++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq.c	2011-05-21 17:51:48.000000000 -0400
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -139,8 +139,8 @@
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq_override.c	2011-05-10 22:19:55.000000000 -0400
-@@ -0,0 +1,481 @@
++++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq_override.c	2011-05-21 17:47:50.000000000 -0400
+@@ -0,0 +1,490 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -188,16 +188,17 @@
 +#endif
 +
 +// Polling frequency msecs
-+#define BATTERY_POLLING 1800000
++#define BATTERY_POLLING 1800
 +
++// Polling frequency msecs
 +#ifdef CONFIG_MACH_SIRLOIN_3630
-+#define TEMP_POLLING 900
++#define TEMP_POLLING 1
 +#else
-+#define TEMP_POLLING 3000
++#define TEMP_POLLING 3
 +#endif
 +
 +// Battery scaleback percent
-+#define BATTERY_PERCENT 25
++#define BATTERY_PERCENT 20
 +
 +// Scaleback speed
 +#ifdef CONFIG_MACH_SIRLOIN_3630
@@ -255,6 +256,14 @@
 +	.show = _show,\
 +};
 +
++static unsigned int jiffies_to_secs(unsigned long int jifs) {
++        return jifs / HZ;
++}
++
++static unsigned long int secs_to_jiffies(unsigned int secs) {
++        return secs * HZ;
++}
++
 +static inline void check_temp(struct work_struct *work)
 +{
 +	struct cpufreq_policy new_policy, *policy = cpufreq_cpu_get(0);
@@ -289,7 +298,7 @@
 +		}
 +	}
 + out:
-+	schedule_delayed_work(&worker2, msecs_to_jiffies(TEMP_POLLING));
++	schedule_delayed_work(&worker2, secs_to_jiffies(TEMP_POLLING));
 +
 +}
 +
@@ -325,7 +334,7 @@
 +	}
 +
 + out:
-+	schedule_delayed_work(&worker, msecs_to_jiffies(BATTERY_POLLING));
++	schedule_delayed_work(&worker, secs_to_jiffies(BATTERY_POLLING));
 +}
 +
 +static ssize_t show_vdd1_vsel_max(struct cpufreq_policy *policy, char *buf)
@@ -603,8 +612,8 @@
 +int cpufreq_override_driver_init(void)
 +{
 +	struct cpufreq_policy *data = cpufreq_cpu_get(0);
-+	schedule_delayed_work(&worker, msecs_to_jiffies(BATTERY_POLLING));
-+	schedule_delayed_work(&worker2, msecs_to_jiffies(TEMP_POLLING));
++	schedule_delayed_work(&worker, secs_to_jiffies(BATTERY_POLLING));
++	schedule_delayed_work(&worker2, secs_to_jiffies(TEMP_POLLING));
 +	return sysfs_create_group(&data->kobj, &override_attr_group);
 +}
 +EXPORT_SYMBOL(cpufreq_override_driver_init);
@@ -623,7 +632,7 @@
 +MODULE_DESCRIPTION("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq_screenstate.c	2011-05-10 22:19:50.000000000 -0400
++++ linux-2.6.24-SR71/drivers/cpufreq/cpufreq_screenstate.c	2011-05-21 17:21:21.000000000 -0400
 @@ -0,0 +1,557 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
@@ -656,15 +665,15 @@
 +#define FACTOR_MAX 4
 +
 +// charger poll is in secs converted to jiffies
-+#define CHPOLLMIN 10
-+#define CHPOLLMAX 90000
++#define CHPOLLMIN 1
++#define CHPOLLMAX 300
 +
 +// vDemand poll is in msecs converted to jiffies
 +#define VDPOLLMIN 10
 +#define VDPOLLMAX 1500
 +
 +// default charger poll
-+#define CHARGER_POLL 30
++#define CHARGER_POLL 3
 +
 +// default vdemand poll
 +#define VDEMAND_POLL 200
