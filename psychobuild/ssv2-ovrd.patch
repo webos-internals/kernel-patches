@@ -179,8 +179,8 @@
 +EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
 +#endif
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_override.c	2011-02-16 22:27:28.000000000 -0500
-@@ -0,0 +1,416 @@
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_override.c	2011-05-21 12:08:41.000000000 -0400
+@@ -0,0 +1,408 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -243,9 +243,7 @@
 +static inline void check_temp(struct work_struct *work);
 +static inline void check_battery(struct work_struct *work);
 +int prev_maxspeed_temp=0;
-+int prev_minspeed_temp=0;
 +int prev_maxspeed_bat=0;
-+int prev_minspeed_bat=0;
 +
 +static u32 override_hightemp=HIGHTEMP_SCALEBACK;
 +static u32 override_lowtemp=LOWTEMP_RESET;
@@ -288,9 +286,7 @@
 +                        printk("CPUfreq: CPU temp warning! %dC\n",cputemp);
 +                        overtemp_alarm = 1;
 +                        cpufreq_get_policy(&new_policy,0);
-+                        prev_minspeed_temp=policy->min;
 +                        prev_maxspeed_temp=policy->max;
-+                        new_policy.min=500000;
 +                        new_policy.max=500000;
 +			cpufreq_set_policy(&new_policy);
 +                }
@@ -300,7 +296,6 @@
 +                        printk("CPUfreq: CPU temp back under control! %dC\n",
 +								cputemp);
 +			cpufreq_get_policy(&new_policy,0);
-+			new_policy.min=prev_minspeed_temp;
 +			new_policy.max=prev_maxspeed_temp;
 +			cpufreq_set_policy(&new_policy);
 +                       	overtemp_alarm = 0;
@@ -326,9 +321,7 @@
 +			battery_alarm = 1;
 +			// TODO: clean this up to not call all this code twice
 +			cpufreq_get_policy(&new_policy,0);
-+			prev_minspeed_bat=policy->min;
 +			prev_maxspeed_bat=policy->max;
-+			new_policy.min=battery_scaleback_speed;
 +			new_policy.max=battery_scaleback_speed;
 +			cpufreq_set_policy(&new_policy);
 +		}
@@ -337,7 +330,6 @@
 +		if(battery_alarm) {
 +			printk("CPUFreq: battery OK\n");
 +			cpufreq_get_policy(&new_policy,0);
-+			new_policy.min=prev_minspeed_bat;
 +			new_policy.max=prev_maxspeed_bat;
 +			cpufreq_set_policy(&new_policy);
 +			battery_alarm = 0;
@@ -598,8 +590,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-02-15 22:53:40.000000000 -0500
-@@ -0,0 +1,429 @@
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-05-21 12:06:14.000000000 -0400
+@@ -0,0 +1,439 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -636,7 +628,7 @@
 +static unsigned int ch_override=0,opp,last_load=0;
 +u8 sfactor=2,opp_volt,volt[PRCM_NO_VDD1_OPPS],volt_def[PRCM_NO_VDD1_OPPS];
 +static cputime64_t prev_cpu_wall=0,prev_cpu_idle=0;
-+static unsigned int ch_poll=7000,vdemand_poll=90;
++static unsigned int ch_poll=3000,vdemand_poll=20;
 +
 +int gadget_event_state_current(void);
 +int ds2784_getcurrent(int *ret_current);
@@ -675,6 +667,14 @@
 +        return idle_time;
 +}
 +
++static unsigned int jiffies_to_secs(unsigned long int jifs) {
++        return jifs / HZ;
++} 
++
++static unsigned long int secs_to_jiffies(unsigned int secs) {
++        return secs * HZ;
++}
++
 +void change_freq(void) {
 +	if(vdemand_enabled) {
 +		mutex_lock(&screenstate_mutex);
@@ -692,7 +692,7 @@
 +
 +	ds2784_getcurrent(&cur);
 +	current_mA=gadget_event_state_current();
-+	if((cur>0) && (current_mA < 500)) {
++	if((cur>0) && (current_mA != 100 && current_mA < 500)) {
 +		// Assume Touchstone
 +		if(!charging_state) {
 +			charging_state=1;
@@ -739,31 +739,31 @@
 +        idle_ticks = UINT_MAX;
 +        cur_jiffies = jiffies64_to_cputime64(get_jiffies_64());
 +        total_ticks = (unsigned int) cputime64_sub(cur_jiffies,prev_cpu_wall);
++        prev_cpu_wall = get_jiffies_64();
 +
 +        if (!total_ticks) goto out;
 +
-+        prev_cpu_wall = get_jiffies_64();
 +        total_idle_ticks = get_cpu_idle_time(0);
 +        tmp_idle_ticks = (unsigned int )cputime64_sub(total_idle_ticks,
 +                prev_cpu_idle);
 +        prev_cpu_idle = total_idle_ticks;
 +
 +        if(tmp_idle_ticks < idle_ticks) idle_ticks = tmp_idle_ticks;
-+        if(total_ticks > idle_ticks)
++        if(likely(total_ticks > idle_ticks))
 +                load = (100 * (total_ticks - idle_ticks)) / total_ticks;
 +
 +        if(!last_load) goto out;
 +
-+        if((load < 30) && (last_load > 30)) {
++        if((load < 30) && (last_load > 29)) {
 +                volt[opp-1]=opp_volt-(2*sfactor);
 +                omap_pm_opp_set_volts(volt);
 +        }
-+        if(((load > 30) && (load < 70)) &&
-+            ((last_load < 30) || (last_load > 70))) {
++        if(((load > 29) && (load < 70)) &&
++            ((last_load < 30) || (last_load > 69))) {
 +                volt[opp-1]=(opp_volt-sfactor);
 +                omap_pm_opp_set_volts(volt);
 +        }
-+        if((load > 70) && (last_load < 70)) {
++        if((load > 69) && (last_load < 70)) {
 +                volt[opp-1]=opp_volt;
 +                omap_pm_opp_set_volts(volt);
 +        }
@@ -851,7 +851,7 @@
 +}
 +
 +static ssize_t show_ch_poll(struct cpufreq_policy *policy, char *buf) {
-+        return sprintf(buf, "%hu\n", ch_poll);
++        return sprintf(buf, "%hu\n", jiffies_to_secs(ch_poll));
 +}
 +
 +static ssize_t store_ch_poll(struct cpufreq_policy *policy, char *buf,
@@ -859,7 +859,8 @@
 +        unsigned int i;
 +
 +        if(sscanf(buf, "%u", &i)) {
-+                if((i < 50) && (i > 9000))
++		i=secs_to_jiffies(i);
++                if((i < 50) && (i > 30000))
 +                        printk("CPUfreq: invalid \n");
 +                else {
 +                        ch_poll=i;
@@ -871,7 +872,7 @@
 +}
 +
 +static ssize_t show_vdemand_poll(struct cpufreq_policy *policy, char *buf) {
-+        return sprintf(buf, "%hu\n", vdemand_poll);
++        return sprintf(buf, "%hu\n", jiffies_to_msecs(vdemand_poll));
 +}
 +
 +ssize_t store_vdemand_poll(struct cpufreq_policy *policy, char *buf,
@@ -879,7 +880,8 @@
 +        unsigned int i;
 +
 +        if(sscanf(buf, "%u", &i)) {
-+                if((i < 10) && (i > 1000))
++		i=msecs_to_jiffies(i);
++                if((i < 10) && (i > 1500))
 +                        printk("CPUfreq: invalid \n");
 +                else {
 +                        vdemand_poll=i;
@@ -935,8 +937,8 @@
 +			omap_pm_opp_get_volts(&volt_def);
 +			change_freq();
 +
-+			struct cpufreq_policy *data = cpufreq_cpu_get(0);
-+			sysfs_create_group(&data->kobj,&screenstate_attr_group);
++			sysfs_create_group(&policy->kobj,
++						&screenstate_attr_group);
 +			schedule_delayed_work(&dbs_work,ch_poll);
 +			schedule_delayed_work(&dbs_work2,vdemand_poll);
 +			
@@ -1060,8 +1062,16 @@
  		freq_table[i].frequency = prcm->speed / 1000;
  		i++;
 --- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-F105/drivers/w1/slaves/w1_ds2784.c	2011-01-10 22:50:39.000000000 -0500
-@@ -1133,11 +1133,20 @@
++++ linux-2.6.24-F105/drivers/w1/slaves/w1_ds2784.c	2011-02-23 01:24:52.000000000 -0500
+@@ -834,6 +834,7 @@
+ 	printk(KERN_WARNING
+ 		"DS2784: register changed by user %02x: 0x%02x\n", cmdlist[0].reg, cmdlist[0].data);
+ 
++
+ 	return count;
+ }
+ DEVICE_ATTR(setreg, S_IWUSR, NULL, set_ds2784_register);
+@@ -1133,11 +1134,20 @@
  */
  static struct device *battery_device = NULL;
  
@@ -1082,7 +1092,7 @@
  
  static int ds2784_getvoltage(int *ret_voltage)
  {
-@@ -1151,11 +1160,20 @@
+@@ -1151,11 +1161,20 @@
  	return ds2784_gettemperature_dev(battery_device, ret_temperature);
  }
  
