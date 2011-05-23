@@ -72,7 +72,7 @@
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2011-03-09 12:54:14.000000000 -0500
-+++ linux-2.6.24-F104/drivers/cpufreq/cpufreq.c	2011-03-10 19:58:23.000000000 -0500
++++ linux-2.6.24-F104/drivers/cpufreq/cpufreq.c	2011-05-22 21:39:38.000000000 -0400
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -602,8 +602,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F104/drivers/cpufreq/cpufreq_screenstate.c	2011-05-21 16:32:23.000000000 -0400
-@@ -0,0 +1,623 @@
++++ linux-2.6.24-F104/drivers/cpufreq/cpufreq_screenstate.c	2011-05-22 20:16:01.000000000 -0400
+@@ -0,0 +1,622 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -643,7 +643,7 @@
 +#define VDPOLLMAX 1500
 +
 +// default charger poll secs
-+#define CHARGER_POLL 30
++#define CHARGER_POLL 3
 +
 +// default vdemand poll msecs
 +#define VDEMAND_POLL 200
@@ -746,9 +746,7 @@
 +}
 +
 +static void change_freq(void) {
-+	mutex_lock(&screenstate_mutex);
 +	opp=prcm_get_current_vdd1_opp_no();
-+	mutex_unlock(&screenstate_mutex);
 +}
 +
 +static int screenstate_notifier(struct notifier_block *nb, unsigned long val,
@@ -846,14 +844,14 @@
 +        vdd1_volt=volt[opp-1];
 +
 +        if((load < 30) && (last_load > 29)) {
-+                set_voltage_level(1,vdd1_volt - (2 * ss_cfg->sfactor));
-+                set_voltage_level(2,vdd2_volt - (2 * ss_cfg->sfactor));
++                set_voltage_level(1,vdd1_volt - (3 * ss_cfg->sfactor));
++                set_voltage_level(2,vdd2_volt - (3 * ss_cfg->sfactor));
 +		goto out;
 +        }
 +        if(((load > 29) && (load < 70)) &&
 +            ((last_load < 30) || (last_load > 69))) {
-+                set_voltage_level(1,vdd1_volt - ss_cfg->sfactor);
-+                set_voltage_level(2,vdd2_volt - ss_cfg->sfactor);
++                set_voltage_level(1,vdd1_volt - (2 * ss_cfg->sfactor));
++                set_voltage_level(2,vdd2_volt - (2 * ss_cfg->sfactor));
 +		goto out;
 +        }
 +        if((load > 69) && (last_load < 70)) {
@@ -866,7 +864,8 @@
 +
 +on_demand:
 +
-+        if((load > 19) && (load < 50)) {
++        if(((load > 19) && (load < 50)) ||
++	    ((load < 10) && (last_load > 49))) {
 +                if(policy->cur != ss_cfg->freq_scale_mid) {
 +                        __cpufreq_driver_target(policy, ss_cfg->freq_scale_mid,
 +                                                        CPUFREQ_RELATION_L);
