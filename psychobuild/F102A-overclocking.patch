@@ -1,5 +1,5 @@
 --- linux-2.6.24-palm/drivers/cpufreq/Kconfig	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/drivers/cpufreq/Kconfig	2011-01-04 00:53:56.000000000 -0500
++++ linux-2.6.24-F102B/drivers/cpufreq/Kconfig	2011-01-04 00:53:56.000000000 -0500
 @@ -53,6 +53,23 @@
  
  	  If in doubt, say N.
@@ -58,7 +58,7 @@
  	tristate "'ondemand' cpufreq policy governor"
  	select CPU_FREQ_TABLE
 --- linux-2.6.24-palm/drivers/cpufreq/Makefile	2008-01-24 17:58:37.000000000 -0500
-+++ linux-2.6.24-F102/drivers/cpufreq/Makefile	2011-01-04 00:54:37.000000000 -0500
++++ linux-2.6.24-F102B/drivers/cpufreq/Makefile	2011-01-04 00:54:37.000000000 -0500
 @@ -9,7 +9,11 @@
  obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
@@ -72,7 +72,7 @@
 +obj-$(CONFIG_CPU_FREQ_OVERRIDE)         += cpufreq_override.o
 +
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/drivers/cpufreq/cpufreq.c	2011-01-03 11:01:07.000000000 -0500
++++ linux-2.6.24-F102B/drivers/cpufreq/cpufreq.c	2011-01-03 11:01:07.000000000 -0500
 @@ -32,6 +32,11 @@
  #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
  						"cpufreq-core", msg)
@@ -127,7 +127,7 @@
  }
  EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 --- linux-2.6.24-palm/include/linux/cpufreq.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-F102/include/linux/cpufreq.h	2011-01-04 00:57:11.000000000 -0500
++++ linux-2.6.24-F102B/include/linux/cpufreq.h	2011-01-04 00:57:11.000000000 -0500
 @@ -309,6 +309,9 @@
  #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE)
  extern struct cpufreq_governor cpufreq_gov_userspace;
@@ -139,7 +139,7 @@
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/prcm_opp.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/arch/arm/mach-omap3pe/prcm_opp.c	2011-04-26 18:26:20.000000000 -0400
++++ linux-2.6.24-F102B/arch/arm/mach-omap3pe/prcm_opp.c	2011-04-26 18:26:20.000000000 -0400
 @@ -57,7 +57,7 @@
  static u8 mpu_iva2_vdd1_volts [PRCM_NO_VDD1_OPPS] = {
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
@@ -233,7 +233,7 @@
 +EXPORT_SYMBOL(prcm_get_current_vdd1_opp_no);
 +#endif
 --- linux-2.6.24-palm/drivers/video/omap/lcd_panel.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-F102/drivers/video/omap/lcd_panel.c	2011-04-26 18:30:25.000000000 -0400
++++ linux-2.6.24-F102B/drivers/video/omap/lcd_panel.c	2011-04-26 18:30:25.000000000 -0400
 @@ -31,6 +31,11 @@
  
  #include "lcd.h"
@@ -283,7 +283,7 @@
  
  		/* Controller OFF */
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_override.c	2011-02-21 15:26:47.000000000 -0500
++++ linux-2.6.24-F102B/drivers/cpufreq/cpufreq_override.c	2011-02-21 15:26:47.000000000 -0500
 @@ -0,0 +1,316 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
@@ -602,8 +602,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F102/drivers/cpufreq/cpufreq_screenstate.c	2011-04-26 18:29:09.000000000 -0400
-@@ -0,0 +1,419 @@
++++ linux-2.6.24-F102B/drivers/cpufreq/cpufreq_screenstate.c	2011-05-21 13:43:23.000000000 -0400
+@@ -0,0 +1,429 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -640,7 +640,7 @@
 +static unsigned int ch_override=0,opp,last_load=0;
 +u8 sfactor=2,opp_volt,volt[PRCM_NO_VDD1_OPPS],volt_def[PRCM_NO_VDD1_OPPS];
 +static cputime64_t prev_cpu_wall=0,prev_cpu_idle=0;
-+static unsigned int ch_poll=3000,vdemand_poll=10;
++static unsigned int ch_poll=3000,vdemand_poll=20;
 +
 +int gadget_event_state_current(void);
 +int ds2784_getcurrent(int *ret_current);
@@ -680,6 +680,14 @@
 +        return idle_time;
 +}
 +
++static unsigned int jiffies_to_secs(unsigned long int jifs) {
++        return jifs / HZ;
++} 
++
++static unsigned long int secs_to_jiffies(unsigned int secs) {
++        return secs * HZ;
++}
++
 +void change_freq(void) {
 +	if(vdemand_enabled) {
 +		mutex_lock(&screenstate_mutex);
@@ -697,7 +705,7 @@
 +
 +	ds2784_getcurrent(&cur);
 +	current_mA=gadget_event_state_current();
-+	if((cur>0) && (current_mA < 500)) {
++	if((cur>0) && (current_mA != 100 && current_mA < 500)) {
 +		// Assume Touchstone
 +		if(!charging_state) {
 +			charging_state=1;
@@ -856,7 +864,7 @@
 +}
 +
 +static ssize_t show_ch_poll(struct cpufreq_policy *policy, char *buf) {
-+        return sprintf(buf, "%hu\n", ch_poll);
++        return sprintf(buf, "%hu\n", jiffies_to_secs(ch_poll));
 +}
 +
 +static ssize_t store_ch_poll(struct cpufreq_policy *policy, char *buf,
@@ -864,7 +872,8 @@
 +        unsigned int i;
 +
 +        if(sscanf(buf, "%u", &i)) {
-+                if((i < 90) && (i > 9000))
++		i=secs_to_jiffies(i);
++                if((i < 90) && (i > 30000))
 +                        printk("CPUfreq: invalid \n");
 +                else {
 +                        ch_poll=i;
@@ -876,15 +885,16 @@
 +}
 +
 +static ssize_t show_vdemand_poll(struct cpufreq_policy *policy, char *buf) {
-+        return sprintf(buf, "%hu\n", vdemand_poll);
++        return sprintf(buf, "%hu\n", jiffies_to_msecs(vdemand_poll));
 +}
 +
-+static ssize_t store_vdemand_poll(struct cpufreq_policy *policy, char *buf,
++static ssize_t store_vdemand_poll(struct cpufreq_policy *policy, const char *buf,
 +                                                size_t count) {
 +        unsigned int i;
 +
 +        if(sscanf(buf, "%u", &i)) {
-+                if((i < 10) && (i > 1000))
++		i=msecs_to_jiffies(i);
++                if((i < 10) || (i > 1500))
 +                        printk("CPUfreq: invalid \n");
 +                else {
 +                        vdemand_poll=i;
@@ -901,8 +911,8 @@
 +							store_vdemand_enable);
 +CPUFREQ_SCREENSTATE_ATTR(charger_override,0644,show_ch_override,
 +							store_ch_override);
-+//CPUFREQ_SCREENSTATE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,
-+//							store_vdemand_poll);
++CPUFREQ_SCREENSTATE_ATTR(vdemand_poll_rate,0644,show_vdemand_poll,
++							store_vdemand_poll);
 +CPUFREQ_SCREENSTATE_ATTR(charger_poll_rate,0644,show_ch_poll,store_ch_poll);
 +
 +static struct attribute *default_attrs[] = {
@@ -910,7 +920,7 @@
 +        &_attr_vdemand_enable.attr,
 +        &_attr_charger_override.attr,
 +        &_attr_charger_poll_rate.attr,
-+//        &_attr_vdemand_poll_rate.attr,
++        &_attr_vdemand_poll_rate.attr,
 +        NULL
 +};
 +
@@ -1024,7 +1034,7 @@
 +#endif
 +module_exit(cpufreq_gov_screenstate_exit);
 --- linux-2.6.24-palm/drivers/hwmon/omap34xx_temp.c     2010-05-31 12:05:29.000000000 -0400
-+++ linux-2.6.24-F102/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
++++ linux-2.6.24-F102B/drivers/hwmon/omap34xx_temp.c   2010-07-11 20:46:13.000000000 -0400
 @@ -140,6 +140,14 @@
 	mutex_unlock(&data->update_lock);
  }
@@ -1041,7 +1051,7 @@
  		struct device_attribute *devattr, char *buf)
  {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/arch/arm/mach-omap3pe/clock.c	2011-01-03 11:01:07.000000000 -0500
++++ linux-2.6.24-F102B/arch/arm/mach-omap3pe/clock.c	2011-01-03 11:01:07.000000000 -0500
 @@ -709,6 +709,10 @@
  
  	prcm = vdd1_rate_table + ARRAY_SIZE(vdd1_rate_table) -1;
@@ -1054,7 +1064,7 @@
  		freq_table[i].frequency = prcm->speed / 1000;
  		i++;
 --- linux-2.6.24-palm/drivers/w1/slaves/w1_ds2784.c	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-F102/drivers/w1/slaves/w1_ds2784.c	2011-01-03 11:01:07.000000000 -0500
++++ linux-2.6.24-F102B/drivers/w1/slaves/w1_ds2784.c	2011-01-03 11:01:07.000000000 -0500
 @@ -1133,11 +1133,20 @@
  */
  static struct device *battery_device = NULL;
@@ -1098,7 +1108,7 @@
  static struct battery_ops ds2784_battery_ops = {
  	.get_percent       = ds2784_getpercent,
 --- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/drivers/usb/gadget/gadget_event.c	2011-01-03 11:01:07.000000000 -0500
++++ linux-2.6.24-F102B/drivers/usb/gadget/gadget_event.c	2011-01-03 11:01:07.000000000 -0500
 @@ -282,6 +282,13 @@
  }
  EXPORT_SYMBOL(gadget_event_power_state_changed);
@@ -1114,7 +1124,7 @@
  {
  	int ret = 0;
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/arch/arm/mach-omap3pe/clock.h	2011-01-03 11:46:11.000000000 -0500
++++ linux-2.6.24-F102B/arch/arm/mach-omap3pe/clock.h	2011-01-03 11:46:11.000000000 -0500
 @@ -47,9 +47,8 @@
  #define S125M	125000000
  #define S250M	250000000
@@ -1128,7 +1138,7 @@
  /* Macro to enable clock control via clock framework */
  #define ENABLE_CLOCKCONTROL 1
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/clock_tree.h	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/arch/arm/mach-omap3pe/clock_tree.h	2011-01-02 12:13:02.000000000 -0500
++++ linux-2.6.24-F102B/arch/arm/mach-omap3pe/clock_tree.h	2011-01-02 12:13:02.000000000 -0500
 @@ -90,9 +90,9 @@
  	/*OPP3*/
  	{S500M, PRCM_VDD1_OPP3, RATE_IN_343X},
@@ -1142,7 +1152,7 @@
  
  static struct vdd_prcm_config vdd2_rate_table[MAX_VDD2_OPP +1] = {
 --- linux-2.6.24-palm/arch/arm/mach-omap3pe/constraint.c	2010-06-11 17:48:34.000000000 -0400
-+++ linux-2.6.24-F102/arch/arm/mach-omap3pe/constraint.c	2011-01-07 17:48:26.000000000 -0500
++++ linux-2.6.24-F102B/arch/arm/mach-omap3pe/constraint.c	2011-01-07 17:48:26.000000000 -0500
 @@ -66,7 +66,7 @@
  static struct atomic_notifier_head freq_dsp_pre_notifier_list;
  static struct atomic_notifier_head freq_dsp_post_notifier_list;
@@ -1153,7 +1163,7 @@
  #define min_vdd2_opp    CO_VDD2_OPP2
  #define max_vdd2_opp    CO_VDD2_OPP3
 --- linux-2.6.24-palm/include/asm-arm/arch-omap/resource.h	2010-06-11 17:48:35.000000000 -0400
-+++ linux-2.6.24-F102/include/asm-arm/arch-omap/resource.h	2011-04-26 18:25:41.000000000 -0400
++++ linux-2.6.24-F102B/include/asm-arm/arch-omap/resource.h	2011-04-26 18:25:41.000000000 -0400
 @@ -31,7 +31,7 @@
  
  #define curr_vdd1_opp   3
