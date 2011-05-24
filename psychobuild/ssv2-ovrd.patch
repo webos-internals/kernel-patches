@@ -214,17 +214,17 @@
 +#define VDD2_VSEL_MIN 33
 +
 +// High temp alarm and cap
-+#define HIGHTEMP_SCALEBACK 55
++#define HIGHTEMP_SCALEBACK 50
 +
 +//Reset temp from alarm
-+#define LOWTEMP_RESET 50
++#define LOWTEMP_RESET 47
 +
 +// Polling frequency jiffies
 +#define BATTERY_POLLING 30000
 +#define TEMP_POLLING 1000
 +
 +// Battery scaleback percent
-+#define BATTERY_PERCENT 25
++#define BATTERY_PERCENT 20
 +
 +// Battery scaleback speed
 +#define BATTERY_PERCENT_SPEED 500000
@@ -467,14 +467,14 @@
 +
 +static ssize_t show_hightemp_scaleback(struct cpufreq_policy *policy,
 +						char *buf) {
-+        return sprintf(buf, "%d\n", override_hightemp);
++        return sprintf(buf, "%u\n", override_hightemp);
 +}
 +
 +static ssize_t store_hightemp_scaleback(struct cpufreq_policy *policy,
 +						char *buf, size_t count) {
 +        int maxtemp=0;
 +
-+        if(sscanf(buf, "%d", &maxtemp) == 1)
++        if(sscanf(buf, "%u", &maxtemp) == 1)
 +                override_hightemp=(maxtemp) ? maxtemp : HIGHTEMP_SCALEBACK;
 +        else printk("CPUfreq: invalid max temp\n");
 +
@@ -483,15 +483,15 @@
 +
 +static ssize_t show_battery_scaleback_per(struct cpufreq_policy *policy,
 +                                                char *buf) {
-+	return sprintf(buf, "%d\n", battery_scaleback_percent);
++	return sprintf(buf, "%u\n", battery_scaleback_percent);
 +}
 +
 +static ssize_t store_battery_scaleback_per(struct cpufreq_policy *policy,
 +                                                char *buf, size_t count) {
 +	int bat=0;
 +
-+	if(sscanf(buf, "%d", &bat) == 1)
-+		battery_scaleback_percent=((bat > -1) && (bat<100))
++	if(sscanf(buf, "%u", &bat) == 1)
++		battery_scaleback_percent=(bat < 100)
 +						? bat : BATTERY_PERCENT;
 +	else printk("CPUfreq: invalid battery percentage\n");
 +
@@ -500,14 +500,14 @@
 +
 +static ssize_t show_battery_scaleback_speed(struct cpufreq_policy *policy,
 +                                                char *buf) {
-+	return sprintf(buf, "%d\n", battery_scaleback_speed);
++	return sprintf(buf, "%u\n", battery_scaleback_speed);
 +}
 +
 +static ssize_t store_battery_scaleback_speed(struct cpufreq_policy *policy,
 +                                                char *buf, size_t count) {
 +	int bat=0;
 +
-+	if(sscanf(buf, "%d", &bat) == 1)
++	if(sscanf(buf, "%u", &bat) == 1)
 +		battery_scaleback_speed=(bat>250000)
 +						? bat : BATTERY_PERCENT_SPEED;
 +	else printk("CPUfreq: invalid battery scaleback speed\n");
@@ -517,14 +517,14 @@
 +
 +static ssize_t show_lowtemp_reset(struct cpufreq_policy *policy, char *buf) {
 +
-+        return sprintf(buf, "%d\n", override_lowtemp);
++        return sprintf(buf, "%u\n", override_lowtemp);
 +}
 +
 +static ssize_t store_lowtemp_reset(struct cpufreq_policy *policy, char *buf,
 +						size_t count) {
 +        int lowtemp=0;
 +
-+        if(sscanf(buf, "%d", &lowtemp) == 1)
++        if(sscanf(buf, "%u", &lowtemp) == 1)
 +                override_lowtemp=(lowtemp) ? lowtemp : LOWTEMP_RESET;
 +        else printk("CPUfreq: invalid low temp\n");
 +
