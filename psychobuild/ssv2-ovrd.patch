@@ -139,8 +139,8 @@
  extern struct cpufreq_governor cpufreq_gov_ondemand;
  #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_ondemand)
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_override.c	2011-05-21 17:48:20.000000000 -0400
-@@ -0,0 +1,490 @@
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_override.c	2011-05-24 16:19:02.000000000 -0400
+@@ -0,0 +1,474 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -177,14 +177,14 @@
 +#ifdef CONFIG_MACH_SIRLOIN_3630
 +#define HIGHTEMP_SCALEBACK 48
 +#else
-+#define HIGHTEMP_SCALEBACK 55
++#define HIGHTEMP_SCALEBACK 50
 +#endif
 +
 +//Reset temp from alarm
 +#ifdef CONFIG_MACH_SIRLOIN_3630
 +#define LOWTEMP_RESET 45
 +#else
-+#define LOWTEMP_RESET 50
++#define LOWTEMP_RESET 47
 +#endif
 +
 +// Polling frequency secs
@@ -256,9 +256,9 @@
 +	.show = _show,\
 +};
 +
-+static unsigned int jiffies_to_secs(unsigned long int jifs) {
++/*static unsigned int jiffies_to_secs(unsigned long int jifs) {
 +        return jifs / HZ;
-+}
++} */
 +
 +static unsigned long int secs_to_jiffies(unsigned int secs) {
 +        return secs * HZ;
@@ -416,62 +416,47 @@
 +
 +	omap_pm_opp_get_volts(volt);
 +
-+#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
 +#if PRCM_NO_VDD1_OPPS > 5
-+#ifdef CONFIG_MACH_SIRLOIN_3630
-+	if (sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu",
++	i=(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu",
++						&volt[6],&volt[5],&volt[4],
++						&volt[3],&volt[2],&volt[1],
++						&volt[0]));
 +#else
-+	if (sscanf(buf, "%hhu %hhu %hhu %hhu %hhu",
-+#endif
-+		   &volt[6], &volt[5], &volt[4],
-+#ifdef CONFIG_MACH_SIRLOIN_3630
-+		   &volt[3], &volt[2], &volt[1]) == 6) {
-+#else
-+		   &volt[3], &volt[2]) == 5) {
-+#endif
-+#else				// PRCM_NO_VDD1_OPPS > 5
-+#ifdef CONFIG_MACH_SIRLOIN_3630
-+	if (sscanf(buf, "%hhu %hhu %hhu %hhu", &volt[4], &volt[3], &volt[2]
-+		   , &volt[1]) == 4) {
-+#else
-+	if (sscanf(buf, "%hhu %hhu %hhu", &volt[4], &volt[3], &volt[2]
-+		   == 3) {
-+#endif
-+#endif				// PRCM_NO_VDD1_OPPS > 5
-+
-+#else
-+#if PRCM_NO_VDD1_OPPS > 5
-+	if (sscanf
-+	    (buf, "%hhu %hhu %hhu %hhu %hhu %hhu %hhu", &volt[6], &volt[5],
-+	     &volt[4], &volt[3], &volt[2], &volt[1], &volt[0]) == 7) {
-+#else
-+	if (sscanf(buf, "%hhu %hhu %hhu %hhu %hhu", &volt[4], &volt[3],
-+		   &volt[2], &volt[1], &volt[0]) == 5) {
-+#endif
-+
++	i=(sscanf(buf, "%hhu %hhu %hhu %hhu %hhu",
++						&volt[4],&volt[3],&volt[2],
++						&volt[1],&volt[0]));
 +#endif
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+#ifdef CONFIG_MACH_SIRLOIN_3630
-+		for (i = 1; i < PRCM_NO_VDD1_OPPS; i++) {
-+#else
-+		for (i = 2; i < PRCM_NO_VDD1_OPPS; i++) {
++ #ifdef CONFIG_MACH_SIRLOIN_3630
++	if(i == (PRCM_NO_VDD1_OPPS - 1)) {
++ #else // CONFIG_MACH_SIRLOIN_3630
++	if(i == (PRCM_NO_VDD1_OPPS - 2)) {
++ #endif
++#else // CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++	if(i == PRCM_NO_VDD1_OPPS) {
 +#endif
-+#else				// CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
-+		for (i = 0; i < PRCM_NO_VDD1_OPPS; i++) {
++
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++ #ifdef CONFIG_MACH_SIRLOIN_3630
++		for(i=1;i < PRCM_NO_VDD1_OPPS;i++) {
++ #else // CONFIG_MACH_SIRLOIN_3630
++		for(i=2;i < PRCM_NO_VDD1_OPPS;i++) {
++ #endif
++#else // CONFIG_CPU_FREQ_OVERRIDE_STRIPOPP
++		for(i=0;i < PRCM_NO_VDD1_OPPS;i++) {
 +#endif
-+			if ((volt[i] < VDD1_VSEL_MIN) || (volt[i] >
-+							  VDD1_VSEL_MAX)) {
++			if((volt[i] < VDD1_VSEL_MIN) || (volt[i] >
++							VDD1_VSEL_MAX)) {
 +				printk("override: invalid vsel\n");
 +				break;
 +			}
 +		}
-+		if (i == PRCM_NO_VDD1_OPPS) {
++		if(i == PRCM_NO_VDD1_OPPS) {
 +			omap_pm_opp_set_volts(volt);
-+		} else
-+			printk("override: missing vsel values\n");
-+	} else
-+		printk("override: missing vsel values\n");
++		}
++	}
++	else printk("override: missing vsel values\n");
 +
 +	return count;
 +}
@@ -494,7 +479,7 @@
 +
 +static ssize_t show_hightemp_scaleback(struct cpufreq_policy *policy, char *buf)
 +{
-+	return sprintf(buf, "%d\n", ovrd_policy->override_hightemp);
++	return sprintf(buf, "%u\n", ovrd_policy->override_hightemp);
 +}
 +
 +static ssize_t store_hightemp_scaleback(struct cpufreq_policy *policy,
@@ -502,7 +487,7 @@
 +{
 +	unsigned int maxtemp = 0;
 +
-+	if (sscanf(buf, "%d", &maxtemp) == 1)
++	if (sscanf(buf, "%u", &maxtemp) == 1)
 +		ovrd_policy->override_hightemp = (maxtemp)
 +		    ? maxtemp : HIGHTEMP_SCALEBACK;
 +	else
@@ -514,7 +499,7 @@
 +static ssize_t show_battery_scaleback_per(struct cpufreq_policy *policy,
 +					  char *buf)
 +{
-+	return sprintf(buf, "%d\n", ovrd_policy->battery_scaleback_percent);
++	return sprintf(buf, "%u\n", ovrd_policy->battery_scaleback_percent);
 +}
 +
 +static ssize_t store_battery_scaleback_per(struct cpufreq_policy *policy,
@@ -522,10 +507,9 @@
 +{
 +	unsigned int bat = 0;
 +
-+	if (sscanf(buf, "%d", &bat) == 1)
-+		ovrd_policy->battery_scaleback_percent = ((bat > -1)
-+							  && (bat < 100))
-+		    ? bat : BATTERY_PERCENT;
++	if (sscanf(buf, "%u", &bat) == 1)
++		ovrd_policy->battery_scaleback_percent = (bat < 100)
++		    				? bat : BATTERY_PERCENT;
 +	else
 +		printk("override: invalid battery percentage\n");
 +
@@ -535,7 +519,7 @@
 +static ssize_t show_battery_scaleback_speed(struct cpufreq_policy *policy,
 +					    char *buf)
 +{
-+	return sprintf(buf, "%d\n", ovrd_policy->battery_scaleback_speed);
++	return sprintf(buf, "%u\n", ovrd_policy->battery_scaleback_speed);
 +}
 +
 +static ssize_t store_battery_scaleback_speed(struct cpufreq_policy *policy,
@@ -543,7 +527,7 @@
 +{
 +	unsigned int bat = 0;
 +
-+	if (sscanf(buf, "%d", &bat) == 1)
++	if (sscanf(buf, "%u", &bat) == 1)
 +		ovrd_policy->battery_scaleback_speed = (bat > 150000)
 +		    ? bat : SCALEBACK_SPEED;
 +	else
@@ -555,7 +539,7 @@
 +static ssize_t show_lowtemp_reset(struct cpufreq_policy *policy, char *buf)
 +{
 +
-+	return sprintf(buf, "%d\n", ovrd_policy->override_lowtemp);
++	return sprintf(buf, "%u\n", ovrd_policy->override_lowtemp);
 +}
 +
 +static ssize_t store_lowtemp_reset(struct cpufreq_policy *policy,
@@ -563,7 +547,7 @@
 +{
 +	unsigned int lowtemp = 0;
 +
-+	if (sscanf(buf, "%d", &lowtemp) == 1)
++	if (sscanf(buf, "%u", &lowtemp) == 1)
 +		ovrd_policy->override_lowtemp = (lowtemp)
 +		    ? lowtemp : LOWTEMP_RESET;
 +	else
