@@ -405,7 +405,7 @@
 +	ds2784_getcurrent(&cur);
 +	current_mA=gadget_event_state_current();
 +
-+	if((cur>0) && (current_mA > 100 && current_mA < 500)) {
++	if((cur>0) && (current_mA != 100 && current_mA < 500)) {
 +		// Assume Touchstone
 +		if(!ovrd_policy->charging_state) {
 +			ovrd_policy->charging_state=1;
