@@ -689,7 +689,7 @@
 +#define VDD2_VSEL { 0x24, 0x28, 0x2c }
 +
 +// vdemand poll rate jiffies
-+#define VDEMAND_POLL_RATE 30
++#define VDEMAND_POLL_RATE 20
 +
 +// vdemand poll rate min
 +#define VDEMAND_POLL_RATE_MIN 10
