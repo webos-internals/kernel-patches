@@ -274,7 +274,7 @@
 +EXPORT_SYMBOL(get_vdd1_arm_opp_for_freq);
  
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-05-25 22:52:57.000000000 -0400
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_override.c	2011-05-26 18:34:52.000000000 -0400
 @@ -0,0 +1,364 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
@@ -523,10 +523,10 @@
 +	if(sscanf(buf, "%hhu", &override) == 1) {
 +		override=(override) ? 1 : 0;
 +		if(override) {
++			if(ovrd_policy->charging_state) change_freq_high();
 +			ovrd_policy->charging_state=0;
 +			if(!ovrd_policy->ch_override)
 +				cancel_delayed_work(&dbs_work3);
-+			change_freq_high();
 +			printk("override: charger override enabled\n");
 +		}
 +		else
@@ -641,8 +641,8 @@
 +MODULE_DESCRIPTION ("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE ("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_vdemand.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-05-25 22:39:52.000000000 -0400
-@@ -0,0 +1,416 @@
++++ linux-2.6.24-AV8B/drivers/cpufreq/cpufreq_vdemand.c	2011-05-26 18:23:29.000000000 -0400
+@@ -0,0 +1,410 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_vdemand.c
 + *
@@ -775,8 +775,6 @@
 +                                                size_t count) {
 +        u8 volt[3], i;
 +
-+        mutex_lock(&vdemand_mutex);
-+
 +        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1],&volt[0])) {
 +                for(i=0;i < 3;i++) {
 +                        if((volt[i] < VDD1_VSEL_MIN) ||
@@ -791,7 +789,6 @@
 +        }
 +        else printk("vdemand: missing vsel values\n");
 +
-+        mutex_unlock(&vdemand_mutex);
 +        return count;
 +}
 +
@@ -849,8 +846,6 @@
 +                                                size_t count) {
 +        u8 volt[3], i;
 +
-+        mutex_lock(&vdemand_mutex);
-+
 +        if(sscanf(buf, "%hhu %hhu %hhu", &volt[2],&volt[1],&volt[0])) {
 +                for(i=0;i < 3;i++) {
 +                        if((volt[i] < VDD2_VSEL_MIN) ||
@@ -865,7 +860,6 @@
 +        }
 +        else printk("vdemand: missing vsel values\n");
 +
-+        mutex_unlock(&vdemand_mutex);
 +        return count;
 +}
 +
@@ -977,10 +971,10 @@
 +
 +void vdemand_set_scaleback(bool status) {
 +	if(status) {
-+		cancel_delayed_work(&dbs_work);
++		if(!scaleback) cancel_delayed_work(&dbs_work);
 +		scaleback = 1;
 +	} else {
-+		schedule_delayed_work(&dbs_work,
++		if(scaleback) schedule_delayed_work(&dbs_work,
 +			msecs_to_jiffies(vdemand_cfg->vdemand_poll_rate));
 +		scaleback = 0;
 +	}
