@@ -616,8 +616,8 @@
 +MODULE_DESCRIPTION("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE("GPL");
 --- linux-2.6.24-palm/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
-+++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-05-21 17:22:55.000000000 -0400
-@@ -0,0 +1,557 @@
++++ linux-2.6.24-F105/drivers/cpufreq/cpufreq_screenstate.c	2011-05-27 15:21:21.000000000 -0400
+@@ -0,0 +1,553 @@
 +/*
 + *  linux/drivers/cpufreq/cpufreq_screenstate.c
 + *
@@ -644,6 +644,7 @@
 +#include <linux/workqueue.h>
 +#include <asm/arch/prcm.h>
 +#include <linux/kernel_stat.h>
++#include <linux/delay.h>
 +
 +#define FACTOR_MIN 1
 +#define FACTOR_MAX 4
@@ -755,18 +756,11 @@
 +	set_voltage_level(2, vdd2_volt);
 +}
 +
-+static void change_freq(void)
-+{
-+	mutex_lock(&screenstate_mutex);
-+	opp = prcm_get_current_vdd1_opp_no();
-+	mutex_unlock(&screenstate_mutex);
-+}
-+
 +static int screenstate_notifier(struct notifier_block *nb, unsigned long val,
 +				void *data)
 +{
 +	if (ss_cfg->vdemand_enabled)
-+		change_freq();
++		opp = prcm_get_current_vdd1_opp_no();
 +
 +	return 0;
 +}
@@ -804,12 +798,12 @@
 +				printk("screenstate: charger unplugged!\n");
 +				if (ss_cfg->lcd_state) {
 +					__cpufreq_driver_target(policy,
-+								policy->max,
-+								CPUFREQ_RELATION_H);
++							policy->max,
++							CPUFREQ_RELATION_H);
 +				} else {
 +					__cpufreq_driver_target(policy,
-+								policy->max,
-+								CPUFREQ_RELATION_L);
++							policy->max,
++							CPUFREQ_RELATION_L);
 +				}
 +			}
 +		}
@@ -894,9 +888,7 @@
 +		if ((i < FACTOR_MIN) || (i > FACTOR_MAX)) {
 +			printk("screenstate: invalid factor\n");
 +		} else {
-+			mutex_lock(&screenstate_mutex);
 +			ss_cfg->sfactor = i;
-+			mutex_unlock(&screenstate_mutex);
 +		}
 +	} else
 +		printk("screenstate: missing factor value\n");
@@ -1038,6 +1030,7 @@
 +		if (ss_cfg->cpu_is_managed)
 +			break;
 +
++		mutex_lock(&screenstate_mutex);
 +		ss_cfg->cpu_is_managed = 1;
 +		ss_cfg->lcd_state = 1;
 +		ss_cfg->charging_state = 0;
@@ -1050,8 +1043,7 @@
 +		last_load = 0;
 +		prev_cpu_idle = get_cpu_idle_time(0);
 +		prev_cpu_wall = get_jiffies_64();
-+
-+		change_freq();
++		opp = prcm_get_current_vdd1_opp_no();
 +
 +		cpufreq_register_notifier(&screenstate_notifier_block,
 +					  CPUFREQ_TRANSITION_NOTIFIER);
@@ -1062,7 +1054,9 @@
 +		rc = sysfs_create_group(&policy->kobj, &screenstate_attr_group);
 +		schedule_delayed_work(&worker, ss_cfg->ch_poll);
 +		schedule_delayed_work(&worker2, ss_cfg->vdemand_poll);
++		mutex_unlock(&screenstate_mutex);
 +
++		printk("screenstate: initialized\n");
 +		break;
 +	case CPUFREQ_GOV_STOP:
 +		mutex_lock(&screenstate_mutex);
@@ -1077,6 +1071,7 @@
 +
 +		break;
 +	case CPUFREQ_GOV_LIMITS:
++		mutex_lock(&screenstate_mutex);
 +		printk("screenstate: policy change\n");
 +
 +		if (ss_cfg->charging_state) {
@@ -1093,6 +1088,7 @@
 +							CPUFREQ_RELATION_L);
 +			}
 +		}
++		mutex_unlock(&screenstate_mutex);
 +
 +		break;
 +	}
@@ -1283,7 +1279,7 @@
  
  		/* Controller OFF */
 --- linux-2.6.24-palm/drivers/usb/gadget/gadget_event.c	2011-02-28 17:03:32.000000000 -0500
-+++ linux-2.6.24-F105/drivers/usb/gadget/gadget_event.c	2011-02-28 17:36:28.000000000 -0500
++++ linux-2.6.24-F105/drivers/usb/gadget/gadget_event.c	2011-05-27 13:06:15.000000000 -0400
 @@ -362,6 +362,13 @@
  }
  EXPORT_SYMBOL(gadget_event_power_state_changed);
