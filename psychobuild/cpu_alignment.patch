@@ -1,0 +1,51 @@
+--- a/arch/arm/Kconfig	2011-02-28 17:03:31.000000000 -0500
++++ b/arch/arm/Kconfig	2011-06-14 09:29:27.000000000 -0400
+@@ -803,6 +803,16 @@
+ 	  correct operation of some network protocols. With an IP-only
+ 	  configuration it is safe to say N, otherwise say Y.
+ 
++config ALLOW_CPU_ALIGNMENT
++	bool "Allow CPU-based alignment handling"
++	default y
++	help
++	  Advanced ARM processors, such as the Cortex series and ARMv7-based
++	  CPUS are capable of performing unaligned accesses for many types of
++	  memory accesses.  Typically, using a cpu-based alignment fixup is
++	  faster than doing such a fixup in software.  For best performance
++	  on advanced CPUs, say Y here.
++
+ endmenu
+ 
+ menu "Boot options"
+--- linux-2.6.24-palm/arch/arm/kernel/head-nommu.S	2008-01-24 17:58:37.000000000 -0500
++++ linux-2.6.24-F105-test/arch/arm/kernel/head-nommu.S	2011-06-14 09:09:35.000000000 -0400
+@@ -62,10 +62,10 @@
+ __after_proc_init:
+ #ifdef CONFIG_CPU_CP15
+ 	mrc	p15, 0, r0, c1, c0, 0		@ read control reg
+-#ifdef CONFIG_ALIGNMENT_TRAP
+-	orr	r0, r0, #CR_A
++#ifdef CONFIG_ALLOW_CPU_ALIGNMENT
++	bic     r0, r0, #CR_A
+ #else
+-	bic	r0, r0, #CR_A
++	orr     r0, r0, #CR_A
+ #endif
+ #ifdef CONFIG_CPU_DCACHE_DISABLE
+ 	bic	r0, r0, #CR_C
+--- linux-2.6.24-palm/arch/arm/kernel/head.S	2008-01-24 17:58:37.000000000 -0500
++++ linux-2.6.24-F105-test/arch/arm/kernel/head.S	2011-06-14 09:03:49.000000000 -0400
+@@ -156,10 +156,10 @@
+  */
+ 	.type	__enable_mmu, %function
+ __enable_mmu:
+-#ifdef CONFIG_ALIGNMENT_TRAP
+-	orr	r0, r0, #CR_A
+-#else
++#ifdef CONFIG_ALLOW_CPU_ALIGNMENT
+ 	bic	r0, r0, #CR_A
++#else
++	orr	r0, r0, #CR_A
+ #endif
+ #ifdef CONFIG_CPU_DCACHE_DISABLE
+ 	bic	r0, r0, #CR_C
