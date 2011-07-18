@@ -144,7 +144,7 @@
  	/* Vsel corresponding to 0.975V (OPP1), 1.050V (OPP2),
  				1.20V (OPP3), 1.27V (OPP4), 1.35 (OPP5) */
 -	0x1e, 0x24, 0x30, 0x36, 0x3C
-+	0x1e, 0x24, 0x30, 0x42, 0x44
++	0x1e, 0x24, 0x30, 0x42, 0x45
  };
  
  static u8 core_l3_vdd2_volts [PRCM_NO_VDD2_OPPS] = { /* only 3 OPPs */
@@ -685,7 +685,7 @@
 +#define VDD2_VSEL_MIN 33
 +
 +// VDD defaults
-+#define VDD1_VSEL { 0x3c, 0x40, 0x44 }
++#define VDD1_VSEL { 0x3d, 0x41, 0x45 }
 +#define VDD2_VSEL { 0x24, 0x28, 0x2c }
 +
 +// vdemand poll rate jiffies
