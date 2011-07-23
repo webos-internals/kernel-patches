@@ -1,6 +1,6 @@
---- linux-2.6.35/arch/arm/configs/tenderloin_defconfig.orig
-+++ linux-2.6.35/arch/arm/configs/tenderloin_defconfig
-@@ -2681,9 +2681,9 @@
+--- linux-2.6.29/arch/arm/configs/shank_defconfig.orig
++++ linux-2.6.29/arch/arm/configs/shank_defconfig
+@@ -1745,9 +1745,9 @@
  # CONFIG_CRYPTO_CTR is not set
  # CONFIG_CRYPTO_CTS is not set
  CONFIG_CRYPTO_ECB=y
@@ -12,9 +12,9 @@
  
  #
  # Hash modes
---- linux-2.6.35/arch/arm/configs/tenderloin_defconfig.orig
-+++ linux-2.6.35/arch/arm/configs/tenderloin_defconfig
-@@ -2725,9 +2725,9 @@
+--- linux-2.6.29/arch/arm/configs/shank_defconfig.orig
++++ linux-2.6.29/arch/arm/configs/shank_defconfig
+@@ -1787,9 +1787,9 @@
  # CONFIG_CRYPTO_KHAZAD is not set
  # CONFIG_CRYPTO_SALSA20 is not set
  # CONFIG_CRYPTO_SEED is not set
