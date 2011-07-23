@@ -1,6 +1,6 @@
 --- linux-2.6.24/arch/arm/Makefile	2010-06-21 19:42:06.000000000 -0700
 +++ linux-2.6.24-codecrumb/arch/arm/Makefile	2010-06-22 01:27:10.000000000 -0700
-@@ -47,12 +47,12 @@
+@@ -50,12 +50,12 @@
  # Note that GCC does not numerically define an architecture version
  # macro, but instead defines a whole series of macros which makes
  # testing for a specific architecture or later rather impossible.
