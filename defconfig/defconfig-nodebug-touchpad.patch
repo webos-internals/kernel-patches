@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 89687ea..7e092ed 100644
+index 89687ea..5a5343d 100644
 --- a/arch/arm/configs/tenderloin_defconfig
 +++ b/arch/arm/configs/tenderloin_defconfig
 @@ -132,7 +132,7 @@ CONFIG_PERF_EVENTS=y
@@ -38,17 +38,6 @@ index 89687ea..7e092ed 100644
  CONFIG_GPIO_SYSFS=y
  
  #
-@@ -2567,8 +2567,8 @@ CONFIG_TIMER_STATS=y
- # CONFIG_DEBUG_PREEMPT is not set
- # CONFIG_DEBUG_RT_MUTEXES is not set
- # CONFIG_RT_MUTEX_TESTER is not set
--CONFIG_DEBUG_SPINLOCK=y
--CONFIG_DEBUG_MUTEXES=y
-+# CONFIG_DEBUG_SPINLOCK is not set
-+# CONFIG_DEBUG_MUTEXES is not set
- # CONFIG_DEBUG_LOCK_ALLOC is not set
- # CONFIG_PROVE_LOCKING is not set
- # CONFIG_LOCK_STAT is not set
 @@ -2578,12 +2578,12 @@ CONFIG_STACKTRACE=y
  CONFIG_MINI_CORE=y
  # CONFIG_DEBUG_KOBJECT is not set
