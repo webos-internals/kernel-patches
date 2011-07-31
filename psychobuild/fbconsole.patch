@@ -1,0 +1,13 @@
+--- linux-2.6.35-palm/drivers/video/console/fbcon.c	2011-07-30 12:55:53.000000000 -0400
++++ linux-2.6.35-F15/drivers/video/console/fbcon.c	2011-07-31 02:35:15.000000000 -0400
+@@ -3528,8 +3528,8 @@
+ static int __init
+ fbcon_args(char *str)
+ {
+-        if (!strcmp(str, "disable"))
+-                enable_fbcon = 0;
++/*        if (!strcmp(str, "disable"))
++                enable_fbcon = 0; */
+ 
+         return 0;
+ }
