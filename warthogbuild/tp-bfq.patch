@@ -436,24 +436,6 @@ index 0000000..5f5e65b
 +
 +4) added the low latency mechanism described in detail in
 +http://algo.ing.unimo.it/people/paolo/disk_sched/description.php.
-diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 89687ea..c39c322 100644
---- a/arch/arm/configs/tenderloin_defconfig
-+++ b/arch/arm/configs/tenderloin_defconfig
-@@ -173,10 +173,11 @@ CONFIG_BLK_DEV_BSG=y
- CONFIG_IOSCHED_NOOP=y
- CONFIG_IOSCHED_DEADLINE=y
- CONFIG_IOSCHED_CFQ=y
-+CONFIG_IOSCHED_BFQ=y
- # CONFIG_DEFAULT_DEADLINE is not set
--CONFIG_DEFAULT_CFQ=y
-+CONFIG_DEFAULT_BFQ=y
- # CONFIG_DEFAULT_NOOP is not set
--CONFIG_DEFAULT_IOSCHED="cfq"
-+CONFIG_DEFAULT_IOSCHED="bfq"
- CONFIG_ARCH_INLINE_SPIN_TRYLOCK=y
- CONFIG_ARCH_INLINE_SPIN_TRYLOCK_BH=y
- CONFIG_ARCH_INLINE_SPIN_LOCK=y
 diff --git a/block/Kconfig.iosched b/block/Kconfig.iosched
 index 3199b76..5905452 100644
 --- a/block/Kconfig.iosched
