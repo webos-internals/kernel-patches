@@ -1,8 +1,8 @@
 diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 89687ea..d0613c8 100644
+index 5017808..5e8a5b6 100644
 --- a/arch/arm/configs/tenderloin_defconfig
 +++ b/arch/arm/configs/tenderloin_defconfig
-@@ -2741,9 +2741,9 @@ CONFIG_CRYPTO_DEFLATE=y
+@@ -2749,9 +2749,9 @@ CONFIG_CRYPTO_DEFLATE=y
  #
  CONFIG_CRYPTO_ANSI_CPRNG=m
  CONFIG_CRYPTO_HW=y

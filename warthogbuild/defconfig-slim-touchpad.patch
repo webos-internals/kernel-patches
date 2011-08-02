@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 89687ea..759628e 100644
+index 5017808..6c5a664 100644
 --- a/arch/arm/configs/tenderloin_defconfig
 +++ b/arch/arm/configs/tenderloin_defconfig
 @@ -68,9 +68,9 @@ CONFIG_RCU_FANOUT=32
@@ -45,7 +45,7 @@ index 89687ea..759628e 100644
  # CONFIG_KPROBES is not set
  CONFIG_HAVE_KPROBES=y
  CONFIG_HAVE_KRETPROBES=y
-@@ -2575,7 +2575,7 @@ CONFIG_DEBUG_MUTEXES=y
+@@ -2583,7 +2583,7 @@ CONFIG_DEBUG_MUTEXES=y
  # CONFIG_DEBUG_SPINLOCK_SLEEP is not set
  # CONFIG_DEBUG_LOCKING_API_SELFTESTS is not set
  CONFIG_STACKTRACE=y

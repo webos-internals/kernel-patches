@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 89687ea..8c4bcdb 100644
+index 5017808..472e72a 100644
 --- a/arch/arm/configs/tenderloin_defconfig
 +++ b/arch/arm/configs/tenderloin_defconfig
 @@ -173,10 +173,11 @@ CONFIG_BLK_DEV_BSG=y
@@ -16,7 +16,7 @@ index 89687ea..8c4bcdb 100644
  CONFIG_ARCH_INLINE_SPIN_TRYLOCK=y
  CONFIG_ARCH_INLINE_SPIN_TRYLOCK_BH=y
  CONFIG_ARCH_INLINE_SPIN_LOCK=y
-@@ -465,6 +466,7 @@ CONFIG_CPU_HAS_PMU=y
+@@ -466,6 +467,7 @@ CONFIG_CPU_HAS_PMU=y
  # CONFIG_ARM_ERRATA_460075 is not set
  # CONFIG_ARM_ERRATA_720789 is not set
  # CONFIG_KSAPI is not set

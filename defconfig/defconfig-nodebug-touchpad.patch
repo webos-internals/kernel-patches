@@ -1,8 +1,8 @@
 diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 89687ea..3d2b557 100644
+index 5017808..de4d797 100644
 --- a/arch/arm/configs/tenderloin_defconfig
 +++ b/arch/arm/configs/tenderloin_defconfig
-@@ -381,7 +381,7 @@ CONFIG_MSM_SMD_TTY=y
+@@ -382,7 +382,7 @@ CONFIG_MSM_SMD_TTY=y
  CONFIG_MSM_SMD_PKT=y
  # CONFIG_MSM_DSPS is not set
  CONFIG_MSM_ONCRPCROUTER=y
@@ -11,7 +11,7 @@ index 89687ea..3d2b557 100644
  # CONFIG_MSM_RPC_LOOPBACK_XPRT is not set
  # CONFIG_MSM_RPCSERVER_TIME_REMOTE is not set
  # CONFIG_MSM_RPCSERVER_WATCHDOG is not set
-@@ -1377,7 +1377,7 @@ CONFIG_I2C_SSBI=y
+@@ -1378,7 +1378,7 @@ CONFIG_I2C_SSBI=y
  CONFIG_ARCH_WANT_OPTIONAL_GPIOLIB=y
  CONFIG_ARCH_REQUIRE_GPIOLIB=y
  CONFIG_GPIOLIB=y
@@ -20,7 +20,7 @@ index 89687ea..3d2b557 100644
  CONFIG_GPIO_SYSFS=y
  
  #
-@@ -2578,12 +2578,12 @@ CONFIG_STACKTRACE=y
+@@ -2586,12 +2586,12 @@ CONFIG_STACKTRACE=y
  CONFIG_MINI_CORE=y
  # CONFIG_DEBUG_KOBJECT is not set
  # CONFIG_DEBUG_HIGHMEM is not set
@@ -37,7 +37,7 @@ index 89687ea..3d2b557 100644
  # CONFIG_DEBUG_SG is not set
  # CONFIG_DEBUG_NOTIFIERS is not set
  # CONFIG_DEBUG_CREDENTIALS is not set
-@@ -2617,14 +2617,14 @@ CONFIG_BRANCH_PROFILE_NONE=y
+@@ -2625,14 +2625,14 @@ CONFIG_BRANCH_PROFILE_NONE=y
  # CONFIG_WORKQUEUE_TRACER is not set
  # CONFIG_BLK_DEV_IO_TRACE is not set
  # CONFIG_RING_BUFFER_BENCHMARK is not set

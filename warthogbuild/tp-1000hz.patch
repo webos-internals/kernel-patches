@@ -1,8 +1,8 @@
 diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 89687ea..18dfcb0 100644
+index 5017808..0ab1183 100644
 --- a/arch/arm/configs/tenderloin_defconfig
 +++ b/arch/arm/configs/tenderloin_defconfig
-@@ -494,7 +494,7 @@ CONFIG_LOCAL_TIMERS=y
+@@ -495,7 +495,7 @@ CONFIG_LOCAL_TIMERS=y
  # CONFIG_PREEMPT_NONE is not set
  # CONFIG_PREEMPT_VOLUNTARY is not set
  CONFIG_PREEMPT=y

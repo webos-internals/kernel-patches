@@ -1,6 +1,8 @@
---- linux-2.6.24/arch/arm/Makefile	2010-06-21 19:42:06.000000000 -0700
-+++ linux-2.6.24-codecrumb/arch/arm/Makefile	2010-06-22 01:27:10.000000000 -0700
-@@ -50,12 +50,12 @@
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index b9caf07..b882f5b 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -50,12 +50,12 @@ comma = ,
  # Note that GCC does not numerically define an architecture version
  # macro, but instead defines a whole series of macros which makes
  # testing for a specific architecture or later rather impossible.
