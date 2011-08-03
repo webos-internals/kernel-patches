@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/shank_defconfig b/arch/arm/configs/shank_defconfig
-index d6aa0bf..a5acb06 100644
+index d6aa0bf..7c8455a 100644
 --- a/arch/arm/configs/shank_defconfig
 +++ b/arch/arm/configs/shank_defconfig
 @@ -215,11 +215,11 @@ CONFIG_MSM_AMSS_VERSION=6225
@@ -21,7 +21,7 @@ index d6aa0bf..a5acb06 100644
  CONFIG_MSM_SMD_PKG3=y
  # CONFIG_MSM_SMD_PKG4 is not set
 -CONFIG_MSM_SMD_DEBUG=y
-+# CONFIG_MSM_SMD_DEBUG is not set
++CONFIG_MSM_SMD_DEBUG=y 
  CONFIG_MSM_N_WAY_SMD=y
  CONFIG_MSM_N_WAY_SMSM=y
  CONFIG_MSM_RESET_MODEM=m
@@ -52,15 +52,11 @@ index d6aa0bf..a5acb06 100644
  CONFIG_SCHEDSTATS=y
  CONFIG_TIMER_STATS=y
  # CONFIG_DEBUG_OBJECTS is not set
-@@ -1644,21 +1644,21 @@ CONFIG_TIMER_STATS=y
- # CONFIG_DEBUG_PREEMPT is not set
- # CONFIG_DEBUG_RT_MUTEXES is not set
+@@ -1646,19 +1646,19 @@ CONFIG_TIMER_STATS=y
  # CONFIG_RT_MUTEX_TESTER is not set
--CONFIG_DEBUG_SPINLOCK=y
--CONFIG_DEBUG_MUTEXES=y
+ CONFIG_DEBUG_SPINLOCK=y
+ CONFIG_DEBUG_MUTEXES=y
 -CONFIG_DEBUG_LOCK_ALLOC=y
-+# CONFIG_DEBUG_SPINLOCK is not set
-+# CONFIG_DEBUG_MUTEXES is not set
 +# CONFIG_DEBUG_LOCK_ALLOC is not set
  CONFIG_PROVE_LOCKING=y
  CONFIG_LOCKDEP=y
