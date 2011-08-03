@@ -11,3 +11,17 @@
  
          return 0;
  }
+--- linux-2.6.35-palm/kernel/printk.c	2011-08-02 16:04:22.000000000 -0400
++++ linux-2.6.35-F15C/kernel/printk.c	2011-08-02 23:41:35.000000000 -0400
+@@ -980,6 +980,11 @@
+ 	if (!strcmp(str, "ttyb"))
+ 		strcpy(buf, "ttyS1");
+ #endif
++
++	// dirty hack to override bootloader console=
++	if (!strcmp(str, "ttyS0"))
++		strcpy(buf, "tty1");
++
+ 	for (s = buf; *s; s++)
+ 		if ((*s >= '0' && *s <= '9') || *s == ',')
+ 			break;
