@@ -1,5 +1,5 @@
 diff --git a/arch/arm/mach-msm/acpuclock-8x60.c b/arch/arm/mach-msm/acpuclock-8x60.c
-index e3604a0..786d706 100644
+index e3604a0..58419ed 100644
 --- a/arch/arm/mach-msm/acpuclock-8x60.c
 +++ b/arch/arm/mach-msm/acpuclock-8x60.c
 @@ -52,7 +52,7 @@
@@ -7,7 +7,7 @@ index e3604a0..786d706 100644
   * used for calibration should respect these limits. */
  #define L_VAL_SCPLL_CAL_MIN	0x08 /* =  432 MHz with 27MHz source */
 -#define L_VAL_SCPLL_CAL_MAX	0x1C /* = 1512 MHz with 27MHz source */
-+#define L_VAL_SCPLL_CAL_MAX	0x21 /* = 1782 MHz with 27MHz source */
++#define L_VAL_SCPLL_CAL_MAX	0x20 /* = 1728 MHz with 27MHz source */
  
  #define MAX_VDD_SC		1250000 /* uV */
  #define MAX_AXI			 310500 /* KHz */
@@ -23,7 +23,7 @@ index e3604a0..786d706 100644
    { {1, 1}, 1134000,  ACPU_SCPLL, 0, 0, 1, 0x15, L2(14), 1162500, 0x03006000},
    { {1, 1}, 1188000,  ACPU_SCPLL, 0, 0, 1, 0x16, L2(15), 1187500, 0x03006000},
    { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(16), 1250000, 0x03006000},
-+  { {1, 1}, 1782000,  ACPU_SCPLL, 0, 0, 1, 0x21, L2(16), 1250000, 0x03006000},
++  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1250000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
@@ -36,7 +36,7 @@ index e3604a0..786d706 100644
 -	else
 -		max_khz = 1188000;
 +
-+	max_khz = 1782000;
++	max_khz = 1728000;
  
  	/* Truncate the table based to max_khz. */
  	for (f = acpu_freq_tbl; f->acpuclk_khz != 0; f++) {
