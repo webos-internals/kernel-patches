@@ -1,5 +1,5 @@
 diff --git a/arch/arm/mach-msm/acpuclock-8x60.c b/arch/arm/mach-msm/acpuclock-8x60.c
-index e3604a0..58419ed 100644
+index e3604a0..f2e7977 100644
 --- a/arch/arm/mach-msm/acpuclock-8x60.c
 +++ b/arch/arm/mach-msm/acpuclock-8x60.c
 @@ -52,7 +52,7 @@
@@ -23,7 +23,7 @@ index e3604a0..58419ed 100644
    { {1, 1}, 1134000,  ACPU_SCPLL, 0, 0, 1, 0x15, L2(14), 1162500, 0x03006000},
    { {1, 1}, 1188000,  ACPU_SCPLL, 0, 0, 1, 0x16, L2(15), 1187500, 0x03006000},
    { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(16), 1250000, 0x03006000},
-+  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1250000, 0x03006000},
++  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(17), 1250000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
