@@ -1,0 +1,13 @@
+--- linux-2.6.24/arch/arm/configs/omap_sirloin_3630_defconfig.orig	2011-08-04 12:30:27.000000000 +0930
++++ linux-2.6.24/arch/arm/configs/omap_sirloin_3630_defconfig	2011-08-04 12:30:49.000000000 +0930
+@@ -227,8 +227,8 @@
+ # CONFIG_OMAP3_VDD1_OPP1 is not set
+ # CONFIG_OMAP3_VDD1_OPP2 is not set
+ # CONFIG_OMAP3_VDD1_OPP3 is not set
+-# CONFIG_OMAP3_VDD1_OPP4 is not set
+-CONFIG_OMAP3_VDD1_OPP5=y
++CONFIG_OMAP3_VDD1_OPP4=y
++# CONFIG_OMAP3_VDD1_OPP5 is not set
+ # CONFIG_OMAP3_VDD2_OPP2 is not set
+ CONFIG_OMAP3_VDD2_OPP3=y
+ # CONFIG_ENABLE_VOLTSCALE_IN_SUSPEND is not set

@@ -1,0 +1,9 @@
+--- a/arch/arm/mach-omap3pe/prcm_opp.c	2011-02-28 17:03:31.000000000 -0500
++++ b/arch/arm/mach-omap3pe/prcm_opp.c	2011-06-26 20:48:08.000000000 -0400
+@@ -1542,3 +1598,6 @@
+ }
+ 
+ 
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++#include "prcm_opp_ss.c"
++#endif
