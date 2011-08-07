@@ -1,5 +1,5 @@
 --- linux-2.6.35-palm/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ linux-2.6.35-F15C/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-06 14:55:12.000000000 -0400
++++ linux-2.6.35-F15C/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-07 00:20:41.000000000 -0400
 @@ -52,7 +52,7 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
@@ -42,7 +42,7 @@
 +	[13] = {1350000,  1, 0x19, 1200000, 1250000, 3},
 +	[14] = {1458000,  1, 0x1B, 1200000, 1250000, 3},
 +	[15] = {1512000,  1, 0x1C, 1200000, 1250000, 3},
-+	[16] = {1620000,  1, 0x1C, 1250000, 1250000, 3},
++	[16] = {1620000,  1, 0x1E, 1250000, 1250000, 3},
  };
  
  #define L2(x) (&l2_freq_tbl_v2[(x)])
@@ -78,12 +78,21 @@
 +  { {1, 1}, 1242000,  ACPU_SCPLL, 0, 0, 1, 0x17, L2(12), 1190000, 0x03006000},
 +  { {1, 1}, 1350000,  ACPU_SCPLL, 0, 0, 1, 0x19, L2(13), 1195000, 0x03006000},
 +  { {1, 1}, 1458000,  ACPU_SCPLL, 0, 0, 1, 0x1B, L2(14), 1200000, 0x03006000},
-+  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(15), 1200000, 0x03006000},
++  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(15), 1250000, 0x03006000},
 +  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1250000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
-@@ -788,7 +790,10 @@
+@@ -779,7 +781,7 @@
+ 
+ void __init msm_acpu_clock_init(struct msm_acpu_clock_platform_data *clkdata)
+ {
+-	unsigned int max_cpu_khz;
++//	unsigned int max_cpu_khz;
+ 	int cpu;
+ 
+ 	mutex_init(&drv_state.lock);
+@@ -788,7 +790,11 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
@@ -92,15 +101,15 @@
 +	acpu_freq_tbl = acpu_freq_tbl_v2;
 +	l2_freq_tbl = l2_freq_tbl_v2;
 +	l2_freq_tbl_size = ARRAY_SIZE(l2_freq_tbl_v2);
++
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +804,8 @@
+@@ -799,7 +805,7 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
 -		acpuclk_set_rate(cpu, max_cpu_khz, SETRATE_INIT);
-+//		acpuclk_set_rate(cpu, max_cpu_khz, SETRATE_INIT);
 +		acpuclk_set_rate(cpu, 918000, SETRATE_INIT);
  
  	cpufreq_table_init();
