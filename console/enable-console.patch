@@ -11,3 +11,39 @@
  
  	return 0;
  }
+--- a/arch/arm/configs/omap_sirloin_3430_defconfig	2011-02-28 17:03:31.000000000 -0500
++++ b/arch/arm/configs/omap_sirloin_3430_defconfig	2011-05-16 21:16:41.000000000 -0400
+@@ -1235,13 +1266,13 @@
+ # CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY is not set
+ # CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set
+ CONFIG_FONTS=y
+-CONFIG_FONT_8x8=y
++# CONFIG_FONT_8x8 is not set
+ # CONFIG_FONT_8x16 is not set
+ # CONFIG_FONT_6x11 is not set
+ # CONFIG_FONT_7x14 is not set
+ # CONFIG_FONT_PEARL_8x8 is not set
+ # CONFIG_FONT_ACORN_8x8 is not set
+-# CONFIG_FONT_MINI_4x6 is not set
++CONFIG_FONT_MINI_4x6=y
+ # CONFIG_FONT_SUN8x16 is not set
+ # CONFIG_FONT_SUN12x22 is not set
+ # CONFIG_FONT_10x18 is not set
+--- a/arch/arm/configs/omap_sirloin_3630_defconfig	2011-02-28 17:03:31.000000000 -0500
++++ b/arch/arm/configs/omap_sirloin_3630_defconfig	2011-05-16 21:16:41.000000000 -0400
+@@ -1235,13 +1266,13 @@
+ # CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY is not set
+ # CONFIG_FRAMEBUFFER_CONSOLE_ROTATION is not set
+ CONFIG_FONTS=y
+-CONFIG_FONT_8x8=y
++# CONFIG_FONT_8x8 is not set
+ # CONFIG_FONT_8x16 is not set
+ # CONFIG_FONT_6x11 is not set
+ # CONFIG_FONT_7x14 is not set
+ # CONFIG_FONT_PEARL_8x8 is not set
+ # CONFIG_FONT_ACORN_8x8 is not set
+-# CONFIG_FONT_MINI_4x6 is not set
++CONFIG_FONT_MINI_4x6=y
+ # CONFIG_FONT_SUN8x16 is not set
+ # CONFIG_FONT_SUN12x22 is not set
+ # CONFIG_FONT_10x18 is not set
