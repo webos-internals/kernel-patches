@@ -1,5 +1,5 @@
 diff --git a/arch/arm/mach-msm/acpuclock-7x30.c b/arch/arm/mach-msm/acpuclock-7x30.c
-index d11f748..0e0fca8 100644
+index d11f748..8890575 100644
 --- a/arch/arm/mach-msm/acpuclock-7x30.c
 +++ b/arch/arm/mach-msm/acpuclock-7x30.c
 @@ -52,6 +52,8 @@
@@ -11,7 +11,7 @@ index d11f748..0e0fca8 100644
  struct clock_state {
  	struct clkctl_acpu_speed	*current_speed;
  	struct mutex			lock;
-@@ -77,27 +79,28 @@ static struct cpufreq_frequency_table freq_table[] = {
+@@ -77,27 +79,30 @@ static struct cpufreq_frequency_table freq_table[] = {
  	{ 1, 245760 },
  	{ 2, 368640 },
  	{ 3, 768000 },
@@ -19,7 +19,8 @@ index d11f748..0e0fca8 100644
  	{ 4, 806400 },
 -	{ 5, CPUFREQ_TABLE_END },
 +	{ 5, 1017600 },
-+	{ 6, CPUFREQ_TABLE_END },
++	{ 6, 1113600 },
++	{ 7, CPUFREQ_TABLE_END },
  };
  
  /* Use negative numbers for sources that can't be enabled/disabled */
@@ -47,10 +48,11 @@ index d11f748..0e0fca8 100644
  	 * is updated to 1024MHz at runtime for MSM8x55. */
  	{ 806400, PLL_2,    3, 0,  192000, 1100, VDD_RAW(1100) },
 +	{ 1017600, PLL_2,    3, 0,  192000, 1100, VDD_RAW(1100) },
++	{ 1113600, PLL_2,    3, 0,  192000, 1150, VDD_RAW(1150) },
  	{ 0 }
  };
  
-@@ -145,6 +148,11 @@ static void acpuclk_set_src(const struct clkctl_acpu_speed *s)
+@@ -145,6 +150,11 @@ static void acpuclk_set_src(const struct clkctl_acpu_speed *s)
  	reg_clkctl |= s->acpu_src_div << (0 + 8 * src_sel);
  	writel(reg_clkctl, SCSS_CLK_CTL_ADDR);
  
@@ -62,7 +64,7 @@ index d11f748..0e0fca8 100644
  	/* Toggle clock source. */
  	reg_clksel ^= 1;
  
-@@ -379,9 +387,7 @@ void __init msm_acpu_clock_init(struct msm_acpu_clock_platform_data *clkdata)
+@@ -379,9 +389,7 @@ void __init msm_acpu_clock_init(struct msm_acpu_clock_platform_data *clkdata)
  	mutex_init(&drv_state.lock);
  	drv_state.acpu_switch_time_us = clkdata->acpu_switch_time_us;
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
