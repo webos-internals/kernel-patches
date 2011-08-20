@@ -1,14 +1,178 @@
---- linux-2.6.35-palm/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ linux-2.6.35-F15C/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-07 00:20:41.000000000 -0400
-@@ -52,7 +52,7 @@
+--- a/drivers/cpufreq/Kconfig	2011-08-02 16:04:21.000000000 -0400
++++ b/drivers/cpufreq/Kconfig	2011-08-07 17:16:48.000000000 -0400
+@@ -18,6 +18,11 @@
+ config CPU_FREQ_TABLE
+ 	tristate
+ 
++config CPU_FREQ_OVERRIDE
++	bool "Enable CPU options override"
++	help
++	  Say Y here
++
+ config CPU_FREQ_DEBUG
+ 	bool "Enable CPUfreq debugging"
+ 	help
+--- a/drivers/cpufreq/Makefile	2011-08-02 16:04:21.000000000 -0400
++++ b/drivers/cpufreq/Makefile	2011-08-07 17:18:06.000000000 -0400
+@@ -10,6 +10,7 @@
+ obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
+ obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE)	+= cpufreq_ondemand_tickle.o
+ obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
++obj-$(CONFIG_CPU_FREQ_OVERRIDE)		+= cpufreq_override.o
+ 
+ # CPUfreq cross-arch helpers
+ obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
+--- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
++++ b/drivers/cpufreq/cpufreq_override.c	2011-08-19 15:59:16.000000000 -0400
+@@ -0,0 +1,134 @@
++/*
++ *  drivers/cpufreq/cpufreq_override.c
++ *
++ *      Marco Benton <marco@unixpsycho.com>.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++ *
++ */
++
++#include <linux/kernel.h>
++#include <linux/sysdev.h>
++#include <linux/cpu.h>
++#include <linux/sysfs.h>
++#include <linux/cpufreq.h>
++#include <linux/jiffies.h>
++#include <linux/kobject.h>
++#include <linux/workqueue.h>
++#include <linux/string.h>
++
++// Voltage min
++#define VDD_MIN 800000
++
++// Voltage max
++#define VDD_MAX 1600000
++
++// Freq count
++#define NR_FREQS 21
++
++void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
++void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
++
++static ssize_t show_vdd_max(struct kobject *kobj, struct attribute *attr,
++				char *buf)
++{
++        return sprintf(buf, "%u\n", VDD_MAX);
++}
++
++static ssize_t show_vdd_min(struct kobject *kobj, struct attribute *attr,
++				char *buf)
++{
++        return sprintf(buf, "%u\n", VDD_MIN);
++}
++
++static ssize_t show_vdd(struct kobject *kobj, struct attribute *attr, char *buf)
++{
++	unsigned int i, acpu_freq_vlt_tbl[NR_FREQS];
++	char tmp[200];
++
++	acpuclk_get_voltages(acpu_freq_vlt_tbl);
++
++	strcpy(buf,"");
++
++	for(i=0 ; i < NR_FREQS ; ++i) {
++		sprintf(tmp,"%u ",acpu_freq_vlt_tbl[i]);
++		strcat(buf,tmp);
++	}
++
++	strcpy(tmp,buf);
++
++	return sprintf(buf,"%s\n",tmp);
++}
++
++static ssize_t store_vdd(struct kobject *a, struct attribute *b,
++				const char *buf, size_t count)
++{
++	unsigned int i = 0, acpu_freq_vlt_tbl[NR_FREQS];
++	unsigned int *c = acpu_freq_vlt_tbl;
++
++	i = sscanf(buf, "%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u "
++			"%u %u", &c[0],&c[1],&c[2],&c[3],&c[4],&c[5],&c[6],
++				&c[7],&c[8],&c[9],&c[10],&c[11],&c[12],&c[13],
++				&c[14],&c[15],&c[16],&c[17],&c[18],&c[19],&c[20]);
++	if(i != NR_FREQS)
++		printk("override: store_vdd invalid\n");
++	else {
++		for(i=0; i < NR_FREQS ; ++i)
++			if(acpu_freq_vlt_tbl[i] < VDD_MIN || 
++					acpu_freq_vlt_tbl[i] > VDD_MAX) {
++				printk("override: store_vdd vdd %u invalid\n",
++					acpu_freq_vlt_tbl[i]);
++				break;
++			}
++
++		if(i == NR_FREQS) acpuclk_set_voltages(acpu_freq_vlt_tbl);
++	}
++
++	return count;
++}
++
++define_one_global_ro(vdd_min);
++define_one_global_ro(vdd_max);
++define_one_global_rw(vdd);
++
++static struct attribute *default_attrs[] = {
++        &vdd.attr,
++        &vdd_min.attr,
++        &vdd_max.attr,
++        NULL
++};
++
++static struct attribute_group override_attr_group = {
++        .attrs = default_attrs,
++        .name = "override"
++};
++
++int cpufreq_override_driver_init(void)
++{
++        printk("override: initialized!\n");
++	return sysfs_create_group(cpufreq_global_kobject,&override_attr_group);
++}
++
++EXPORT_SYMBOL(cpufreq_override_driver_init);
++
++void cpufreq_override_driver_exit(void)
++{
++        sysfs_remove_group(cpufreq_global_kobject, &override_attr_group);
++}
++
++EXPORT_SYMBOL(cpufreq_override_driver_exit);
++
++MODULE_AUTHOR("marco@unixpsycho.com");
++MODULE_DESCRIPTION("'cpufreq_override' - A driver to do cool stuff ");
++MODULE_LICENSE("GPL");
+--- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-19 15:08:52.000000000 -0400
+@@ -52,9 +52,9 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
  #define L_VAL_SCPLL_CAL_MIN	0x08 /* =  432 MHz with 27MHz source */
 -#define L_VAL_SCPLL_CAL_MAX	0x1C /* = 1512 MHz with 27MHz source */
-+#define L_VAL_SCPLL_CAL_MAX	0x20 /* = 1728 MHz with 27MHz source */
++#define L_VAL_SCPLL_CAL_MAX	0x24 /* = 1944 MHz with 27MHz source */
  
- #define MAX_VDD_SC		1250000 /* uV */
+-#define MAX_VDD_SC		1250000 /* uV */
++#define MAX_VDD_SC		1600000 /* uV */
  #define MAX_AXI			 310500 /* KHz */
+ #define SCPLL_LOW_VDD_FMAX	 594000 /* KHz */
+ #define SCPLL_LOW_VDD		1000000 /* uV */
 @@ -182,21 +182,21 @@
  static struct clkctl_l2_speed l2_freq_tbl_v2[] = {
  	[0]  = { MAX_AXI, 0, 0,    1000000, 1100000, 0},
@@ -46,7 +210,7 @@
  };
  
  #define L2(x) (&l2_freq_tbl_v2[(x)])
-@@ -207,21 +207,21 @@
+@@ -207,21 +207,23 @@
    { {0, 0},  MAX_AXI, ACPU_AFAB,  1, 0, 0, 0,    L2(0),   875000, 0x03006000},
    { {1, 1},  384000,  ACPU_PLL_8, 3, 0, 0, 0,    L2(1),   875000, 0x03006000},
    { {1, 1},  432000,  ACPU_SCPLL, 0, 0, 1, 0x08, L2(1),   887500, 0x03006000},
@@ -79,11 +243,45 @@
 +  { {1, 1}, 1350000,  ACPU_SCPLL, 0, 0, 1, 0x19, L2(13), 1195000, 0x03006000},
 +  { {1, 1}, 1458000,  ACPU_SCPLL, 0, 0, 1, 0x1B, L2(14), 1200000, 0x03006000},
 +  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(15), 1250000, 0x03006000},
-+  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1250000, 0x03006000},
++  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1350000, 0x03006000},
++  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1450000, 0x03006000},
++  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(16), 1500000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
-@@ -779,7 +781,7 @@
+@@ -231,6 +233,31 @@
+ static struct clkctl_l2_speed *l2_freq_tbl;
+ static unsigned int l2_freq_tbl_size;
+ 
++void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[])
++{
++	int i=0;
++	struct clkctl_acpu_speed *f;
++
++	for (f = acpu_freq_tbl_v2; f->acpuclk_khz != 0; f++) {
++		acpu_freq_vlt_tbl[i] = f->vdd_sc;
++		i++;
++	}
++
++}
++EXPORT_SYMBOL(acpuclk_get_voltages);
++
++void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[])
++{
++        int i=0;
++        struct clkctl_acpu_speed *f;
++
++	for (f = acpu_freq_tbl_v2; f->acpuclk_khz != 0; f++) {
++		f->vdd_sc = acpu_freq_vlt_tbl[i];
++		i++;
++	}
++}
++EXPORT_SYMBOL(acpuclk_set_voltages);
++
+ unsigned long acpuclk_get_rate(int cpu)
+ {
+ 	return drv_state.current_speed[cpu]->acpuclk_khz;
+@@ -779,7 +808,7 @@
  
  void __init msm_acpu_clock_init(struct msm_acpu_clock_platform_data *clkdata)
  {
@@ -92,7 +290,7 @@
  	int cpu;
  
  	mutex_init(&drv_state.lock);
-@@ -788,7 +790,11 @@
+@@ -788,7 +817,11 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
@@ -105,7 +303,7 @@
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +805,7 @@
+@@ -799,7 +832,7 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
@@ -114,3 +312,76 @@
  
  	cpufreq_table_init();
  }
+--- a/arch/arm/mach-msm/board-tenderloin.c	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mach-msm/board-tenderloin.c	2011-08-17 19:55:15.000000000 -0400
+@@ -402,7 +402,7 @@
+ 		.constraints = {
+ 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+ 			.min_uV = 840000,
+-			.max_uV = 1250000,
++			.max_uV = 1600000,
+ 		},
+ 		.num_consumer_supplies = 1,
+ 		.consumer_supplies = &saw_s0_supply,
+@@ -412,7 +412,7 @@
+ 		.constraints = {
+ 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+ 			.min_uV = 840000,
+-			.max_uV = 1250000,
++			.max_uV = 1600000,
+ 		},
+ 		.num_consumer_supplies = 1,
+ 		.consumer_supplies = &saw_s1_supply,
+@@ -3005,9 +3005,9 @@
+ 	RPM_VREG_INIT_LDO(PM8058_L24, 0, 1, 0, 1200000, 1200000, LDO150HMIN, 0),
+ 	RPM_VREG_INIT_LDO(PM8058_L25, 0, 1, 0, 1200000, 1200000, LDO150HMIN, 0),
+ 
+-	RPM_VREG_INIT_SMPS(PM8058_S0, 0, 1, 1,  500000, 1250000,  SMPS_HMIN, 0,
++	RPM_VREG_INIT_SMPS(PM8058_S0, 0, 1, 1,  500000, 1600000,  SMPS_HMIN, 0,
+ 		RPM_VREG_FREQ_1p60),
+-	RPM_VREG_INIT_SMPS(PM8058_S1, 0, 1, 1,  500000, 1250000,  SMPS_HMIN, 0,
++	RPM_VREG_INIT_SMPS(PM8058_S1, 0, 1, 1,  500000, 1600000,  SMPS_HMIN, 0,
+ 		RPM_VREG_FREQ_1p60),
+ 	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
+ 		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
+--- a/kernel/cpu.c	2011-08-02 16:04:22.000000000 -0400
++++ b/kernel/cpu.c	2011-08-19 15:21:32.000000000 -0400
+@@ -39,7 +39,7 @@
+ /* If set, cpu_up and cpu_down will return -EBUSY and do nothing.
+  * Should always be manipulated under cpu_add_remove_lock
+  */
+-static int cpu_hotplug_disabled;
++static int cpu_hotplug_disabled=1;
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+ 
+@@ -201,6 +201,7 @@
+ 	unsigned int cpu = (unsigned long)param->hcpu;
+ 	int err;
+ 
++	return 0;
+ 	/* Ensure this CPU doesn't handle any more interrupts. */
+ 	err = __cpu_disable();
+ 	if (err < 0)
+@@ -231,7 +232,7 @@
+ 	if (num_online_cpus() == 1)
+ 		return -EBUSY;
+ 
+-	if (!cpu_online(cpu))
++//	if (!cpu_online(cpu))
+ 		return -EINVAL;
+ 
+ 	cpu_hotplug_begin();
+@@ -383,10 +384,10 @@
+ 
+ 	cpu_maps_update_begin();
+ 
+-	if (cpu_hotplug_disabled) {
++/*	if (cpu_hotplug_disabled) {
+ 		err = -EBUSY;
+ 		goto out;
+-	}
++	} */
+ 
+ 	err = _cpu_up(cpu, 0);
+ 
