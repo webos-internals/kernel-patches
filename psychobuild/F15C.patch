@@ -244,7 +244,7 @@
 +  { {1, 1}, 1458000,  ACPU_SCPLL, 0, 0, 1, 0x1B, L2(14), 1200000, 0x03006000},
 +  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(15), 1250000, 0x03006000},
 +  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1350000, 0x03006000},
-+  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1450000, 0x03006000},
++  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1400000, 0x03006000},
 +  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(16), 1500000, 0x03006000},
    { {0, 0}, 0 },
  };
@@ -308,7 +308,7 @@
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
 -		acpuclk_set_rate(cpu, max_cpu_khz, SETRATE_INIT);
-+		acpuclk_set_rate(cpu, 918000, SETRATE_INIT);
++		acpuclk_set_rate(cpu, 1188000, SETRATE_INIT);
  
  	cpufreq_table_init();
  }
@@ -344,44 +344,3 @@
  		RPM_VREG_FREQ_1p60),
  	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
  		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
---- a/kernel/cpu.c	2011-08-02 16:04:22.000000000 -0400
-+++ b/kernel/cpu.c	2011-08-19 15:21:32.000000000 -0400
-@@ -39,7 +39,7 @@
- /* If set, cpu_up and cpu_down will return -EBUSY and do nothing.
-  * Should always be manipulated under cpu_add_remove_lock
-  */
--static int cpu_hotplug_disabled;
-+static int cpu_hotplug_disabled=1;
- 
- #ifdef CONFIG_HOTPLUG_CPU
- 
-@@ -201,6 +201,7 @@
- 	unsigned int cpu = (unsigned long)param->hcpu;
- 	int err;
- 
-+	return 0;
- 	/* Ensure this CPU doesn't handle any more interrupts. */
- 	err = __cpu_disable();
- 	if (err < 0)
-@@ -231,7 +232,7 @@
- 	if (num_online_cpus() == 1)
- 		return -EBUSY;
- 
--	if (!cpu_online(cpu))
-+//	if (!cpu_online(cpu))
- 		return -EINVAL;
- 
- 	cpu_hotplug_begin();
-@@ -383,10 +384,10 @@
- 
- 	cpu_maps_update_begin();
- 
--	if (cpu_hotplug_disabled) {
-+/*	if (cpu_hotplug_disabled) {
- 		err = -EBUSY;
- 		goto out;
--	}
-+	} */
- 
- 	err = _cpu_up(cpu, 0);
- 
