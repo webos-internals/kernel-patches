@@ -1,0 +1,17 @@
+diff --git a/arch/arm/configs/rib_defconfig b/arch/arm/configs/rib_defconfig
+index de2201d..5d4a4a3 100644
+--- a/arch/arm/configs/rib_defconfig
++++ b/arch/arm/configs/rib_defconfig
+@@ -2492,9 +2492,9 @@ CONFIG_CRYPTO_LZO=y
+ #
+ # CONFIG_CRYPTO_ANSI_CPRNG is not set
+ CONFIG_CRYPTO_HW=y
+-# CONFIG_CRYPTO_DEV_QCRYPTO is not set
+-# CONFIG_CRYPTO_DEV_QCE is not set
+-# CONFIG_CRYPTO_DEV_QCEDEV is not set
++CONFIG_CRYPTO_DEV_QCRYPTO=y
++CONFIG_CRYPTO_DEV_QCE=y
++CONFIG_CRYPTO_DEV_QCEDEV=y
+ CONFIG_BINARY_PRINTF=y
+ 
+ #
