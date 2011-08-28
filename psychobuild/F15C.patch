@@ -22,145 +22,40 @@
  
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
---- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-08-19 15:59:16.000000000 -0400
-@@ -0,0 +1,134 @@
-+/*
-+ *  drivers/cpufreq/cpufreq_override.c
-+ *
-+ *      Marco Benton <marco@unixpsycho.com>.
-+ *
-+ * This program is free software; you can redistribute it and/or modify
-+ * it under the terms of the GNU General Public License version 2 as
-+ * published by the Free Software Foundation.
-+ *
-+ * This program is distributed in the hope that it will be useful,
-+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
-+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-+ * GNU General Public License for more details.
-+ *
-+ * You should have received a copy of the GNU General Public License
-+ * along with this program; if not, write to the Free Software
-+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-+ *
-+ */
-+
-+#include <linux/kernel.h>
-+#include <linux/sysdev.h>
-+#include <linux/cpu.h>
-+#include <linux/sysfs.h>
-+#include <linux/cpufreq.h>
-+#include <linux/jiffies.h>
-+#include <linux/kobject.h>
-+#include <linux/workqueue.h>
-+#include <linux/string.h>
-+
-+// Voltage min
-+#define VDD_MIN 800000
-+
-+// Voltage max
-+#define VDD_MAX 1600000
-+
-+// Freq count
-+#define NR_FREQS 21
-+
-+void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
-+void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
-+
-+static ssize_t show_vdd_max(struct kobject *kobj, struct attribute *attr,
-+				char *buf)
-+{
-+        return sprintf(buf, "%u\n", VDD_MAX);
-+}
-+
-+static ssize_t show_vdd_min(struct kobject *kobj, struct attribute *attr,
-+				char *buf)
-+{
-+        return sprintf(buf, "%u\n", VDD_MIN);
-+}
-+
-+static ssize_t show_vdd(struct kobject *kobj, struct attribute *attr, char *buf)
-+{
-+	unsigned int i, acpu_freq_vlt_tbl[NR_FREQS];
-+	char tmp[200];
-+
-+	acpuclk_get_voltages(acpu_freq_vlt_tbl);
-+
-+	strcpy(buf,"");
-+
-+	for(i=0 ; i < NR_FREQS ; ++i) {
-+		sprintf(tmp,"%u ",acpu_freq_vlt_tbl[i]);
-+		strcat(buf,tmp);
-+	}
-+
-+	strcpy(tmp,buf);
-+
-+	return sprintf(buf,"%s\n",tmp);
-+}
-+
-+static ssize_t store_vdd(struct kobject *a, struct attribute *b,
-+				const char *buf, size_t count)
-+{
-+	unsigned int i = 0, acpu_freq_vlt_tbl[NR_FREQS];
-+	unsigned int *c = acpu_freq_vlt_tbl;
-+
-+	i = sscanf(buf, "%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u "
-+			"%u %u", &c[0],&c[1],&c[2],&c[3],&c[4],&c[5],&c[6],
-+				&c[7],&c[8],&c[9],&c[10],&c[11],&c[12],&c[13],
-+				&c[14],&c[15],&c[16],&c[17],&c[18],&c[19],&c[20]);
-+	if(i != NR_FREQS)
-+		printk("override: store_vdd invalid\n");
-+	else {
-+		for(i=0; i < NR_FREQS ; ++i)
-+			if(acpu_freq_vlt_tbl[i] < VDD_MIN || 
-+					acpu_freq_vlt_tbl[i] > VDD_MAX) {
-+				printk("override: store_vdd vdd %u invalid\n",
-+					acpu_freq_vlt_tbl[i]);
-+				break;
-+			}
-+
-+		if(i == NR_FREQS) acpuclk_set_voltages(acpu_freq_vlt_tbl);
-+	}
-+
-+	return count;
-+}
-+
-+define_one_global_ro(vdd_min);
-+define_one_global_ro(vdd_max);
-+define_one_global_rw(vdd);
-+
-+static struct attribute *default_attrs[] = {
-+        &vdd.attr,
-+        &vdd_min.attr,
-+        &vdd_max.attr,
-+        NULL
-+};
-+
-+static struct attribute_group override_attr_group = {
-+        .attrs = default_attrs,
-+        .name = "override"
-+};
-+
-+int cpufreq_override_driver_init(void)
-+{
-+        printk("override: initialized!\n");
-+	return sysfs_create_group(cpufreq_global_kobject,&override_attr_group);
-+}
-+
-+EXPORT_SYMBOL(cpufreq_override_driver_init);
-+
-+void cpufreq_override_driver_exit(void)
-+{
-+        sysfs_remove_group(cpufreq_global_kobject, &override_attr_group);
-+}
-+
-+EXPORT_SYMBOL(cpufreq_override_driver_exit);
-+
-+MODULE_AUTHOR("marco@unixpsycho.com");
-+MODULE_DESCRIPTION("'cpufreq_override' - A driver to do cool stuff ");
-+MODULE_LICENSE("GPL");
+--- a/arch/arm/mach-msm/board-tenderloin.c	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mach-msm/board-tenderloin.c	2011-08-17 19:55:15.000000000 -0400
+@@ -402,7 +402,7 @@
+ 		.constraints = {
+ 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+ 			.min_uV = 840000,
+-			.max_uV = 1250000,
++			.max_uV = 1600000,
+ 		},
+ 		.num_consumer_supplies = 1,
+ 		.consumer_supplies = &saw_s0_supply,
+@@ -412,7 +412,7 @@
+ 		.constraints = {
+ 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
+ 			.min_uV = 840000,
+-			.max_uV = 1250000,
++			.max_uV = 1600000,
+ 		},
+ 		.num_consumer_supplies = 1,
+ 		.consumer_supplies = &saw_s1_supply,
+@@ -3005,9 +3005,9 @@
+ 	RPM_VREG_INIT_LDO(PM8058_L24, 0, 1, 0, 1200000, 1200000, LDO150HMIN, 0),
+ 	RPM_VREG_INIT_LDO(PM8058_L25, 0, 1, 0, 1200000, 1200000, LDO150HMIN, 0),
+ 
+-	RPM_VREG_INIT_SMPS(PM8058_S0, 0, 1, 1,  500000, 1250000,  SMPS_HMIN, 0,
++	RPM_VREG_INIT_SMPS(PM8058_S0, 0, 1, 1,  500000, 1600000,  SMPS_HMIN, 0,
+ 		RPM_VREG_FREQ_1p60),
+-	RPM_VREG_INIT_SMPS(PM8058_S1, 0, 1, 1,  500000, 1250000,  SMPS_HMIN, 0,
++	RPM_VREG_INIT_SMPS(PM8058_S1, 0, 1, 1,  500000, 1600000,  SMPS_HMIN, 0,
+ 		RPM_VREG_FREQ_1p60),
+ 	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
+ 		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
 --- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-19 15:08:52.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-27 10:07:49.000000000 -0400
 @@ -52,9 +52,9 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
@@ -312,35 +207,142 @@
  
  	cpufreq_table_init();
  }
---- a/arch/arm/mach-msm/board-tenderloin.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/board-tenderloin.c	2011-08-17 19:55:15.000000000 -0400
-@@ -402,7 +402,7 @@
- 		.constraints = {
- 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
- 			.min_uV = 840000,
--			.max_uV = 1250000,
-+			.max_uV = 1600000,
- 		},
- 		.num_consumer_supplies = 1,
- 		.consumer_supplies = &saw_s0_supply,
-@@ -412,7 +412,7 @@
- 		.constraints = {
- 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
- 			.min_uV = 840000,
--			.max_uV = 1250000,
-+			.max_uV = 1600000,
- 		},
- 		.num_consumer_supplies = 1,
- 		.consumer_supplies = &saw_s1_supply,
-@@ -3005,9 +3005,9 @@
- 	RPM_VREG_INIT_LDO(PM8058_L24, 0, 1, 0, 1200000, 1200000, LDO150HMIN, 0),
- 	RPM_VREG_INIT_LDO(PM8058_L25, 0, 1, 0, 1200000, 1200000, LDO150HMIN, 0),
- 
--	RPM_VREG_INIT_SMPS(PM8058_S0, 0, 1, 1,  500000, 1250000,  SMPS_HMIN, 0,
-+	RPM_VREG_INIT_SMPS(PM8058_S0, 0, 1, 1,  500000, 1600000,  SMPS_HMIN, 0,
- 		RPM_VREG_FREQ_1p60),
--	RPM_VREG_INIT_SMPS(PM8058_S1, 0, 1, 1,  500000, 1250000,  SMPS_HMIN, 0,
-+	RPM_VREG_INIT_SMPS(PM8058_S1, 0, 1, 1,  500000, 1600000,  SMPS_HMIN, 0,
- 		RPM_VREG_FREQ_1p60),
- 	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
- 		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
+--- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
++++ b/drivers/cpufreq/cpufreq_override.c	2011-08-27 10:39:02.000000000 -0400
+@@ -0,0 +1,136 @@
++/*
++ *  drivers/cpufreq/cpufreq_override.c
++ *
++ *      Marco Benton <marco@unixpsycho.com>.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
++ *
++ */
++
++#include <linux/kernel.h>
++#include <linux/sysdev.h>
++#include <linux/cpu.h>
++#include <linux/sysfs.h>
++#include <linux/cpufreq.h>
++#include <linux/jiffies.h>
++#include <linux/kobject.h>
++#include <linux/workqueue.h>
++#include <linux/string.h>
++#include <linux/delay.h>
++
++// Voltage min
++#define VDD_MIN 800000
++
++// Voltage max
++#define VDD_MAX 1600000
++
++// Freq count
++#define NR_FREQS 21
++
++void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
++void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
++
++static ssize_t show_vdd_max(struct kobject *kobj, struct attribute *attr,
++				char *buf)
++{
++        return sprintf(buf, "%u\n", VDD_MAX);
++}
++
++static ssize_t show_vdd_min(struct kobject *kobj, struct attribute *attr,
++				char *buf)
++{
++        return sprintf(buf, "%u\n", VDD_MIN);
++}
++
++static ssize_t show_vdd(struct kobject *kobj, struct attribute *attr, char *buf)
++{
++	unsigned int i, acpu_freq_vlt_tbl[NR_FREQS];
++	char tmp[200];
++
++	acpuclk_get_voltages(acpu_freq_vlt_tbl);
++
++	strcpy(buf,"");
++
++	for(i=0 ; i < NR_FREQS ; ++i) {
++		sprintf(tmp,"%u ",acpu_freq_vlt_tbl[i]);
++		strcat(buf,tmp);
++	}
++
++	strcpy(tmp,buf);
++
++	return sprintf(buf,"%s\n",tmp);
++}
++
++static ssize_t store_vdd(struct kobject *a, struct attribute *b,
++				const char *buf, size_t count)
++{
++	unsigned int i = 0, acpu_freq_vlt_tbl[NR_FREQS];
++	unsigned int *c = acpu_freq_vlt_tbl;
++
++	i = sscanf(buf, "%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u "
++			"%u %u %u", &c[0],&c[1],&c[2],&c[3],&c[4],&c[5],&c[6],
++				&c[7],&c[8],&c[9],&c[10],&c[11],&c[12],&c[13],
++				&c[14],&c[15],&c[16],&c[17],&c[18],&c[19],&c[20]);
++	if(i != NR_FREQS)
++		printk("override: store_vdd invalid\n");
++	else {
++		for(i=0; i < NR_FREQS ; ++i)
++			if(acpu_freq_vlt_tbl[i] < VDD_MIN || 
++					acpu_freq_vlt_tbl[i] > VDD_MAX) {
++				printk("override: store_vdd vdd %u invalid\n",
++					acpu_freq_vlt_tbl[i]);
++				break;
++			}
++
++		if(i == NR_FREQS) acpuclk_set_voltages(acpu_freq_vlt_tbl);
++	}
++
++	return count;
++}
++
++define_one_global_ro(vdd_min);
++define_one_global_ro(vdd_max);
++define_one_global_rw(vdd);
++
++static struct attribute *default_attrs[] = {
++        &vdd.attr,
++        &vdd_min.attr,
++        &vdd_max.attr,
++        NULL
++};
++
++static struct attribute_group override_attr_group = {
++        .attrs = default_attrs,
++        .name = "override"
++};
++
++int cpufreq_override_driver_init(void)
++{
++        printk("override: initialized!\n");
++	msleep(700);
++	return sysfs_create_group(cpufreq_global_kobject,&override_attr_group);
++}
++
++EXPORT_SYMBOL(cpufreq_override_driver_init);
++
++void cpufreq_override_driver_exit(void)
++{
++        sysfs_remove_group(cpufreq_global_kobject, &override_attr_group);
++}
++
++EXPORT_SYMBOL(cpufreq_override_driver_exit);
++
++MODULE_AUTHOR("marco@unixpsycho.com");
++MODULE_DESCRIPTION("'cpufreq_override' - A driver to do cool stuff ");
++MODULE_LICENSE("GPL");
