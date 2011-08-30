@@ -444,3 +444,34 @@
 +module_init(cpufreq_override_driver_init);
 +module_exit(cpufreq_override_driver_exit);
 +
+--- a/drivers/video/msm_pe/msm_fb.c	2011-08-02 16:04:22.000000000 -0400
++++ b/drivers/video/msm_pe/msm_fb.c	2011-08-29 19:03:00.000000000 -0400
+@@ -51,6 +51,8 @@
+ #include "mdp.h"
+ #include "mdp4.h"
+ 
++void cpufreq_override_lcd_state(bool state);
++
+ #ifdef CONFIG_FB_MSM_LOGO
+ #define INIT_IMAGE_FILE "/initlogo.rle"
+ extern int load_565rle_image(char *filename);
+@@ -354,6 +356,9 @@
+ 			//fb_set_suspend(mfd->fbi[0], FBINFO_STATE_RUNNING);
+ 
+ 			mfd->suspended = false;
++
++                        cpufreq_override_lcd_state(1);
++
+ 		}
+ 
+ 	}
+@@ -374,6 +379,9 @@
+ 				//fb_set_suspend(mfd->fbi[0], FBINFO_STATE_SUSPENDED);
+ 				mfd->pdev->dev.power.power_state = PMSG_SUSPEND;
+ 				mfd->suspended = true;
++
++                        	cpufreq_override_lcd_state(0);
++
+ 			}
+ 		}
+ 
