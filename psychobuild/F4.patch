@@ -235,8 +235,8 @@
  	case '1':
  		ret = cpu_up(cpu->sysdev.id);
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-08-28 15:04:10.000000000 -0400
-@@ -0,0 +1,169 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-08-29 21:51:58.000000000 -0400
+@@ -0,0 +1,207 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -264,9 +264,7 @@
 +#include <linux/cpufreq.h>
 +#include <linux/jiffies.h>
 +#include <linux/kobject.h>
-+#include <linux/workqueue.h>
 +#include <linux/string.h>
-+#include <linux/delay.h>
 +
 +// Voltage min
 +#define VDD_MIN 800000
@@ -280,16 +278,34 @@
 +// Turbo Mode default state (both CPUs online all the time)
 +#define TURBOMODE 1
 +
++// Power saving mode
++#define POWERSAVE 0
++
 +void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
 +void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
 +
 +bool turbomode = TURBOMODE;
++bool lcd_state = 1;
++bool power_save = POWERSAVE;
 +
 +bool cpufreq_override_tm(void)
 +{
 +	return turbomode;
 +}
 +EXPORT_SYMBOL(cpufreq_override_tm);
++
++void cpufreq_override_lcd_state(bool state)
++{
++	lcd_state = state;
++	printk("override: lcd state=%u\n",state);
++
++	// If screen is off, take cpu offline if in power save mode
++	if(power_save && !lcd_state)
++		cpu_down(1);
++	else
++		cpu_up(1);
++}
++EXPORT_SYMBOL(cpufreq_override_lcd_state);
 +
 +static ssize_t show_vdd_max(struct kobject *kobj, struct attribute *attr,
 +				char *buf)
@@ -328,6 +344,7 @@
 +	unsigned int i = 0, acpu_freq_vlt_tbl[NR_FREQS];
 +	unsigned int *c = acpu_freq_vlt_tbl;
 +
++	// FIXME
 +	i = sscanf(buf, "%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u "
 +			"%u %u",
 +				&c[0],&c[1],&c[2],&c[3],&c[4],&c[5],&c[6],
@@ -370,14 +387,35 @@
 +	return count;
 +}
 +
++static ssize_t show_power_saver(struct kobject *kobj, struct attribute *attr,
++                                char *buf)
++{
++        return sprintf(buf,"%u\n",power_save);
++}
++
++static ssize_t store_power_saver(struct kobject *a, struct attribute *b,
++                                const char *buf, size_t count)
++{
++        unsigned int tmp;
++
++        if(sscanf(buf, "%u", &tmp) == 1)
++                power_save = (tmp != 0 && tmp != 1) ? power_save : tmp;
++        else
++                printk("override: invalid power save mode\n");
++
++        return count;
++}
++
 +define_one_global_ro(vdd_min);
 +define_one_global_ro(vdd_max);
 +define_one_global_rw(vdd);
 +define_one_global_rw(turbo_mode);
++define_one_global_rw(power_saver);
 +
 +static struct attribute *default_attrs[] = {
 +        &vdd.attr,
 +        &turbo_mode.attr,
++        &power_saver.attr,
 +        &vdd_min.attr,
 +        &vdd_max.attr,
 +        NULL
