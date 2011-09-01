@@ -302,7 +302,7 @@
 +	// If screen is off, take cpu offline if in power save mode
 +	if(power_save && !lcd_state)
 +		cpu_down(1);
-+	else
++	if(lcd_state)
 +		cpu_up(1);
 +}
 +EXPORT_SYMBOL(cpufreq_override_lcd_state);
