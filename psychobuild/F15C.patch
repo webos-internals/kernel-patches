@@ -207,9 +207,19 @@
  
  	cpufreq_table_init();
  }
+--- a/drivers/base/cpu.c	2010-08-01 18:11:14.000000000 -0400
++++ b/drivers/base/cpu.c	2011-09-01 20:08:00.000000000 -0400
+@@ -40,6 +40,7 @@
+ 	ssize_t ret;
+ 
+ 	cpu_hotplug_driver_lock();
++	printk("CPU SNOOP: process \"%s\" set cpu: %s\n",current->comm,buf[0] == '0' ? "off" : "on");
+ 	switch (buf[0]) {
+ 	case '0':
+ 		ret = cpu_down(cpu->sysdev.id);
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-08-27 10:39:02.000000000 -0400
-@@ -0,0 +1,136 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-08-28 23:13:18.000000000 -0400
+@@ -0,0 +1,135 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -327,22 +337,21 @@
 +        .name = "override"
 +};
 +
-+int cpufreq_override_driver_init(void)
++static int __init cpufreq_override_driver_init(void)
 +{
 +        printk("override: initialized!\n");
-+	msleep(700);
 +	return sysfs_create_group(cpufreq_global_kobject,&override_attr_group);
 +}
 +
-+EXPORT_SYMBOL(cpufreq_override_driver_init);
-+
-+void cpufreq_override_driver_exit(void)
++static void __exit cpufreq_override_driver_exit(void)
 +{
 +        sysfs_remove_group(cpufreq_global_kobject, &override_attr_group);
 +}
 +
-+EXPORT_SYMBOL(cpufreq_override_driver_exit);
-+
 +MODULE_AUTHOR("marco@unixpsycho.com");
 +MODULE_DESCRIPTION("'cpufreq_override' - A driver to do cool stuff ");
 +MODULE_LICENSE("GPL");
++
++module_init(cpufreq_override_driver_init);
++module_exit(cpufreq_override_driver_exit);
++
