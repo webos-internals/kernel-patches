@@ -13,3 +13,14 @@
  # CONFIG_NCP_FS is not set
  # CONFIG_CODA_FS is not set
  # CONFIG_AFS_FS is not set
+--- linux-2.6.35/arch/arm/configs/tenderloin_defconfig.orig
++++ linux-2.6.35/arch/arm/configs/tenderloin_defconfig
+@@ -2562,7 +2562,7 @@
+ # CONFIG_NLS_ISO8859_15 is not set
+ # CONFIG_NLS_KOI8_R is not set
+ # CONFIG_NLS_KOI8_U is not set
+-# CONFIG_NLS_UTF8 is not set
++CONFIG_NLS_UTF8=y
+ # CONFIG_DLM is not set
+ 
+ #
