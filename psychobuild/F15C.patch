@@ -240,8 +240,8 @@
  	case '1':
  		ret = cpu_up(cpu->sysdev.id);
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-09-05 01:56:12.000000000 -0400
-@@ -0,0 +1,270 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-09-05 21:49:40.000000000 -0400
+@@ -0,0 +1,269 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -294,14 +294,14 @@
 +
 +void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
 +void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
-+static inline void check_load(struct work_struct *work);
++static void check_load(struct work_struct *work);
 +
 +static DECLARE_DELAYED_WORK(worker, check_load);
 +
 +bool power_save = POWERSAVE;
 +
 +static cputime64_t prev_cpu_wall = 0, prev_cpu_idle = 0;
-+static unsigned int last_load = 0, time_in_state = 0;
++static unsigned int time_in_state = 0;
 +
 +static cputime64_t get_cpu_idle_time(unsigned int cpu)
 +{
@@ -344,14 +344,9 @@
 +        if (likely(total_ticks > idle_ticks))
 +                load = (100 * (total_ticks - idle_ticks)) / total_ticks;
 +
-+        if (!last_load)
-+                goto out;
-+
 +	ret = load;
 +
 +out:
-+        last_load = load;
-+
 +	return ret;
 +}
 +
@@ -361,19 +356,23 @@
 +}
 +EXPORT_SYMBOL(cpufreq_override_tm);
 +
-+static inline void check_load(struct work_struct *work)
++static void check_load(struct work_struct *work)
 +{
 +	struct sys_device *dev;
++	unsigned int load = 0;
++
++	load=cur_load();
 +
 +	if(cpu_online(1)) time_in_state++;
 +
-+	if(cur_load() > RAMPUP_PERCENT) {
++	if(load > RAMPUP_PERCENT) {
 +		if(!cpu_online(1)) {
 +			cpu_hotplug_driver_lock();
 +			dev = get_cpu_sysdev(1);
 +			if(!cpu_up(1))
 +				kobject_uevent(&dev->kobj, KOBJ_ONLINE);
 +			cpu_hotplug_driver_unlock();
++			time_in_state = 0;
 +		}
 +	}
 +	else {
@@ -493,8 +492,8 @@
 +
 +static int __init cpufreq_override_driver_init(void)
 +{
-+        printk("override: initialized!\n");
 +	schedule_delayed_work(&worker, 10);
++        printk("override: initialized!\n");
 +	return sysfs_create_group(cpufreq_global_kobject,&override_attr_group);
 +}
 +
