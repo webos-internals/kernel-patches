@@ -56,7 +56,7 @@
  		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
 +
 --- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-27 10:07:49.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-08 20:58:16.000000000 -0400
 @@ -52,9 +52,9 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
@@ -94,19 +94,19 @@
 +	[5]  = { 864000,  1, 0x10, 1100000, 1100000, 1},
 +	[6]  = { 918000,  1, 0x11, 1100000, 1100000, 2},
 +	[7]  = { 972000,  1, 0x12, 1100000, 1100000, 2},
-+	[8]  = {1026000,  1, 0x13, 1100000, 1100000, 2},
-+	[9]  = {1080000,  1, 0x14, 1100000, 1200000, 2},
-+	[10] = {1134000,  1, 0x15, 1100000, 1200000, 2},
-+	[11] = {1188000,  1, 0x16, 1200000, 1200000, 3},
-+	[12] = {1242000,  1, 0x17, 1200000, 1200000, 3},
++	[8]  = {1080000,  1, 0x14, 1100000, 1200000, 2},
++	[9]  = {1134000,  1, 0x15, 1100000, 1200000, 2},
++	[10] = {1188000,  1, 0x16, 1200000, 1200000, 3},
++	[11] = {1242000,  1, 0x17, 1200000, 1250000, 3},
++	[12] = {1296000,  1, 0x18, 1200000, 1250000, 3},
 +	[13] = {1350000,  1, 0x19, 1200000, 1250000, 3},
 +	[14] = {1404000,  1, 0x1A, 1200000, 1250000, 3},
-+	[15] = {1458000,  1, 0x1B, 1200000, 1250000, 3},
-+	[16] = {1512000,  1, 0x1C, 1250000, 1250000, 3},
++	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 3},
++	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 3},
  };
  
  #define L2(x) (&l2_freq_tbl_v2[(x)])
-@@ -207,21 +207,23 @@
+@@ -207,21 +207,22 @@
    { {0, 0},  MAX_AXI, ACPU_AFAB,  1, 0, 0, 0,    L2(0),   875000, 0x03006000},
    { {1, 1},  384000,  ACPU_PLL_8, 3, 0, 0, 0,    L2(1),   875000, 0x03006000},
    { {1, 1},  432000,  ACPU_SCPLL, 0, 0, 1, 0x08, L2(1),   887500, 0x03006000},
@@ -131,21 +131,20 @@
 +  { {1, 1},  864000,  ACPU_SCPLL, 0, 0, 1, 0x10, L2(5),  1037500, 0x03006000},
 +  { {1, 1},  918000,  ACPU_SCPLL, 0, 0, 1, 0x11, L2(6),  1062500, 0x03006000},
 +  { {1, 1},  972000,  ACPU_SCPLL, 0, 0, 1, 0x12, L2(7),  1087500, 0x03006000},
-+  { {1, 1}, 1026000,  ACPU_SCPLL, 0, 0, 1, 0x13, L2(8),  1125000, 0x03006000},
-+  { {1, 1}, 1080000,  ACPU_SCPLL, 0, 0, 1, 0x14, L2(9),  1137500, 0x03006000},
-+  { {1, 1}, 1134000,  ACPU_SCPLL, 0, 0, 1, 0x15, L2(10), 1162500, 0x03006000},
-+  { {1, 1}, 1188000,  ACPU_SCPLL, 0, 0, 1, 0x16, L2(11), 1187500, 0x03006000},
-+  { {1, 1}, 1242000,  ACPU_SCPLL, 0, 0, 1, 0x17, L2(12), 1190000, 0x03006000},
-+  { {1, 1}, 1350000,  ACPU_SCPLL, 0, 0, 1, 0x19, L2(13), 1195000, 0x03006000},
-+  { {1, 1}, 1458000,  ACPU_SCPLL, 0, 0, 1, 0x1B, L2(14), 1200000, 0x03006000},
-+  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(15), 1250000, 0x03006000},
-+  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1350000, 0x03006000},
-+  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1400000, 0x03006000},
-+  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(16), 1500000, 0x03006000},
++  { {1, 1}, 1080000,  ACPU_SCPLL, 0, 0, 1, 0x14, L2(8),  1137500, 0x03006000},
++  { {1, 1}, 1188000,  ACPU_SCPLL, 0, 0, 1, 0x16, L2(9),  1187500, 0x03006000},
++  { {1, 1}, 1242000,  ACPU_SCPLL, 0, 0, 1, 0x17, L2(10), 1200000, 0x03006000},
++  { {1, 1}, 1350000,  ACPU_SCPLL, 0, 0, 1, 0x19, L2(11), 1200000, 0x03006000},
++  { {1, 1}, 1458000,  ACPU_SCPLL, 0, 0, 1, 0x1B, L2(12), 1250000, 0x03006000},
++  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(13), 1250000, 0x03006000},
++  { {1, 1}, 1620000,  ACPU_SCPLL, 0, 0, 1, 0x1E, L2(14), 1300000, 0x03006000},
++  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(15), 1350000, 0x03006000},
++  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1450000, 0x03006000},
++  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(16), 1600000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
-@@ -231,6 +233,31 @@
+@@ -231,6 +232,31 @@
  static struct clkctl_l2_speed *l2_freq_tbl;
  static unsigned int l2_freq_tbl_size;
  
@@ -177,8 +176,38 @@
  unsigned long acpuclk_get_rate(int cpu)
  {
  	return drv_state.current_speed[cpu]->acpuclk_khz;
-@@ -779,7 +808,7 @@
+@@ -749,37 +775,9 @@
+ static void __init cpufreq_table_init(void) {}
+ #endif
  
+-static unsigned int __init select_freq_plan(void)
+-{
+-	uint32_t speed_bin, max_khz;
+-	struct clkctl_acpu_speed *f;
+-
+-	acpu_freq_tbl = acpu_freq_tbl_v2;
+-	l2_freq_tbl = l2_freq_tbl_v2;
+-	l2_freq_tbl_size = ARRAY_SIZE(l2_freq_tbl_v2);
+-
+-	speed_bin = readl(QFPROM_SPEED_BIN_PRI) & 0xF;
+-	if (speed_bin == 0x1)
+-		max_khz = 1512000;
+-	else
+-		max_khz = 1188000;
+-
+-	/* Truncate the table based to max_khz. */
+-	for (f = acpu_freq_tbl; f->acpuclk_khz != 0; f++) {
+-		if (f->acpuclk_khz > max_khz) {
+-			f->acpuclk_khz = 0;
+-			break;
+-		}
+-	}
+-	f--;
+-	pr_info("Max ACPU freq: %u KHz\n", f->acpuclk_khz);
+-
+-	return f->acpuclk_khz;
+-}
+-
  void __init msm_acpu_clock_init(struct msm_acpu_clock_platform_data *clkdata)
  {
 -	unsigned int max_cpu_khz;
@@ -186,7 +215,7 @@
  	int cpu;
  
  	mutex_init(&drv_state.lock);
-@@ -788,7 +817,11 @@
+@@ -788,7 +786,11 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
@@ -199,7 +228,7 @@
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +832,7 @@
+@@ -799,7 +801,7 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
@@ -209,7 +238,7 @@
  	cpufreq_table_init();
  }
 --- a/drivers/base/cpu.c	2010-08-01 18:11:14.000000000 -0400
-+++ b/drivers/base/cpu.c	2011-09-06 15:20:27.000000000 -0400
++++ b/drivers/base/cpu.c	2011-09-08 19:56:45.000000000 -0400
 @@ -14,6 +14,8 @@
  
  #include "base.h"
@@ -219,32 +248,29 @@
  static struct sysdev_class_attribute *cpu_sysdev_class_attrs[];
  
  struct sysdev_class cpu_sysdev_class = {
-@@ -37,9 +39,12 @@
- 				 const char *buf, size_t count)
- {
- 	struct cpu *cpu = container_of(dev, struct cpu, sysdev);
--	ssize_t ret;
-+	ssize_t ret = 0;
-+
-+	if(!cpufreq_override_tm()) goto out;
+@@ -40,11 +42,16 @@
+ 	ssize_t ret;
  
  	cpu_hotplug_driver_lock();
 +	//printk("CPU SNOOP: process \"%s\" set cpu: %s\n",current->comm,buf[0] == '0' ? "off" : "on");
  	switch (buf[0]) {
  	case '0':
- 		ret = cpu_down(cpu->sysdev.id);
-@@ -55,7 +60,7 @@
- 		ret = -EINVAL;
- 	}
- 	cpu_hotplug_driver_unlock();
--
-+out:
- 	if (ret >= 0)
- 		ret = count;
- 	return ret;
+-		ret = cpu_down(cpu->sysdev.id);
+-		if (!ret)
+-			kobject_uevent(&dev->kobj, KOBJ_OFFLINE);
++		if(cpufreq_override_tm()) {
++			ret = cpu_down(cpu->sysdev.id);
++			if (!ret)
++				kobject_uevent(&dev->kobj, KOBJ_OFFLINE);
++		}
++		else
++			ret = 0;
+ 		break;
+ 	case '1':
+ 		ret = cpu_up(cpu->sysdev.id);
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-09-06 15:21:37.000000000 -0400
-@@ -0,0 +1,269 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-09-08 23:19:17.000000000 -0400
+@@ -0,0 +1,169 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -283,114 +309,21 @@
 +#define VDD_MAX 1600000
 +
 +// Freq count
-+#define NR_FREQS 21
++#define NR_FREQS 20
 +
 +// Power saving mode
-+#define POWERSAVE 0
-+
-+// CPU load ramp up percent
-+#define RAMPUP_PERCENT 20
-+
-+// CPU load poll jiffies
-+#define POLL_FREQ 100
++#define POWERSAVE 1
 +
 +void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
 +void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
-+static inline void check_load(struct work_struct *work);
-+
-+static DECLARE_DELAYED_WORK(worker, check_load);
 +
 +bool power_save = POWERSAVE;
-+
-+static cputime64_t prev_cpu_wall = 0, prev_cpu_idle = 0;
-+static unsigned int time_in_state = 0;
-+
-+static inline cputime64_t get_cpu_idle_time(unsigned int cpu)
-+{
-+        cputime64_t idle_time;
-+        cputime64_t cur_jiffies;
-+        cputime64_t busy_time;
-+
-+        cur_jiffies = jiffies64_to_cputime64(get_jiffies_64());
-+        busy_time = cputime64_add(kstat_cpu(cpu).cpustat.user,
-+                                  kstat_cpu(cpu).cpustat.system);
-+
-+        busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.irq);
-+        busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.softirq);
-+        busy_time = cputime64_add(busy_time, kstat_cpu(cpu).cpustat.steal);
-+
-+        idle_time = cputime64_sub(cur_jiffies, busy_time);
-+        return idle_time;
-+}
-+
-+static inline unsigned int cur_load(void)
-+{
-+        unsigned int tmp_idle_ticks, idle_ticks, total_ticks, load = 0, ret = 0;
-+        cputime64_t total_idle_ticks, cur_jiffies;
-+
-+        idle_ticks = UINT_MAX;
-+        cur_jiffies = jiffies64_to_cputime64(get_jiffies_64());
-+        total_ticks = (unsigned int)cputime64_sub(cur_jiffies, prev_cpu_wall);
-+        prev_cpu_wall = get_jiffies_64();
-+
-+        if (!total_ticks)
-+                goto out;
-+
-+        total_idle_ticks = get_cpu_idle_time(0);
-+        tmp_idle_ticks = (unsigned int)cputime64_sub(total_idle_ticks,
-+                                                     prev_cpu_idle);
-+        prev_cpu_idle = total_idle_ticks;
-+
-+        if (tmp_idle_ticks < idle_ticks)
-+                idle_ticks = tmp_idle_ticks;
-+        if (likely(total_ticks > idle_ticks))
-+                load = (100 * (total_ticks - idle_ticks)) / total_ticks;
-+
-+	ret = load;
-+
-+out:
-+	return ret;
-+}
 +
 +bool cpufreq_override_tm(void)
 +{
 +	return power_save;
 +}
 +EXPORT_SYMBOL(cpufreq_override_tm);
-+
-+static inline void check_load(struct work_struct *work)
-+{
-+	struct sys_device *dev;
-+	unsigned int load = 0;
-+
-+	load=cur_load();
-+
-+	if(cpu_online(1)) time_in_state++;
-+
-+	// only help out cpu0, not overall load
-+	if(load > RAMPUP_PERCENT) {
-+		if(!cpu_online(1)) {
-+			cpu_hotplug_driver_lock();
-+			dev = get_cpu_sysdev(1);
-+			if(!cpu_up(1))
-+				kobject_uevent(&dev->kobj, KOBJ_ONLINE);
-+			cpu_hotplug_driver_unlock();
-+			time_in_state = 0;
-+		}
-+	}
-+	else {
-+		if(cpu_online(1) && (time_in_state > 3)) {
-+			cpu_hotplug_driver_lock();
-+			dev = get_cpu_sysdev(1);
-+			if(!cpu_down(1))
-+				kobject_uevent(&dev->kobj, KOBJ_OFFLINE);
-+			cpu_hotplug_driver_unlock();
-+			time_in_state = 0;
-+		}
-+	}
-+
-+	schedule_delayed_work(&worker, POLL_FREQ);
-+}
 +
 +static ssize_t show_vdd_max(struct kobject *kobj, struct attribute *attr,
 +				char *buf)
@@ -431,9 +364,9 @@
 +
 +	// TODO: macro-ize this!
 +	i = sscanf(buf, "%u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u %u "
-+			"%u %u %u", &c[0],&c[1],&c[2],&c[3],&c[4],&c[5],&c[6],
++			"%u %u", &c[0],&c[1],&c[2],&c[3],&c[4],&c[5],&c[6],
 +				&c[7],&c[8],&c[9],&c[10],&c[11],&c[12],&c[13],
-+				&c[14],&c[15],&c[16],&c[17],&c[18],&c[19],&c[20]);
++				&c[14],&c[15],&c[16],&c[17],&c[18],&c[19]);
 +	if(i != NR_FREQS)
 +		printk("override: store_vdd invalid\n");
 +	else {
@@ -460,14 +393,10 @@
 +static ssize_t store_power_saver(struct kobject *a, struct attribute *b,
 +                                const char *buf, size_t count)
 +{
-+        unsigned int tmp, prev = power_save;
++        unsigned int tmp;
 +
 +        if(sscanf(buf, "%u", &tmp) == 1) {
 +		power_save = (tmp != 0 && tmp != 1) ? power_save : tmp;
-+		if(power_save != prev) {
-+			if(!prev) cancel_delayed_work(&worker);
-+			if(prev) schedule_delayed_work(&worker,10);
-+		}
 +	}	
 +        else
 +                printk("override: invalid power save mode\n");
@@ -495,15 +424,12 @@
 +
 +static int __init cpufreq_override_driver_init(void)
 +{
-+	schedule_delayed_work(&worker, 10);
 +        printk("override: initialized!\n");
 +	return sysfs_create_group(cpufreq_global_kobject,&override_attr_group);
 +}
 +
 +static void __exit cpufreq_override_driver_exit(void)
 +{
-+	cancel_delayed_work(&worker);
-+	flush_scheduled_work();
 +        sysfs_remove_group(cpufreq_global_kobject, &override_attr_group);
 +}
 +
