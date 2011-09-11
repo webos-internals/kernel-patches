@@ -12,8 +12,41 @@
  config CPU_FREQ_DEBUG
  	bool "Enable CPUfreq debugging"
  	help
+@@ -87,6 +92,15 @@
+ 	  program shall be able to set the CPU dynamically without having
+ 	  to enable the userspace governor manually.
+ 
++config CPU_FREQ_DEFAULT_GOV_SCREENSTATE
++        bool "screenstate"
++        select CPU_FREQ_GOV_SCREENSTATE
++        help
++          Use the CPUFreq governor 'screenstate' as default. This will
++	  scale the CPU frequency down when the LCD is off then scale
++	  back to max speed when LCD is powered on.  This also will not
++	  allow to set the CPU frequency manually.
++
+ config CPU_FREQ_DEFAULT_GOV_ONDEMAND
+ 	bool "ondemand"
+ 	select CPU_FREQ_GOV_ONDEMAND
+@@ -162,6 +176,16 @@
+ 
+ 	  If in doubt, say Y.
+ 
++config CPU_FREQ_GOV_SCREENSTATE
++        tristate "'screenstate' governor for frequency scaling"
++        help
++          Enable this cpufreq governor to scale when LCD is on/off.
++
++          To compile this driver as a module, choose M here: the
++          module will be called cpufreq_screenstate.
++
++          If in doubt, say Y.
++
+ config CPU_FREQ_GOV_ONDEMAND
+ 	tristate "'ondemand' cpufreq policy governor"
+ 	select CPU_FREQ_TABLE
 --- a/drivers/cpufreq/Makefile	2011-08-02 16:04:21.000000000 -0400
-+++ b/drivers/cpufreq/Makefile	2011-08-07 17:18:06.000000000 -0400
++++ b/drivers/cpufreq/Makefile	2011-08-19 16:12:28.000000000 -0400
 @@ -10,6 +10,7 @@
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE)	+= cpufreq_ondemand_tickle.o
@@ -54,9 +87,8 @@
  		RPM_VREG_FREQ_1p60),
  	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
  		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
-+
 --- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-08 20:58:16.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-11 12:10:47.000000000 -0400
 @@ -52,9 +52,9 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
@@ -176,7 +208,108 @@
  unsigned long acpuclk_get_rate(int cpu)
  {
  	return drv_state.current_speed[cpu]->acpuclk_khz;
-@@ -749,37 +775,9 @@
+@@ -394,7 +420,7 @@
+ 		return;
+ 	}
+ 
+-	/* Update bandwidth if requst has changed. */
++	/* Update bandwidth if requst has changed. This may sleep. */
+ 	ret = msm_bus_scale_client_update_request(bus_perf_client, bw);
+ 	if (ret)
+ 		pr_err("%s: bandwidth request failed (%d)\n", __func__, ret);
+@@ -404,7 +430,7 @@
+ 
+ /* Apply any per-cpu voltage increases. */
+ static int increase_vdd(int cpu, unsigned int vdd_sc, unsigned int vdd_mem,
+-			unsigned int vdd_dig)
++			unsigned int vdd_dig, enum setrate_reason reason)
+ {
+ 	int rc = 0;
+ 
+@@ -427,6 +453,13 @@
+ 		return rc;
+ 	}
+ 
++	 /* Don't update the Scorpion voltage in the hotplug path.  It should
++	  * already be correct.  Attempting to set it is bad because we don't
++	  * know what CPU we are running on at this point, but the Scorpion
++	  * regulator API requires we call it from the affected CPU.  */
++	if (reason == SETRATE_HOTPLUG)
++		return rc;
++
+ 	/* Update per-core Scorpion voltage. */
+ 	rc = regulator_set_voltage(regulator_sc[cpu], vdd_sc, MAX_VDD_SC);
+ 	if (rc) {
+@@ -440,16 +473,21 @@
+ 
+ /* Apply any per-cpu voltage decreases. */
+ static void decrease_vdd(int cpu, unsigned int vdd_sc, unsigned int vdd_mem,
+-			 unsigned int vdd_dig)
++			 unsigned int vdd_dig, enum setrate_reason reason)
+ {
+ 	int ret;
+ 
+-	/* Update per-core Scorpion voltage. */
+-	ret = regulator_set_voltage(regulator_sc[cpu], vdd_sc, MAX_VDD_SC);
+-	if (ret) {
+-		pr_err("%s: vdd_sc (cpu%d) decrease failed (%d)\n",
+-			__func__, cpu, ret);
+-		return;
++	/* Update per-core Scorpion voltage. This must be called on the CPU
++	 * that's being affected. Don't do this in the hotplug remove path,
++	 * where the rail is off and we're executing on the other CPU. */
++	if (reason != SETRATE_HOTPLUG) {
++		ret = regulator_set_voltage(regulator_sc[cpu], vdd_sc,
++					    MAX_VDD_SC);
++		if (ret) {
++			pr_err("%s: vdd_sc (cpu%d) decrease failed (%d)\n",
++				__func__, cpu, ret);
++			return;
++		}
+ 	}
+ 
+ 	/* Decrease vdd_dig active-set vote. */
+@@ -510,7 +548,7 @@
+ 		goto out;
+ 	}
+ 
+-	if (reason == SETRATE_CPUFREQ)
++	if (reason == SETRATE_CPUFREQ || reason == SETRATE_HOTPLUG)
+ 		mutex_lock(&drv_state.lock);
+ 
+ 	strt_s = drv_state.current_speed[cpu];
+@@ -549,9 +587,10 @@
+ 	vdd_dig = max(tgt_s->l2_level->vdd_dig, pll_vdd_dig);
+ 
+ 	/* Increase VDD levels if needed. */
+-	if ((reason == SETRATE_CPUFREQ || reason == SETRATE_INIT)
++	if ((reason == SETRATE_CPUFREQ || reason == SETRATE_HOTPLUG
++	  || reason == SETRATE_INIT)
+ 			&& (tgt_s->acpuclk_khz > strt_s->acpuclk_khz)) {
+-		rc = increase_vdd(cpu, tgt_s->vdd_sc, vdd_mem, vdd_dig);
++		rc = increase_vdd(cpu, tgt_s->vdd_sc, vdd_mem, vdd_dig, reason);
+ 		if (rc)
+ 			goto out;
+ 	}
+@@ -581,7 +620,7 @@
+ 
+ 	/* Drop VDD levels if we can. */
+ 	if (tgt_s->acpuclk_khz < strt_s->acpuclk_khz)
+-		decrease_vdd(cpu, tgt_s->vdd_sc, vdd_mem, vdd_dig);
++		decrease_vdd(cpu, tgt_s->vdd_sc, vdd_mem, vdd_dig, reason);
+ 
+ 	dprintk("ACPU%d speed change complete\n", cpu);
+ 
+@@ -590,7 +629,7 @@
+ 		AVS_ENABLE(cpu, tgt_s->avsdscr_setting);
+ 
+ out:
+-	if (reason == SETRATE_CPUFREQ)
++	if (reason == SETRATE_CPUFREQ || reason == SETRATE_HOTPLUG)
+ 		mutex_unlock(&drv_state.lock);
+ 	return rc;
+ }
+@@ -749,37 +788,38 @@
  static void __init cpufreq_table_init(void) {}
  #endif
  
@@ -201,26 +334,50 @@
 -			f->acpuclk_khz = 0;
 -			break;
 -		}
--	}
++#define HOT_UNPLUG_KHZ MAX_AXI
++static int __cpuinit acpuclock_cpu_callback(struct notifier_block *nfb,
++					unsigned long action, void *hcpu)
++{
++	static int prev_khz[NR_CPUS];
++	int cpu = (int)hcpu;
++
++	switch (action) {
++	case CPU_DEAD:
++		  prev_khz[cpu] = acpuclk_get_rate(cpu);
++		  /* Fall through. */
++	case CPU_UP_CANCELED:
++		  acpuclk_set_rate(cpu, HOT_UNPLUG_KHZ, SETRATE_HOTPLUG);
++		  break;
++	case CPU_UP_PREPARE:
++		  if (WARN_ON(!prev_khz[cpu]))
++			    prev_khz[cpu] = acpu_freq_tbl->acpuclk_khz;
++		  acpuclk_set_rate(cpu, prev_khz[cpu], SETRATE_HOTPLUG);
++		  break;
++	default:
++		  break;
+ 	}
 -	f--;
 -	pr_info("Max ACPU freq: %u KHz\n", f->acpuclk_khz);
--
+ 
 -	return f->acpuclk_khz;
--}
--
++	return NOTIFY_OK;
+ }
+ 
++static struct notifier_block __cpuinitdata acpuclock_cpu_notifier = {
++      .notifier_call = acpuclock_cpu_callback,
++};
++
  void __init msm_acpu_clock_init(struct msm_acpu_clock_platform_data *clkdata)
  {
 -	unsigned int max_cpu_khz;
-+//	unsigned int max_cpu_khz;
  	int cpu;
  
  	mutex_init(&drv_state.lock);
-@@ -788,7 +786,11 @@
+@@ -788,7 +828,10 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
 -	max_cpu_khz = select_freq_plan();
-+//	max_cpu_khz = select_freq_plan();
 +	acpu_freq_tbl = acpu_freq_tbl_v2;
 +	l2_freq_tbl = l2_freq_tbl_v2;
 +	l2_freq_tbl_size = ARRAY_SIZE(l2_freq_tbl_v2);
@@ -228,7 +385,7 @@
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +801,7 @@
+@@ -799,7 +842,8 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
@@ -236,6 +393,7 @@
 +		acpuclk_set_rate(cpu, 1188000, SETRATE_INIT);
  
  	cpufreq_table_init();
++	register_hotcpu_notifier(&acpuclock_cpu_notifier);
  }
 --- a/drivers/base/cpu.c	2010-08-01 18:11:14.000000000 -0400
 +++ b/drivers/base/cpu.c	2011-09-08 19:56:45.000000000 -0400
@@ -440,3 +598,318 @@
 +module_init(cpufreq_override_driver_init);
 +module_exit(cpufreq_override_driver_exit);
 +
+--- a/arch/arm/mach-msm/clock-8x60.c	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mach-msm/clock-8x60.c	2011-09-11 11:21:39.000000000 -0400
+@@ -28,6 +28,7 @@
+ #include <mach/clk.h>
+ #include <mach/msm_xo.h>
+ #include <mach/scm-io.h>
++#include <linux/clk.h>
+ 
+ #include "clock-local.h"
+ #include "clock-8x60.h"
+@@ -2607,7 +2608,25 @@
+ 
+ static int msm_clk_soc_late_init(void)
+ {
+-	return local_unvote_sys_vdd(HIGH);
++      int rc;
++
++      /* Vote for MMFPB to be at least 64MHz when an Apps CPU is active. */
++      struct clk *mmfpb_a_clk = clk_get(NULL, "mmfpb_a_clk");
++      if (WARN(IS_ERR(mmfpb_a_clk), "mmfpb_a_clk not found (%ld)\n",
++                      PTR_ERR(mmfpb_a_clk)))
++              return PTR_ERR(mmfpb_a_clk);
++      rc = clk_set_min_rate(mmfpb_a_clk, 64000000);
++      if (WARN(rc, "mmfpb_a_clk rate was not set (%d)\n", rc))
++              return rc;
++      rc = clk_enable(mmfpb_a_clk);
++      if (WARN(rc, "mmfpb_a_clk not enabled (%d)\n", rc))
++              return rc;
++
++      /* Remove temporary vote for HIGH vdd_dig. */
++      rc = local_unvote_sys_vdd(HIGH);
++      WARN(rc, "local_unvote_sys_vdd(HIGH) failed (%d)\n", rc);
++
++      return rc;
+ }
+ late_initcall(msm_clk_soc_late_init);
+ 
+--- a/drivers/mmc/host/msm_sdcc.c	2011-08-02 16:04:22.000000000 -0400
++++ b/drivers/mmc/host/msm_sdcc.c	2011-09-11 11:25:41.000000000 -0400
+@@ -884,6 +884,13 @@
+ #if IRQ_DEBUG
+ 		msmsdcc_print_status(host, "irq0-p", status);
+ #endif
++#ifdef CONFIG_MMC_MSM_SDIO_SUPPORT
++                if (status & MCI_SDIOINTROPE) {
++                        if (host->sdcc_suspending)
++                                wake_lock(&host->sdio_suspend_wlock);
++                        mmc_signal_sdio_irq(host->mmc);
++                }
++#endif
+ 
+ 		if ((host->plat->dummy52_required) &&
+ 		    (host->dummy_52_state == DUMMY_52_STATE_SENT)) {
+@@ -905,13 +912,6 @@
+ 		}
+ 
+ 		data = host->curr.data;
+-#ifdef CONFIG_MMC_MSM_SDIO_SUPPORT
+-		if (status & MCI_SDIOINTROPE) {
+-			if (host->sdcc_suspending)
+-				wake_lock(&host->sdio_suspend_wlock);
+-			mmc_signal_sdio_irq(host->mmc);
+-		}
+-#endif
+ 		/*
+ 		 * Check for proper command response
+ 		 */
+@@ -2054,18 +2054,11 @@
+ 	struct msmsdcc_host *host = mmc_priv(mmc);
+ 	int rc = 0;
+ 
+-	rc = msmsdcc_runtime_resume(dev);
++	if (!pm_runtime_suspended(dev))
++		rc = msmsdcc_runtime_resume(dev);
+ 	if (host->plat->status_irq)
+ 		enable_irq(host->plat->status_irq);
+ 
+-	/* Update the run-time PM status */
+-	pm_runtime_disable(dev);
+-	rc = pm_runtime_set_active(dev);
+-	if (rc < 0)
+-		pr_info("%s: %s: failed with error %d", mmc_hostname(mmc),
+-				__func__, rc);
+-	pm_runtime_enable(dev);
+-
+ 	return rc;
+ }
+ 
+--- a/arch/arm/mach-msm/devices-msm8x60.c	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mach-msm/devices-msm8x60.c	2011-09-11 11:27:17.000000000 -0400
+@@ -627,8 +627,8 @@
+ 	{
+ 		.src = MSM_BUS_MASTER_GRAPHICS_3D,
+ 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+-		.ab = 2008000000U,
+-		.ib = 2008000000U,
++               .ab = 1300000000U,
++               .ib = 1300000000U,
+ 	},
+ };
+ 
+@@ -663,7 +663,7 @@
+ 		.src = MSM_BUS_MASTER_GRAPHICS_2D_CORE0,
+ 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+ 		.ab = 0,
+-		.ib = 2096000000U,
++               .ib = 1300000000U,
+ 	},
+ };
+ 
+@@ -698,7 +698,7 @@
+ 		.src = MSM_BUS_MASTER_GRAPHICS_2D_CORE1,
+ 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+ 		.ab = 0,
+-		.ib = 2096000000U,
++               .ib = 1300000000U,
+ 	},
+ };
+ 
+--- a/kernel/sched_fair.c	2011-08-02 16:04:22.000000000 -0400
++++ b/kernel/sched_fair.c	2011-09-11 11:30:23.000000000 -0400
+@@ -3253,9 +3253,10 @@
+ 		cpu_rq(cpu)->in_nohz_recently = 1;
+ 
+ 		if (!cpu_active(cpu)) {
+-			if (atomic_read(&nohz.load_balancer) != cpu)
++                      if (atomic_read(&nohz.load_balancer) != cpu) {
++				cpumask_clear_cpu(cpu, nohz.cpu_mask);
+ 				return 0;
+-
++			}
+ 			/*
+ 			 * If we are going offline and still the leader,
+ 			 * give up!
+@@ -3263,6 +3264,8 @@
+ 			if (atomic_cmpxchg(&nohz.load_balancer, cpu, -1) != cpu)
+ 				BUG();
+ 
++			cpumask_clear_cpu(cpu, nohz.cpu_mask);
++
+ 			return 0;
+ 		}
+ 
+--- a/arch/arm/mm/cache-v7.S	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mm/cache-v7.S	2011-09-10 22:40:16.000000000 -0400
+@@ -161,15 +161,15 @@
+  UNWIND(.fnstart		)
+ 	dcache_line_size r2, r3
+ 	sub	r3, r2, #1
+-	bic	r0, r0, r3
++	bic	r12, r0, r3
+ #ifdef CONFIG_SCORPION_Uni_45nm_BUG
+ 1:
+- USER(	mcr	p15, 0, r0, c7, c11, 1	)	@ clean D line to PoU (DCCMVAU)
+-	add	r0, r0, r2
+-2:
+-	cmp	r0, r1
++ USER(	mcr	p15, 0, r12, c7, c11, 1	)	@ clean D line to PoU (DCCMVAU)
++	add	r12, r12, r2
++	cmp	r12, r1
+ 	blo	1b
+ 	dsb
++3:
+ 	mov	r0, #0
+ 	mcr	p15, 0, r0, c7, c5, 0		@ invalidate I-Cache and BTB
+ 	dsb
+@@ -177,13 +177,20 @@
+ 	mov	pc, lr
+ #else
+ 1:
+- USER(	mcr	p15, 0, r0, c7, c11, 1	)	@ clean D line to the point of unification
++ USER(	mcr	p15, 0, r12, c7, c11, 1	)	@ clean D line to the point of unification
++	add	r12, r12, r2
++	cmp	r12, r1
++	blo	1b
+ 	dsb
+- USER(	mcr	p15, 0, r0, c7, c5, 1	)	@ invalidate I line
+-	add	r0, r0, r2
++	icache_line_size r2, r3
++	sub	r3, r2, #1
++	bic	r12, r0, r3
+ 2:
+-	cmp	r0, r1
+-	blo	1b
++ USER(	mcr	p15, 0, r12, c7, c5, 1  )	@ invalidate I line
++	add	r12, r12, r2
++	cmp	r12, r1
++	blo	2b
++3:
+ 	mov	r0, #0
+ #ifdef CONFIG_SMP
+ 	mcr	p15, 0, r0, c7, c1, 6		@ invalidate BTB Inner Shareable
+@@ -200,10 +207,10 @@
+  * isn't mapped, just try the next page.
+  */
+ 9001:
+-	mov	r0, r0, lsr #12
+-	mov	r0, r0, lsl #12
+-	add	r0, r0, #4096
+-	b	2b
++	mov	r12, r12, lsr #12
++	mov	r12, r12, lsl #12
++	add	r12, r12, #4096
++	b	3b
+  UNWIND(.fnend		)
+ ENDPROC(v7_coherent_kern_range)
+ ENDPROC(v7_coherent_user_range)
+--- a/arch/arm/mm/proc-macros.S	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mm/proc-macros.S	2011-09-10 22:40:40.000000000 -0400
+@@ -72,6 +72,16 @@
+ 	mov	\reg, \reg, lsl \tmp		@ actual cache line size
+ 	.endm
+ 
++/*
++ * icache_line_size - get the minimum I-cache line size from the CTR register
++ * on ARMv7.
++ */
++	.macro	icache_line_size, reg, tmp
++	mrc	p15, 0, \tmp, c0, c0, 1		@ read ctr
++	and	\tmp, \tmp, #0xf		@ cache line size encoding
++	mov	\reg, #4			@ bytes per word
++	mov	\reg, \reg, lsl \tmp		@ actual cache line size
++	.endm
+ 
+ /*
+  * Sanity check the PTE configuration for the code below - which makes
+--- a/drivers/mmc/core/mmc.c	2011-08-02 16:04:22.000000000 -0400
++++ b/drivers/mmc/core/mmc.c	2011-09-11 11:34:25.000000000 -0400
+@@ -610,16 +610,20 @@
+  */
+ static int mmc_suspend(struct mmc_host *host)
+ {
++	int err = 0;
++
+ 	BUG_ON(!host);
+ 	BUG_ON(!host->card);
+ 
+ 	mmc_claim_host(host);
+-	if (!mmc_host_is_spi(host))
++	if (mmc_card_can_sleep(host))
++		err = mmc_card_sleep(host);
++	else if (!mmc_host_is_spi(host))
+ 		mmc_deselect_cards(host);
+ 	host->card->state &= ~MMC_STATE_HIGHSPEED;
+ 	mmc_release_host(host);
+ 
+-	return 0;
++	return err;
+ }
+ 
+ /*
+--- a/arch/arm/mach-msm/pm-8x60.c	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mach-msm/pm-8x60.c	2011-09-11 13:09:38.000000000 -0400
+@@ -603,7 +603,6 @@
+ struct msm_pm_device {
+ 	unsigned int cpu;
+ #ifdef CONFIG_HOTPLUG_CPU
+-	unsigned long saved_acpu_rate;
+ 	struct completion cpu_killed;
+ 	unsigned int warm_boot;
+ #endif
+@@ -724,7 +723,12 @@
+ 
+ 	avsdscr_setting = avs_get_avsdscr();
+ 	avs_disable();
+-	saved_acpuclk_rate = acpuclk_power_collapse();
++
++	if (cpu_online(dev->cpu))
++		saved_acpuclk_rate = acpuclk_power_collapse();
++	else
++		saved_acpuclk_rate = 0;
++
+ 	if (MSM_PM_DEBUG_CLOCK & msm_pm_debug_mask)
+ 		pr_info("CPU%u: %s: change clock rate (old rate = %lu)\n",
+ 			dev->cpu, __func__, saved_acpuclk_rate);
+@@ -1113,12 +1117,8 @@
+ 	flush_cache_all();
+ 
+ 	for (;;) {
+-		if (allow[MSM_PM_SLEEP_MODE_POWER_COLLAPSE]) {
+-			struct msm_pm_device *dev =
+-				&__get_cpu_var(msm_pm_devices);
+-			dev->saved_acpu_rate = acpuclk_get_rate(cpu);
++		if (allow[MSM_PM_SLEEP_MODE_POWER_COLLAPSE])
+ 			msm_pm_power_collapse(false);
+-		}
+ 		else if (allow[MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE])
+ 			msm_pm_power_collapse_standalone(false);
+ 		else if (allow[MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT])
+@@ -1147,15 +1147,6 @@
+ 	vfp_reinit();
+ #endif
+ 
+-	if (dev->saved_acpu_rate) {
+-		ret = acpuclk_set_rate(dev->cpu,
+-				dev->saved_acpu_rate,
+-				SETRATE_PC);
+-		if (ret)
+-			pr_err("CPU%u: %s: failed clock rate restore(%lu)\n",
+-			dev->cpu, __func__, dev->saved_acpu_rate);
+-		dev->saved_acpu_rate = 0;
+-	}
+ 	ret = msm_spm_set_low_power_mode(MSM_SPM_MODE_CLOCK_GATING, false);
+ 
+ 	return ret;
+--- a/arch/arm/mach-msm/acpuclock.h	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock.h	2011-09-11 12:11:10.000000000 -0400
+@@ -26,6 +26,7 @@
+ 	SETRATE_CPUFREQ = 0,
+ 	SETRATE_SWFI,
+ 	SETRATE_PC,
++	SETRATE_HOTPLUG,
+ 	SETRATE_INIT,
+ };
+ 
