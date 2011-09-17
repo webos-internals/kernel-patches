@@ -88,7 +88,7 @@
  	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
  		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
 --- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-11 12:10:47.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-17 13:42:34.000000000 -0400
 @@ -52,9 +52,9 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
@@ -101,7 +101,15 @@
  #define MAX_AXI			 310500 /* KHz */
  #define SCPLL_LOW_VDD_FMAX	 594000 /* KHz */
  #define SCPLL_LOW_VDD		1000000 /* uV */
-@@ -182,21 +182,21 @@
+@@ -167,6 +167,7 @@
+ 	[1] = BW_MBPS(1336), /* At least 167 MHz on bus. */
+ 	[2] = BW_MBPS(2008), /* At least 251 MHz on bus. */
+ 	[3] = BW_MBPS(2480), /* At least 310 MHz on bus. */
++	[4] = BW_MBPS(3200), 
+ };
+ 
+ static struct msm_bus_scale_pdata bus_client_pdata = {
+@@ -182,21 +183,21 @@
  static struct clkctl_l2_speed l2_freq_tbl_v2[] = {
  	[0]  = { MAX_AXI, 0, 0,    1000000, 1100000, 0},
  	[1]  = { 432000,  1, 0x08, 1000000, 1100000, 0},
@@ -132,13 +140,13 @@
 +	[11] = {1242000,  1, 0x17, 1200000, 1250000, 3},
 +	[12] = {1296000,  1, 0x18, 1200000, 1250000, 3},
 +	[13] = {1350000,  1, 0x19, 1200000, 1250000, 3},
-+	[14] = {1404000,  1, 0x1A, 1200000, 1250000, 3},
-+	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 3},
-+	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 3},
++	[14] = {1404000,  1, 0x1A, 1200000, 1250000, 4},
++	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 4},
++	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 4},
  };
  
  #define L2(x) (&l2_freq_tbl_v2[(x)])
-@@ -207,21 +207,22 @@
+@@ -207,21 +208,22 @@
    { {0, 0},  MAX_AXI, ACPU_AFAB,  1, 0, 0, 0,    L2(0),   875000, 0x03006000},
    { {1, 1},  384000,  ACPU_PLL_8, 3, 0, 0, 0,    L2(1),   875000, 0x03006000},
    { {1, 1},  432000,  ACPU_SCPLL, 0, 0, 1, 0x08, L2(1),   887500, 0x03006000},
@@ -168,15 +176,15 @@
 +  { {1, 1}, 1242000,  ACPU_SCPLL, 0, 0, 1, 0x17, L2(10), 1200000, 0x03006000},
 +  { {1, 1}, 1350000,  ACPU_SCPLL, 0, 0, 1, 0x19, L2(11), 1200000, 0x03006000},
 +  { {1, 1}, 1458000,  ACPU_SCPLL, 0, 0, 1, 0x1B, L2(12), 1250000, 0x03006000},
-+  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(13), 1250000, 0x03006000},
-+  { {1, 1}, 1620000,  ACPU_SCPLL, 0, 0, 1, 0x1E, L2(14), 1300000, 0x03006000},
-+  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(15), 1350000, 0x03006000},
++  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(14), 1250000, 0x03006000},
++  { {1, 1}, 1620000,  ACPU_SCPLL, 0, 0, 1, 0x1E, L2(15), 1300000, 0x03006000},
++  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1350000, 0x03006000},
 +  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1450000, 0x03006000},
 +  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(16), 1600000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
-@@ -231,6 +232,31 @@
+@@ -231,6 +233,31 @@
  static struct clkctl_l2_speed *l2_freq_tbl;
  static unsigned int l2_freq_tbl_size;
  
@@ -208,7 +216,7 @@
  unsigned long acpuclk_get_rate(int cpu)
  {
  	return drv_state.current_speed[cpu]->acpuclk_khz;
-@@ -394,7 +420,7 @@
+@@ -394,7 +421,7 @@
  		return;
  	}
  
@@ -217,7 +225,7 @@
  	ret = msm_bus_scale_client_update_request(bus_perf_client, bw);
  	if (ret)
  		pr_err("%s: bandwidth request failed (%d)\n", __func__, ret);
-@@ -404,7 +430,7 @@
+@@ -404,7 +431,7 @@
  
  /* Apply any per-cpu voltage increases. */
  static int increase_vdd(int cpu, unsigned int vdd_sc, unsigned int vdd_mem,
@@ -226,7 +234,7 @@
  {
  	int rc = 0;
  
-@@ -427,6 +453,13 @@
+@@ -427,6 +454,13 @@
  		return rc;
  	}
  
@@ -240,7 +248,7 @@
  	/* Update per-core Scorpion voltage. */
  	rc = regulator_set_voltage(regulator_sc[cpu], vdd_sc, MAX_VDD_SC);
  	if (rc) {
-@@ -440,16 +473,21 @@
+@@ -440,16 +474,21 @@
  
  /* Apply any per-cpu voltage decreases. */
  static void decrease_vdd(int cpu, unsigned int vdd_sc, unsigned int vdd_mem,
@@ -269,7 +277,7 @@
  	}
  
  	/* Decrease vdd_dig active-set vote. */
-@@ -510,7 +548,7 @@
+@@ -510,7 +549,7 @@
  		goto out;
  	}
  
@@ -278,7 +286,7 @@
  		mutex_lock(&drv_state.lock);
  
  	strt_s = drv_state.current_speed[cpu];
-@@ -549,9 +587,10 @@
+@@ -549,9 +588,10 @@
  	vdd_dig = max(tgt_s->l2_level->vdd_dig, pll_vdd_dig);
  
  	/* Increase VDD levels if needed. */
@@ -291,7 +299,7 @@
  		if (rc)
  			goto out;
  	}
-@@ -581,7 +620,7 @@
+@@ -581,7 +621,7 @@
  
  	/* Drop VDD levels if we can. */
  	if (tgt_s->acpuclk_khz < strt_s->acpuclk_khz)
@@ -300,7 +308,7 @@
  
  	dprintk("ACPU%d speed change complete\n", cpu);
  
-@@ -590,7 +629,7 @@
+@@ -590,7 +630,7 @@
  		AVS_ENABLE(cpu, tgt_s->avsdscr_setting);
  
  out:
@@ -309,7 +317,7 @@
  		mutex_unlock(&drv_state.lock);
  	return rc;
  }
-@@ -749,37 +788,38 @@
+@@ -749,37 +789,38 @@
  static void __init cpufreq_table_init(void) {}
  #endif
  
@@ -373,7 +381,7 @@
  	int cpu;
  
  	mutex_init(&drv_state.lock);
-@@ -788,7 +828,10 @@
+@@ -788,7 +829,10 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
@@ -385,7 +393,7 @@
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +842,8 @@
+@@ -799,7 +843,8 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
@@ -396,7 +404,7 @@
 +	register_hotcpu_notifier(&acpuclock_cpu_notifier);
  }
 --- a/drivers/base/cpu.c	2010-08-01 18:11:14.000000000 -0400
-+++ b/drivers/base/cpu.c	2011-09-17 12:36:10.000000000 -0400
++++ b/drivers/base/cpu.c	2011-09-17 16:11:16.000000000 -0400
 @@ -37,9 +37,12 @@
  				 const char *buf, size_t count)
  {
@@ -411,14 +419,14 @@
  	switch (buf[0]) {
  	case '0':
  		ret = cpu_down(cpu->sysdev.id);
-@@ -58,6 +61,7 @@
+@@ -56,6 +59,7 @@
+ 	}
+ 	cpu_hotplug_driver_unlock();
  
++out:
  	if (ret >= 0)
  		ret = count;
-+out:
  	return ret;
- }
- static SYSDEV_ATTR(online, 0644, show_online, store_online);
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
 +++ b/drivers/cpufreq/cpufreq_override.c	2011-09-12 19:21:55.000000000 -0400
 @@ -0,0 +1,169 @@
