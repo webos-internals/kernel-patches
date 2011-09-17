@@ -396,38 +396,31 @@
 +	register_hotcpu_notifier(&acpuclock_cpu_notifier);
  }
 --- a/drivers/base/cpu.c	2010-08-01 18:11:14.000000000 -0400
-+++ b/drivers/base/cpu.c	2011-09-08 19:56:45.000000000 -0400
-@@ -14,6 +14,8 @@
- 
- #include "base.h"
- 
-+bool cpufreq_override_tm(void);
++++ b/drivers/base/cpu.c	2011-09-17 12:36:10.000000000 -0400
+@@ -37,9 +37,12 @@
+ 				 const char *buf, size_t count)
+ {
+ 	struct cpu *cpu = container_of(dev, struct cpu, sysdev);
+-	ssize_t ret;
++	ssize_t ret = 0;
 +
- static struct sysdev_class_attribute *cpu_sysdev_class_attrs[];
- 
- struct sysdev_class cpu_sysdev_class = {
-@@ -40,11 +42,16 @@
- 	ssize_t ret;
++	goto out;
  
  	cpu_hotplug_driver_lock();
 +	//printk("CPU SNOOP: process \"%s\" set cpu: %s\n",current->comm,buf[0] == '0' ? "off" : "on");
  	switch (buf[0]) {
  	case '0':
--		ret = cpu_down(cpu->sysdev.id);
--		if (!ret)
--			kobject_uevent(&dev->kobj, KOBJ_OFFLINE);
-+		if(cpufreq_override_tm()) {
-+			ret = cpu_down(cpu->sysdev.id);
-+			if (!ret)
-+				kobject_uevent(&dev->kobj, KOBJ_OFFLINE);
-+		}
-+		else
-+			ret = 0;
- 		break;
- 	case '1':
- 		ret = cpu_up(cpu->sysdev.id);
+ 		ret = cpu_down(cpu->sysdev.id);
+@@ -58,6 +61,7 @@
+ 
+ 	if (ret >= 0)
+ 		ret = count;
++out:
+ 	return ret;
+ }
+ static SYSDEV_ATTR(online, 0644, show_online, store_online);
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-09-08 23:19:17.000000000 -0400
++++ b/drivers/cpufreq/cpufreq_override.c	2011-09-12 19:21:55.000000000 -0400
 @@ -0,0 +1,169 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
@@ -912,4 +905,45 @@
 +	SETRATE_HOTPLUG,
  	SETRATE_INIT,
  };
+ 
+--- a/kernel/cpu.c	2011-08-02 16:04:22.000000000 -0400
++++ b/kernel/cpu.c	2011-09-17 10:57:46.000000000 -0400
+@@ -39,7 +39,7 @@
+ /* If set, cpu_up and cpu_down will return -EBUSY and do nothing.
+  * Should always be manipulated under cpu_add_remove_lock
+  */
+-static int cpu_hotplug_disabled;
++static int cpu_hotplug_disabled=1;
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
+ 
+@@ -201,6 +201,7 @@
+ 	unsigned int cpu = (unsigned long)param->hcpu;
+ 	int err;
+ 
++	return 0;
+ 	/* Ensure this CPU doesn't handle any more interrupts. */
+ 	err = __cpu_disable();
+ 	if (err < 0)
+@@ -231,7 +232,7 @@
+ 	if (num_online_cpus() == 1)
+ 		return -EBUSY;
+ 
+-	if (!cpu_online(cpu))
++//	if (!cpu_online(cpu))
+ 		return -EINVAL;
+ 
+ 	cpu_hotplug_begin();
+@@ -383,10 +384,10 @@
+ 
+ 	cpu_maps_update_begin();
+ 
+-	if (cpu_hotplug_disabled) {
++/*	if (cpu_hotplug_disabled) {
+ 		err = -EBUSY;
+ 		goto out;
+-	}
++	} */
+ 
+ 	err = _cpu_up(cpu, 0);
  
