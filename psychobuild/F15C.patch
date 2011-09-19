@@ -88,8 +88,8 @@
  	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
  		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
 --- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-17 13:42:34.000000000 -0400
-@@ -52,9 +52,9 @@
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-19 19:24:25.000000000 -0400
+@@ -52,11 +52,11 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
  #define L_VAL_SCPLL_CAL_MIN	0x08 /* =  432 MHz with 27MHz source */
@@ -99,17 +99,12 @@
 -#define MAX_VDD_SC		1250000 /* uV */
 +#define MAX_VDD_SC		1600000 /* uV */
  #define MAX_AXI			 310500 /* KHz */
- #define SCPLL_LOW_VDD_FMAX	 594000 /* KHz */
+-#define SCPLL_LOW_VDD_FMAX	 594000 /* KHz */
++#define SCPLL_LOW_VDD_FMAX	 540000 /* KHz */
  #define SCPLL_LOW_VDD		1000000 /* uV */
-@@ -167,6 +167,7 @@
- 	[1] = BW_MBPS(1336), /* At least 167 MHz on bus. */
- 	[2] = BW_MBPS(2008), /* At least 251 MHz on bus. */
- 	[3] = BW_MBPS(2480), /* At least 310 MHz on bus. */
-+	[4] = BW_MBPS(3200), 
- };
+ #define SCPLL_NOMINAL_VDD	1100000 /* uV */
  
- static struct msm_bus_scale_pdata bus_client_pdata = {
-@@ -182,21 +183,21 @@
+@@ -182,21 +182,23 @@
  static struct clkctl_l2_speed l2_freq_tbl_v2[] = {
  	[0]  = { MAX_AXI, 0, 0,    1000000, 1100000, 0},
  	[1]  = { 432000,  1, 0x08, 1000000, 1100000, 0},
@@ -140,13 +135,15 @@
 +	[11] = {1242000,  1, 0x17, 1200000, 1250000, 3},
 +	[12] = {1296000,  1, 0x18, 1200000, 1250000, 3},
 +	[13] = {1350000,  1, 0x19, 1200000, 1250000, 3},
-+	[14] = {1404000,  1, 0x1A, 1200000, 1250000, 4},
-+	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 4},
-+	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 4},
++	[14] = {1404000,  1, 0x1A, 1200000, 1250000, 3},
++	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 3},
++	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 3},
++	[17] = {1620000,  1, 0x1E, 1300000, 1350000, 3},
++	[18] = {1728000,  1, 0x20, 1350000, 1350000, 3},
  };
  
  #define L2(x) (&l2_freq_tbl_v2[(x)])
-@@ -207,21 +208,22 @@
+@@ -207,21 +209,22 @@
    { {0, 0},  MAX_AXI, ACPU_AFAB,  1, 0, 0, 0,    L2(0),   875000, 0x03006000},
    { {1, 1},  384000,  ACPU_PLL_8, 3, 0, 0, 0,    L2(1),   875000, 0x03006000},
    { {1, 1},  432000,  ACPU_SCPLL, 0, 0, 1, 0x08, L2(1),   887500, 0x03006000},
@@ -177,14 +174,14 @@
 +  { {1, 1}, 1350000,  ACPU_SCPLL, 0, 0, 1, 0x19, L2(11), 1200000, 0x03006000},
 +  { {1, 1}, 1458000,  ACPU_SCPLL, 0, 0, 1, 0x1B, L2(12), 1250000, 0x03006000},
 +  { {1, 1}, 1512000,  ACPU_SCPLL, 0, 0, 1, 0x1C, L2(14), 1250000, 0x03006000},
-+  { {1, 1}, 1620000,  ACPU_SCPLL, 0, 0, 1, 0x1E, L2(15), 1300000, 0x03006000},
-+  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1350000, 0x03006000},
-+  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1450000, 0x03006000},
-+  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(16), 1600000, 0x03006000},
++  { {1, 1}, 1620000,  ACPU_SCPLL, 0, 0, 1, 0x1E, L2(16), 1300000, 0x03006000},
++  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(17), 1350000, 0x03006000},
++  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(17), 1450000, 0x03006000},
++  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(18), 1600000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
-@@ -231,6 +233,31 @@
+@@ -231,6 +234,31 @@
  static struct clkctl_l2_speed *l2_freq_tbl;
  static unsigned int l2_freq_tbl_size;
  
@@ -216,7 +213,7 @@
  unsigned long acpuclk_get_rate(int cpu)
  {
  	return drv_state.current_speed[cpu]->acpuclk_khz;
-@@ -394,7 +421,7 @@
+@@ -394,7 +422,7 @@
  		return;
  	}
  
@@ -225,7 +222,7 @@
  	ret = msm_bus_scale_client_update_request(bus_perf_client, bw);
  	if (ret)
  		pr_err("%s: bandwidth request failed (%d)\n", __func__, ret);
-@@ -404,7 +431,7 @@
+@@ -404,7 +432,7 @@
  
  /* Apply any per-cpu voltage increases. */
  static int increase_vdd(int cpu, unsigned int vdd_sc, unsigned int vdd_mem,
@@ -234,7 +231,7 @@
  {
  	int rc = 0;
  
-@@ -427,6 +454,13 @@
+@@ -427,6 +455,13 @@
  		return rc;
  	}
  
@@ -248,7 +245,7 @@
  	/* Update per-core Scorpion voltage. */
  	rc = regulator_set_voltage(regulator_sc[cpu], vdd_sc, MAX_VDD_SC);
  	if (rc) {
-@@ -440,16 +474,21 @@
+@@ -440,16 +475,21 @@
  
  /* Apply any per-cpu voltage decreases. */
  static void decrease_vdd(int cpu, unsigned int vdd_sc, unsigned int vdd_mem,
@@ -277,7 +274,7 @@
  	}
  
  	/* Decrease vdd_dig active-set vote. */
-@@ -510,7 +549,7 @@
+@@ -510,7 +550,7 @@
  		goto out;
  	}
  
@@ -286,7 +283,7 @@
  		mutex_lock(&drv_state.lock);
  
  	strt_s = drv_state.current_speed[cpu];
-@@ -549,9 +588,10 @@
+@@ -549,9 +589,10 @@
  	vdd_dig = max(tgt_s->l2_level->vdd_dig, pll_vdd_dig);
  
  	/* Increase VDD levels if needed. */
@@ -299,7 +296,7 @@
  		if (rc)
  			goto out;
  	}
-@@ -581,7 +621,7 @@
+@@ -581,7 +622,7 @@
  
  	/* Drop VDD levels if we can. */
  	if (tgt_s->acpuclk_khz < strt_s->acpuclk_khz)
@@ -308,7 +305,7 @@
  
  	dprintk("ACPU%d speed change complete\n", cpu);
  
-@@ -590,7 +630,7 @@
+@@ -590,7 +631,7 @@
  		AVS_ENABLE(cpu, tgt_s->avsdscr_setting);
  
  out:
@@ -317,7 +314,7 @@
  		mutex_unlock(&drv_state.lock);
  	return rc;
  }
-@@ -749,37 +789,38 @@
+@@ -749,37 +790,38 @@
  static void __init cpufreq_table_init(void) {}
  #endif
  
@@ -381,7 +378,7 @@
  	int cpu;
  
  	mutex_init(&drv_state.lock);
-@@ -788,7 +829,10 @@
+@@ -788,7 +830,10 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
@@ -393,12 +390,12 @@
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +843,8 @@
+@@ -799,7 +844,8 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
 -		acpuclk_set_rate(cpu, max_cpu_khz, SETRATE_INIT);
-+		acpuclk_set_rate(cpu, 1188000, SETRATE_INIT);
++		acpuclk_set_rate(cpu, 384000, SETRATE_INIT);
  
  	cpufreq_table_init();
 +	register_hotcpu_notifier(&acpuclock_cpu_notifier);
@@ -428,8 +425,8 @@
  		ret = count;
  	return ret;
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-09-12 19:21:55.000000000 -0400
-@@ -0,0 +1,169 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-09-18 12:54:35.000000000 -0400
+@@ -0,0 +1,192 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -471,18 +468,41 @@
 +#define NR_FREQS 20
 +
 +// Power saving mode
-+#define POWERSAVE 1
++#define POWERSAVE 0
 +
 +void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
 +void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
 +
 +bool power_save = POWERSAVE;
++bool lcd_state = 1;
 +
-+bool cpufreq_override_tm(void)
++bool cpufreq_override_get_lcd_state(void)
 +{
-+	return power_save;
++	return power_save ? 0 : lcd_state;
 +}
-+EXPORT_SYMBOL(cpufreq_override_tm);
++EXPORT_SYMBOL(cpufreq_override_get_lcd_state);
++
++void cpufreq_override_set_lcd_state(bool state)
++{
++        struct sys_device *dev = get_cpu_sysdev(1);
++
++        lcd_state = state;
++        printk("override: lcd state=%u\n",state);
++
++        // If screen is off, take cpu offline if in power save mode
++        if(power_save && !lcd_state) {
++                cpu_hotplug_driver_lock();
++                if(!cpu_down(1)) kobject_uevent(&dev->kobj, KOBJ_OFFLINE);
++                cpu_hotplug_driver_unlock();
++        }
++        // force CPU online if not in power save mode
++        if(!power_save && lcd_state) {
++                cpu_hotplug_driver_lock();
++                if(!cpu_up(1)) kobject_uevent(&dev->kobj, KOBJ_ONLINE);
++                cpu_hotplug_driver_unlock();
++        }
++}
++EXPORT_SYMBOL(cpufreq_override_set_lcd_state);
 +
 +static ssize_t show_vdd_max(struct kobject *kobj, struct attribute *attr,
 +				char *buf)
@@ -599,6 +619,35 @@
 +module_init(cpufreq_override_driver_init);
 +module_exit(cpufreq_override_driver_exit);
 +
+--- a/drivers/video/msm_pe/msm_fb.c	2011-08-02 16:04:22.000000000 -0400
++++ b/drivers/video/msm_pe/msm_fb.c	2011-09-18 12:53:30.000000000 -0400
+@@ -51,6 +51,8 @@
+ #include "mdp.h"
+ #include "mdp4.h"
+ 
++void cpufreq_override_set_lcd_state(bool state);
++
+ #ifdef CONFIG_FB_MSM_LOGO
+ #define INIT_IMAGE_FILE "/initlogo.rle"
+ extern int load_565rle_image(char *filename);
+@@ -354,6 +356,8 @@
+ 			//fb_set_suspend(mfd->fbi[0], FBINFO_STATE_RUNNING);
+ 
+ 			mfd->suspended = false;
++
++                        cpufreq_override_set_lcd_state(1);
+ 		}
+ 
+ 	}
+@@ -374,6 +378,8 @@
+ 				//fb_set_suspend(mfd->fbi[0], FBINFO_STATE_SUSPENDED);
+ 				mfd->pdev->dev.power.power_state = PMSG_SUSPEND;
+ 				mfd->suspended = true;
++
++                                cpufreq_override_set_lcd_state(0);
+ 			}
+ 		}
+ 
 --- a/arch/arm/mach-msm/clock-8x60.c	2011-08-02 16:04:21.000000000 -0400
 +++ b/arch/arm/mach-msm/clock-8x60.c	2011-09-11 11:21:39.000000000 -0400
 @@ -28,6 +28,7 @@
@@ -915,43 +964,58 @@
  };
  
 --- a/kernel/cpu.c	2011-08-02 16:04:22.000000000 -0400
-+++ b/kernel/cpu.c	2011-09-17 10:57:46.000000000 -0400
-@@ -39,7 +39,7 @@
- /* If set, cpu_up and cpu_down will return -EBUSY and do nothing.
-  * Should always be manipulated under cpu_add_remove_lock
++++ b/kernel/cpu.c	2011-09-18 12:56:48.000000000 -0400
+@@ -41,6 +41,8 @@
   */
--static int cpu_hotplug_disabled;
-+static int cpu_hotplug_disabled=1;
+ static int cpu_hotplug_disabled;
  
++bool cpufreq_override_get_lcd_state(void);
++
  #ifdef CONFIG_HOTPLUG_CPU
  
-@@ -201,6 +201,7 @@
+ static struct {
+@@ -201,6 +203,7 @@
  	unsigned int cpu = (unsigned long)param->hcpu;
  	int err;
  
-+	return 0;
++	if(cpufreq_override_get_lcd_state()) goto out;
  	/* Ensure this CPU doesn't handle any more interrupts. */
  	err = __cpu_disable();
  	if (err < 0)
-@@ -231,7 +232,7 @@
- 	if (num_online_cpus() == 1)
- 		return -EBUSY;
+@@ -213,6 +216,7 @@
+ 	/* Force idle task to run as soon as we yield: it should
+ 	   immediately notice cpu is offline and die quickly. */
+ 	sched_idle_next();
++out:
+ 	return 0;
+ }
  
--	if (!cpu_online(cpu))
-+//	if (!cpu_online(cpu))
+@@ -234,6 +238,11 @@
+ 	if (!cpu_online(cpu))
  		return -EINVAL;
  
++	if (cpufreq_override_get_lcd_state()) {
++		err= -EINVAL;
++		goto out;
++	}
++
  	cpu_hotplug_begin();
-@@ -383,10 +384,10 @@
+ 	set_cpu_active(cpu, false);
+ 	err = __cpu_notify(CPU_DOWN_PREPARE | mod, hcpu, -1, &nr_calls);
+@@ -279,6 +288,7 @@
+ 	cpu_hotplug_done();
+ 	if (!err)
+ 		cpu_notify_nofail(CPU_POST_DEAD | mod, hcpu);
++out:
+ 	return err;
+ }
+ 
+@@ -383,7 +393,7 @@
  
  	cpu_maps_update_begin();
  
 -	if (cpu_hotplug_disabled) {
-+/*	if (cpu_hotplug_disabled) {
++	if (cpu_hotplug_disabled || !cpufreq_override_get_lcd_state()) {
  		err = -EBUSY;
  		goto out;
--	}
-+	} */
- 
- 	err = _cpu_up(cpu, 0);
- 
+ 	}
