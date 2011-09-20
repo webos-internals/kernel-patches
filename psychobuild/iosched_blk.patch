@@ -6,8 +6,8 @@
  
 -#define BLKDEV_MIN_RQ	4
 -#define BLKDEV_MAX_RQ	128	/* Default maximum */
-+#define BLKDEV_MIN_RQ	16
-+#define BLKDEV_MAX_RQ	256	/* Default maximum */
++#define BLKDEV_MIN_RQ	8
++#define BLKDEV_MAX_RQ	2048	/* Default maximum */
  
  /*
   * This is the per-process anticipatory I/O scheduler state.
