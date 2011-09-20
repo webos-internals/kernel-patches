@@ -1,5 +1,5 @@
 --- a/drivers/cpufreq/Kconfig	2011-08-02 16:04:21.000000000 -0400
-+++ b/drivers/cpufreq/Kconfig	2011-08-07 17:16:48.000000000 -0400
++++ b/drivers/cpufreq/Kconfig	2011-09-20 18:03:19.000000000 -0400
 @@ -18,6 +18,11 @@
  config CPU_FREQ_TABLE
  	tristate
@@ -55,7 +55,7 @@
  	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
  		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
 --- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-19 19:24:25.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-20 17:55:53.000000000 -0400
 @@ -52,11 +52,11 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
@@ -71,7 +71,7 @@
  #define SCPLL_LOW_VDD		1000000 /* uV */
  #define SCPLL_NOMINAL_VDD	1100000 /* uV */
  
-@@ -182,21 +182,23 @@
+@@ -182,21 +182,22 @@
  static struct clkctl_l2_speed l2_freq_tbl_v2[] = {
  	[0]  = { MAX_AXI, 0, 0,    1000000, 1100000, 0},
  	[1]  = { 432000,  1, 0x08, 1000000, 1100000, 0},
@@ -106,11 +106,10 @@
 +	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 3},
 +	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 3},
 +	[17] = {1620000,  1, 0x1E, 1300000, 1350000, 3},
-+	[18] = {1728000,  1, 0x20, 1350000, 1350000, 3},
  };
  
  #define L2(x) (&l2_freq_tbl_v2[(x)])
-@@ -207,21 +209,22 @@
+@@ -207,21 +208,22 @@
    { {0, 0},  MAX_AXI, ACPU_AFAB,  1, 0, 0, 0,    L2(0),   875000, 0x03006000},
    { {1, 1},  384000,  ACPU_PLL_8, 3, 0, 0, 0,    L2(1),   875000, 0x03006000},
    { {1, 1},  432000,  ACPU_SCPLL, 0, 0, 1, 0x08, L2(1),   887500, 0x03006000},
@@ -144,14 +143,23 @@
 +  { {1, 1}, 1620000,  ACPU_SCPLL, 0, 0, 1, 0x1E, L2(15), 1300000, 0x03006000},
 +  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1350000, 0x03006000},
 +  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1450000, 0x03006000},
-+  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(18), 1600000, 0x03006000},
++  { {1, 1}, 1890000,  ACPU_SCPLL, 0, 0, 1, 0x23, L2(16), 1600000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
-@@ -231,6 +234,31 @@
+@@ -231,6 +233,40 @@
  static struct clkctl_l2_speed *l2_freq_tbl;
  static unsigned int l2_freq_tbl_size;
  
++void acpuclk_set_l2_hack(bool state)
++{
++        struct clkctl_acpu_speed *f;
++
++        for (f = acpu_freq_tbl_v2 + 17; f->acpuclk_khz != 0; f++)
++                f->l2_level = (state) ? L2(17) : L2(16);
++}
++EXPORT_SYMBOL(acpuclk_set_l2_hack);
++
 +void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[])
 +{
 +	int i=0;
@@ -180,7 +188,7 @@
  unsigned long acpuclk_get_rate(int cpu)
  {
  	return drv_state.current_speed[cpu]->acpuclk_khz;
-@@ -394,7 +422,7 @@
+@@ -394,7 +430,7 @@
  		return;
  	}
  
@@ -189,7 +197,7 @@
  	ret = msm_bus_scale_client_update_request(bus_perf_client, bw);
  	if (ret)
  		pr_err("%s: bandwidth request failed (%d)\n", __func__, ret);
-@@ -404,7 +432,7 @@
+@@ -404,7 +440,7 @@
  
  /* Apply any per-cpu voltage increases. */
  static int increase_vdd(int cpu, unsigned int vdd_sc, unsigned int vdd_mem,
@@ -198,7 +206,7 @@
  {
  	int rc = 0;
  
-@@ -427,6 +455,13 @@
+@@ -427,6 +463,13 @@
  		return rc;
  	}
  
@@ -212,7 +220,7 @@
  	/* Update per-core Scorpion voltage. */
  	rc = regulator_set_voltage(regulator_sc[cpu], vdd_sc, MAX_VDD_SC);
  	if (rc) {
-@@ -440,16 +475,21 @@
+@@ -440,16 +483,21 @@
  
  /* Apply any per-cpu voltage decreases. */
  static void decrease_vdd(int cpu, unsigned int vdd_sc, unsigned int vdd_mem,
@@ -241,7 +249,7 @@
  	}
  
  	/* Decrease vdd_dig active-set vote. */
-@@ -510,7 +550,7 @@
+@@ -510,7 +558,7 @@
  		goto out;
  	}
  
@@ -250,7 +258,7 @@
  		mutex_lock(&drv_state.lock);
  
  	strt_s = drv_state.current_speed[cpu];
-@@ -549,9 +589,10 @@
+@@ -549,9 +597,10 @@
  	vdd_dig = max(tgt_s->l2_level->vdd_dig, pll_vdd_dig);
  
  	/* Increase VDD levels if needed. */
@@ -263,7 +271,7 @@
  		if (rc)
  			goto out;
  	}
-@@ -581,7 +622,7 @@
+@@ -581,7 +630,7 @@
  
  	/* Drop VDD levels if we can. */
  	if (tgt_s->acpuclk_khz < strt_s->acpuclk_khz)
@@ -272,7 +280,7 @@
  
  	dprintk("ACPU%d speed change complete\n", cpu);
  
-@@ -590,7 +631,7 @@
+@@ -590,7 +639,7 @@
  		AVS_ENABLE(cpu, tgt_s->avsdscr_setting);
  
  out:
@@ -281,7 +289,7 @@
  		mutex_unlock(&drv_state.lock);
  	return rc;
  }
-@@ -749,37 +790,38 @@
+@@ -749,37 +798,38 @@
  static void __init cpufreq_table_init(void) {}
  #endif
  
@@ -345,7 +353,7 @@
  	int cpu;
  
  	mutex_init(&drv_state.lock);
-@@ -788,7 +830,10 @@
+@@ -788,7 +838,10 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
@@ -357,7 +365,7 @@
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +844,8 @@
+@@ -799,7 +852,8 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
@@ -392,8 +400,8 @@
  		ret = count;
  	return ret;
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-09-18 12:54:35.000000000 -0400
-@@ -0,0 +1,192 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-09-20 17:43:52.000000000 -0400
+@@ -0,0 +1,223 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -437,11 +445,18 @@
 +// Power saving mode
 +#define POWERSAVE 0
 +
++// L2 Boost mode
++#define L2_BOOST 0
++
++/* ************* end of tunables ***************************************** */
++
 +void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
 +void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
++void acpuclk_set_l2_hack(bool state);
 +
 +bool power_save = POWERSAVE;
 +bool lcd_state = 1;
++bool l2boost = L2_BOOST;
 +
 +bool cpufreq_override_get_lcd_state(void)
 +{
@@ -550,14 +565,38 @@
 +        return count;
 +}
 +
++static ssize_t show_l2_boost(struct kobject *kobj, struct attribute *attr,
++                                char *buf)
++{
++        return sprintf(buf,"%u\n",l2boost);
++}
++
++static ssize_t store_l2_boost(struct kobject *a, struct attribute *b,
++                                const char *buf, size_t count)
++{
++        unsigned int tmp;
++
++        if(sscanf(buf, "%u", &tmp) == 1) {
++                l2boost = (tmp != 0 && tmp != 1) ? l2boost : tmp;
++		if(l2boost) acpuclk_set_l2_hack(1);
++		else acpuclk_set_l2_hack(0);
++        }       
++        else
++                printk("override: invalid l2 boost mode\n");
++
++        return count;
++}
++
 +define_one_global_ro(vdd_min);
 +define_one_global_ro(vdd_max);
 +define_one_global_rw(vdd);
 +define_one_global_rw(power_saver);
++define_one_global_rw(l2_boost);
 +
 +static struct attribute *default_attrs[] = {
 +        &vdd.attr,
 +	&power_saver.attr,
++	&l2_boost.attr,
 +        &vdd_min.attr,
 +        &vdd_max.attr,
 +        NULL
