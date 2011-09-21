@@ -4,7 +4,7 @@
 #include <linux/version.h>
 
 /* Uncomment this if you are using swap free notify patch */
-#define CONFIG_SWAP_NOTIFIERS
+//#define CONFIG_SWAP_NOTIFIERS
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,23)
 #define BIO_IO_ERROR(bio)	bio_io_error(bio, PAGE_SIZE)
