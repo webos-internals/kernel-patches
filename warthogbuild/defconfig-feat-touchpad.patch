@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 5017808..6697588 100644
+index 5017808..ddb4dfd 100644
 --- a/arch/arm/configs/tenderloin_defconfig
 +++ b/arch/arm/configs/tenderloin_defconfig
 @@ -76,6 +76,7 @@ CONFIG_CGROUPS=y
@@ -24,7 +24,18 @@ index 5017808..6697588 100644
  CONFIG_ARCH_INLINE_SPIN_TRYLOCK=y
  CONFIG_ARCH_INLINE_SPIN_TRYLOCK_BH=y
  CONFIG_ARCH_INLINE_SPIN_LOCK=y
-@@ -466,6 +468,7 @@ CONFIG_CPU_HAS_PMU=y
+@@ -392,7 +394,9 @@ CONFIG_MSM_RPC_OEM_RAPI=y
+ # CONFIG_MSM_RPCSERVER_HANDSET is not set
+ CONFIG_MSM_RMT_STORAGE_CLIENT=y
+ # CONFIG_MSM_RMT_STORAGE_CLIENT_STATS is not set
+-# CONFIG_MSM_CPU_FREQ_SET_MIN_MAX is not set
++CONFIG_MSM_CPU_FREQ_SET_MIN_MAX=y
++CONFIG_MSM_CPU_FREQ_MAX=1728000
++CONFIG_MSM_CPU_FREQ_MIN=192000
+ # CONFIG_MSM_AVS_HW is not set
+ # CONFIG_MSM_HW3D is not set
+ CONFIG_AMSS_7X25_VERSION_2009=y
+@@ -466,6 +470,7 @@ CONFIG_CPU_HAS_PMU=y
  # CONFIG_ARM_ERRATA_460075 is not set
  # CONFIG_ARM_ERRATA_720789 is not set
  # CONFIG_KSAPI is not set
