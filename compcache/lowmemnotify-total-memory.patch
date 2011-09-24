@@ -1,6 +1,6 @@
 --- a/drivers/misc/lowmemnotify.c
 +++ b/drivers/misc/lowmemnotify.c
-@@ -194,7 +194,7 @@
+@@ -190,7 +190,7 @@
  	if (other_free > totalreserve_pages)
  		free += other_free - totalreserve_pages;
  
@@ -9,7 +9,7 @@
  }
  EXPORT_SYMBOL(memnotify_get_free);
  
-@@ -206,15 +206,13 @@
+@@ -202,15 +202,13 @@
  unsigned long memnotify_get_used(void)
  {
  	unsigned long used_mem;
@@ -27,7 +27,7 @@
  }
  
  /** 
-@@ -231,7 +229,7 @@
+@@ -227,7 +225,7 @@
  	int i;
  
  	used = memnotify_get_used();
@@ -36,7 +36,7 @@
  
  	threshold = THRESHOLD_NORMAL;
  	last_threshold = atomic_read(&memnotify_last_threshold);
-@@ -351,7 +349,7 @@
+@@ -346,7 +344,7 @@
  	int i;
  
  	used = memnotify_get_used();
@@ -45,12 +45,12 @@
  
  	threshold = memnotify_threshold();
  	last_threshold = atomic_read(&memnotify_last_threshold);
-@@ -362,7 +360,7 @@
+@@ -357,7 +355,7 @@
  		"Used (Mem+Swap): %ldMB\n", MB(used));
  
- 	len += snprintf(buf+len, PAGE_SIZE - len,
+ 	len += scnprintf(buf+len, PAGE_SIZE - len,
 -		"Used (Mem): %ldMB\n", MB(totalram_pages-memnotify_get_free()));
 +		"Used (Mem): %ldMB\n", MB(totalram_pages + nr_swap_pages - memnotify_get_free()));
  
- 	len += snprintf(buf+len, PAGE_SIZE - len,
+ 	len += scnprintf(buf+len, PAGE_SIZE - len,
  		"Used (Swap): %ldMB\n", MB(total_swap_pages - nr_swap_pages));
