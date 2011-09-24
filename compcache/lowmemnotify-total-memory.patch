@@ -48,9 +48,9 @@
 @@ -362,7 +360,7 @@
  		"Used (Mem+Swap): %ldMB\n", MB(used));
  
- 	len += snprintf(buf+len, PAGE_SIZE,
+ 	len += snprintf(buf+len, PAGE_SIZE - len,
 -		"Used (Mem): %ldMB\n", MB(totalram_pages-memnotify_get_free()));
 +		"Used (Mem): %ldMB\n", MB(totalram_pages + nr_swap_pages - memnotify_get_free()));
  
- 	len += snprintf(buf+len, PAGE_SIZE,
+ 	len += snprintf(buf+len, PAGE_SIZE - len,
  		"Used (Swap): %ldMB\n", MB(total_swap_pages - nr_swap_pages));
