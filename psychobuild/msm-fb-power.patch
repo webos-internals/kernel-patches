@@ -1,0 +1,30 @@
+--- a/arch/arm/mach-msm/devices-msm8x60.c	2011-08-02 16:04:21.000000000 -0400
++++ b/arch/arm/mach-msm/devices-msm8x60.c	2011-09-11 11:27:17.000000000 -0400
+@@ -627,8 +627,8 @@
+ 	{
+ 		.src = MSM_BUS_MASTER_GRAPHICS_3D,
+ 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+-		.ab = 2008000000U,
+-		.ib = 2008000000U,
++               .ab = 1300000000U,
++               .ib = 1300000000U,
+ 	},
+ };
+ 
+@@ -663,7 +663,7 @@
+ 		.src = MSM_BUS_MASTER_GRAPHICS_2D_CORE0,
+ 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+ 		.ab = 0,
+-		.ib = 2096000000U,
++               .ib = 1300000000U,
+ 	},
+ };
+ 
+@@ -698,7 +698,7 @@
+ 		.src = MSM_BUS_MASTER_GRAPHICS_2D_CORE1,
+ 		.dst = MSM_BUS_SLAVE_EBI_CH0,
+ 		.ab = 0,
+-		.ib = 2096000000U,
++               .ib = 1300000000U,
+ 	},
+ };
