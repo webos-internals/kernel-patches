@@ -1,6 +1,6 @@
 --- a/drivers/cpufreq/Kconfig	2011-08-02 16:04:21.000000000 -0400
-+++ b/drivers/cpufreq/Kconfig	2011-09-24 20:36:04.000000000 -0400
-@@ -18,6 +18,19 @@
++++ b/drivers/cpufreq/Kconfig	2011-10-06 20:37:21.000000000 -0400
+@@ -18,6 +18,33 @@
  config CPU_FREQ_TABLE
  	tristate
  
@@ -14,6 +14,20 @@
 +	bool "Enable overclock L2 freqs"
 +	depends on CPU_FREQ_OVERRIDE
 +	default n
++	help
++	  Say Y here
++
++config CPU_FREQ_OVERRIDE_VOLT_CONFIG
++	bool "Enable CPU voltage tweaking"
++	depends on CPU_FREQ_OVERRIDE
++	default y
++	help
++	  Say Y here
++
++config CPU_FREQ_OVERRIDE_TURBO_MODE
++	bool "Enable static dual-core"
++	depends on CPU_FREQ_OVERRIDE
++	default y
 +	help
 +	  Say Y here
 +
@@ -42,42 +56,48 @@
  {
  	return drv_state.current_speed[cpu]->acpuclk_khz;
 --- a/drivers/base/cpu.c	2010-08-01 18:11:14.000000000 -0400
-+++ b/drivers/base/cpu.c	2011-09-29 08:09:22.000000000 -0400
-@@ -14,6 +14,8 @@
++++ b/drivers/base/cpu.c	2011-10-06 20:39:07.000000000 -0400
+@@ -14,6 +14,10 @@
  
  #include "base.h"
  
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +bool cpufreq_override_get_state(void);
++#endif
 +
  static struct sysdev_class_attribute *cpu_sysdev_class_attrs[];
  
  struct sysdev_class cpu_sysdev_class = {
-@@ -37,9 +39,13 @@
+@@ -37,9 +41,14 @@
  				 const char *buf, size_t count)
  {
  	struct cpu *cpu = container_of(dev, struct cpu, sysdev);
 -	ssize_t ret;
 +	ssize_t ret = 0;
-+
-+	if(cpufreq_override_get_state()) goto out;
  
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++	if(cpufreq_override_get_state()) goto out;
++#endif
  	cpu_hotplug_driver_lock();
 +	// uncomment to prove to lusers what actually shuts off the CPU!
 +	//printk("CPU SNOOP: process \"%s\" set cpu: %s\n",current->comm,buf[0] == '0' ? "off" : "on");
  	switch (buf[0]) {
  	case '0':
  		ret = cpu_down(cpu->sysdev.id);
-@@ -56,6 +62,7 @@
+@@ -55,7 +64,9 @@
+ 		ret = -EINVAL;
  	}
  	cpu_hotplug_driver_unlock();
- 
+-
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +out:
++#endif
  	if (ret >= 0)
  		ret = count;
  	return ret;
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-09-29 09:14:32.000000000 -0400
-@@ -0,0 +1,323 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-10-06 20:32:51.000000000 -0400
+@@ -0,0 +1,341 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -121,31 +141,36 @@
 +// Power saving mode
 +#define POWERSAVE 0
 +
-+#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
 +// L2 Boost mode.  This requires mods in acpuclock-8x60.c
 +#define L2_BOOST 0
-+#endif
 +
 +// Turbo Mode default state (both CPUs online all the time)
 +#define TURBOMODE 1
 +
 +/* ************* end of tunables ***************************************** */
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
 +void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[]);
 +void acpuclk_set_voltages(unsigned int acpu_freq_vlt_tbl[]);
++#endif
++
 +unsigned int acpuclk_get_freqs(unsigned int acpu_freq_tbl[]);
++
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
 +void acpuclk_set_l2_hack(bool state);
 +static bool l2boost = L2_BOOST;
 +#endif
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +static bool power_save = POWERSAVE;
 +static bool lcd_state = 1;
 +static bool turbomode = TURBOMODE;
++#endif
 +
 +static unsigned int freq_table[MAX_FREQS];
 +static unsigned int nr_freqs;
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +static void cpu_state(bool state)
 +{
 +	struct sys_device *dev = get_cpu_sysdev(1);
@@ -184,7 +209,9 @@
 +	if(lcd_state) cpu_state(1);
 +}
 +EXPORT_SYMBOL(cpufreq_override_set_lcd_state);
++#endif
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
 +static ssize_t show_vdd_max(struct kobject *kobj, struct attribute *attr,
 +				char *buf)
 +{
@@ -240,7 +267,9 @@
 +
 +	return count;
 +}
++#endif
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +static ssize_t show_power_saver(struct kobject *kobj, struct attribute *attr,
 +				char *buf)
 +{
@@ -297,6 +326,7 @@
 +
 +	return count;
 +}
++#endif
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
 +static ssize_t show_l2_boost(struct kobject *kobj, struct attribute *attr,
@@ -324,7 +354,7 @@
 +}
 +#endif
 +
-+static ssize_t show_available_freqs(struct kobject *kobj, struct attribute *attr, char *buf)
++static ssize_t show_vdd_freqs(struct kobject *kobj, struct attribute *attr, char *buf)
 +{
 +	unsigned int i;
 +	char tmp[250];
@@ -341,26 +371,34 @@
 +	return sprintf(buf,"%s\n",tmp);
 +}
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
 +define_one_global_ro(vdd_min);
 +define_one_global_ro(vdd_max);
-+define_one_global_ro(available_freqs);
 +define_one_global_rw(vdd);
++#endif
++define_one_global_ro(vdd_freqs);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +define_one_global_rw(power_saver);
 +define_one_global_rw(turbo_mode);
++#endif
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
 +define_one_global_rw(l2_boost);
 +#endif
 +
 +static struct attribute *default_attrs[] = {
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
 +	&vdd.attr,
-+	&available_freqs.attr,
++	&vdd_min.attr,
++	&vdd_max.attr,
++#endif
++	&vdd_freqs.attr,
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +	&power_saver.attr,
 +	&turbo_mode.attr,
++#endif
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
 +	&l2_boost.attr,
 +#endif
-+	&vdd_min.attr,
-+	&vdd_max.attr,
 +	NULL
 +};
 +
@@ -402,8 +440,8 @@
 +module_exit(cpufreq_override_driver_exit);
 +
 --- a/arch/arm/mach-msm/override_plug.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/arch/arm/mach-msm/override_plug.c	2011-09-24 20:45:59.000000000 -0400
-@@ -0,0 +1,84 @@
++++ b/arch/arm/mach-msm/override_plug.c	2011-10-05 19:54:53.000000000 -0400
+@@ -0,0 +1,86 @@
 +/*
 + *  override_plug.c
 + *
@@ -447,6 +485,7 @@
 +EXPORT_SYMBOL(acpuclk_set_l2_hack);
 +#endif
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
 +void acpuclk_get_voltages(unsigned int acpu_freq_vlt_tbl[])
 +{
 +	int i=0;
@@ -473,6 +512,7 @@
 +	}
 +}
 +EXPORT_SYMBOL(acpuclk_set_voltages);
++#endif
 +
 +unsigned int acpuclk_get_freqs(unsigned int acpu_freq_tbl[])
 +{
@@ -489,31 +529,37 @@
 +}
 +EXPORT_SYMBOL(acpuclk_get_freqs);
 --- a/drivers/video/msm_pe/msm_fb.c	2011-08-02 16:04:22.000000000 -0400
-+++ b/drivers/video/msm_pe/msm_fb.c	2011-09-18 12:53:30.000000000 -0400
-@@ -51,6 +51,8 @@
++++ b/drivers/video/msm_pe/msm_fb.c	2011-10-06 20:34:04.000000000 -0400
+@@ -51,6 +51,10 @@
  #include "mdp.h"
  #include "mdp4.h"
  
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +void cpufreq_override_set_lcd_state(bool state);
++#endif
 +
  #ifdef CONFIG_FB_MSM_LOGO
  #define INIT_IMAGE_FILE "/initlogo.rle"
  extern int load_565rle_image(char *filename);
-@@ -354,6 +356,8 @@
+@@ -354,6 +358,10 @@
  			//fb_set_suspend(mfd->fbi[0], FBINFO_STATE_RUNNING);
  
  			mfd->suspended = false;
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +                        cpufreq_override_set_lcd_state(1);
++#endif
  		}
  
  	}
-@@ -374,6 +378,8 @@
+@@ -374,6 +382,10 @@
  				//fb_set_suspend(mfd->fbi[0], FBINFO_STATE_SUSPENDED);
  				mfd->pdev->dev.power.power_state = PMSG_SUSPEND;
  				mfd->suspended = true;
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +                                cpufreq_override_set_lcd_state(0);
++#endif
  			}
  		}
  
