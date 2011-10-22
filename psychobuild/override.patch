@@ -1,6 +1,6 @@
---- a/drivers/cpufreq/Kconfig	2011-08-02 16:04:21.000000000 -0400
-+++ b/drivers/cpufreq/Kconfig	2011-10-06 20:37:21.000000000 -0400
-@@ -18,6 +18,33 @@
+--- a/drivers/cpufreq/Kconfig	2011-10-19 15:40:46.000000000 -0400
++++ b/drivers/cpufreq/Kconfig	2011-10-22 11:17:47.000000000 -0400
+@@ -18,6 +18,50 @@
  config CPU_FREQ_TABLE
  	tristate
  
@@ -27,15 +27,32 @@
 +config CPU_FREQ_OVERRIDE_TURBO_MODE
 +	bool "Enable static dual-core"
 +	depends on CPU_FREQ_OVERRIDE
-+	default y
++	default n
 +	help
 +	  Say Y here
++
++config CPU_FREQ_OVERRIDE_TURBO_MODE_ENABLE
++	bool "Enable static dual-core at boot"
++	depends on CPU_FREQ_OVERRIDE_TURBO_MODE
++	default n
++
++config CPU_FREQ_OVERRIDE_POWERSAVER
++	bool "Enable dual-core power saving mode"
++	depends on CPU_FREQ_OVERRIDE_TURBO_MODE
++	default n
++	help
++	  Say Y here
++
++config CPU_FREQ_OVERRIDE_POWERSAVER_ENABLE
++	bool "Enable dual-core power saving mode at boot"
++	depends on CPU_FREQ_OVERRIDE_POWERSAVER
++	default n
 +
  config CPU_FREQ_DEBUG
  	bool "Enable CPUfreq debugging"
  	help
---- a/drivers/cpufreq/Makefile	2011-08-02 16:04:21.000000000 -0400
-+++ b/drivers/cpufreq/Makefile	2011-08-19 16:12:28.000000000 -0400
+--- a/drivers/cpufreq/Makefile	2011-10-19 15:40:46.000000000 -0400
++++ b/drivers/cpufreq/Makefile	2011-10-22 11:17:47.000000000 -0400
 @@ -10,6 +10,7 @@
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE)	+= cpufreq_ondemand_tickle.o
@@ -44,9 +61,9 @@
  
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
---- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-12 00:30:36.000000000 -0400
-@@ -231,6 +233,8 @@
+--- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-19 15:40:45.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-22 11:34:36.000000000 -0400
+@@ -231,6 +234,8 @@
  static struct clkctl_l2_speed *l2_freq_tbl;
  static unsigned int l2_freq_tbl_size;
  
@@ -56,7 +73,7 @@
  {
  	return drv_state.current_speed[cpu]->acpuclk_khz;
 --- a/drivers/base/cpu.c	2010-08-01 18:11:14.000000000 -0400
-+++ b/drivers/base/cpu.c	2011-10-11 19:17:20.000000000 -0400
++++ b/drivers/base/cpu.c	2011-10-22 11:17:47.000000000 -0400
 @@ -14,6 +14,10 @@
  
  #include "base.h"
@@ -118,8 +135,8 @@
  
  	if (ret >= 0)
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-10-12 00:38:32.000000000 -0400
-@@ -0,0 +1,447 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-10-22 11:25:59.000000000 -0400
+@@ -0,0 +1,490 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -160,14 +177,8 @@
 +// Max Freq count. Not the actual number of freqs
 +#define MAX_FREQS 35
 +
-+// Power saving mode
-+#define POWERSAVE 0
-+
 +// L2 Boost mode.  This requires mods in acpuclock-8x60.c
 +#define L2_BOOST 0
-+
-+// Turbo Mode default state (both CPUs online all the time)
-+#define TURBOMODE 1
 +
 +// CPU load ramp up percent
 +#define RAMPUP_PERCENT 20
@@ -192,17 +203,29 @@
 +#endif
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
-+static bool power_save = POWERSAVE;
 +static bool lcd_state = 1;
-+static bool turbomode = TURBOMODE;
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE_ENABLE
++static bool turbomode = 1;
++#else
++static bool turbomode = 0;
++#endif
++#endif
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +static cputime64_t prev_cpu_wall = 0, prev_cpu_idle = 0;
 +static unsigned int time_in_state = 0;
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER_ENABLE
++static bool power_save = 1;
++#else
++static bool power_save = 0;
++#endif
 +
 +static inline void check_load(struct work_struct *work);
 +static DEFINE_MUTEX(override_mutex);
 +static DECLARE_DELAYED_WORK(worker, check_load);
++#endif
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +static void cpu_state(bool state)
 +{
 +	struct sys_device *dev = get_cpu_sysdev(1);
@@ -223,12 +246,17 @@
 +{
 +	unsigned int ret = 0;
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +	if(lcd_state) ret = (power_save || turbomode);
++#else
++	if(lcd_state) ret = turbomode;
++#endif
 +
 +	return ret;
 +}
 +EXPORT_SYMBOL(cpufreq_override_get_state);
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +static inline cputime64_t get_cpu_idle_time(unsigned int cpu)
 +{
 +        cputime64_t idle_time;
@@ -304,23 +332,38 @@
 +	mutex_unlock(&override_mutex);
 +	schedule_delayed_work_on(0,&worker, POLL_FREQ);
 +}
++#endif
 +
 +void cpufreq_override_set_lcd_state(bool state)
 +{
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +	mutex_lock(&override_mutex);
++#endif
 +
 +	lcd_state = state;
 +	printk("override: lcd state=%u\n",state);
 +
 +	// If screen is off, take cpu offline if in power save mode
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +	if(power_save && !lcd_state) cpu_state(0);
++#else
++	if(!lcd_state) cpu_state(0);
++#endif
 +
 +	// force CPU online regardless
 +	if(lcd_state) cpu_state(1);
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +	mutex_unlock(&override_mutex);
++#endif
 +}
 +EXPORT_SYMBOL(cpufreq_override_set_lcd_state);
++
++bool cpufreq_override_get_lcd_state(void)
++{
++	return lcd_state;
++}
++EXPORT_SYMBOL(cpufreq_override_get_lcd_state);
 +#endif
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
@@ -381,7 +424,7 @@
 +}
 +#endif
 +
-+#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +static ssize_t show_power_saver(struct kobject *kobj, struct attribute *attr,
 +				char *buf)
 +{
@@ -397,8 +440,10 @@
 +		tmp = (tmp != 0 && tmp != 1) ? 0 : tmp;
 +		if(tmp) {
 +			cpu_state(0);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +			printk("override: disabling turbo mode\n");
 +			turbomode = 0;
++#endif
 +			if(!power_save) schedule_delayed_work_on(0,&worker,1);
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
@@ -422,7 +467,9 @@
 +
 +	return count;
 +}
++#endif
 +
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +static ssize_t show_turbo_mode(struct kobject *kobj, struct attribute *attr,
 +				char *buf)
 +{
@@ -439,11 +486,13 @@
 +
 +		if(turbomode) {
 +			cpu_state(1);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +			if(power_save) {
 +				power_save = 0;
 +				printk("override: disabling power saver\n");
 +				cancel_delayed_work_sync(&worker);
 +			}
++#endif
 +		}
 +		else cpu_state(0);
 +
@@ -505,8 +554,10 @@
 +define_one_global_rw(vdd);
 +#endif
 +define_one_global_ro(vdd_freqs);
-+#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +define_one_global_rw(power_saver);
++#endif
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +define_one_global_rw(turbo_mode);
 +#endif
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
@@ -520,8 +571,10 @@
 +	&vdd_max.attr,
 +#endif
 +	&vdd_freqs.attr,
-+#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +	&power_saver.attr,
++#endif
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +	&turbo_mode.attr,
 +#endif
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
@@ -542,7 +595,12 @@
 +	nr_freqs = acpuclk_get_freqs(freq_table);
 +	printk("override: freqs configured: %u\n",nr_freqs);
 +
-+	if(power_save) schedule_delayed_work_on(0,&worker, 10);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
++	if(power_save) {
++		schedule_delayed_work_on(0,&worker, 10);
++		turbomode = 0;
++	}
++#endif
 +
 +	if((ret = sysfs_create_group(cpufreq_global_kobject,&override_attr_group))) 
 +		 printk("override: failed!\n");
@@ -554,8 +612,10 @@
 +
 +static void __exit cpufreq_override_driver_exit(void)
 +{
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_POWERSAVER
 +	cancel_delayed_work(&worker);
 +	flush_scheduled_work();
++#endif
 +
 +	sysfs_remove_group(cpufreq_global_kobject, &override_attr_group);
 +}
@@ -568,7 +628,7 @@
 +module_exit(cpufreq_override_driver_exit);
 +
 --- a/arch/arm/mach-msm/override_plug.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/arch/arm/mach-msm/override_plug.c	2011-10-05 19:54:53.000000000 -0400
++++ b/arch/arm/mach-msm/override_plug.c	2011-10-22 11:17:47.000000000 -0400
 @@ -0,0 +1,86 @@
 +/*
 + *  override_plug.c
@@ -656,8 +716,8 @@
 +	return i;
 +}
 +EXPORT_SYMBOL(acpuclk_get_freqs);
---- a/drivers/video/msm_pe/msm_fb.c	2011-08-02 16:04:22.000000000 -0400
-+++ b/drivers/video/msm_pe/msm_fb.c	2011-10-06 20:34:04.000000000 -0400
+--- a/drivers/video/msm_pe/msm_fb.c	2011-10-19 15:40:47.000000000 -0400
++++ b/drivers/video/msm_pe/msm_fb.c	2011-10-22 11:17:47.000000000 -0400
 @@ -51,6 +51,10 @@
  #include "mdp.h"
  #include "mdp4.h"

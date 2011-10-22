@@ -1,5 +1,5 @@
---- a/arch/arm/mach-msm/board-tenderloin.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/board-tenderloin.c	2011-08-17 19:55:15.000000000 -0400
+--- a/arch/arm/mach-msm/board-tenderloin.c	2011-10-19 15:40:45.000000000 -0400
++++ b/arch/arm/mach-msm/board-tenderloin.c	2011-10-19 15:44:46.000000000 -0400
 @@ -402,7 +402,7 @@
  		.constraints = {
  			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
@@ -30,14 +30,14 @@
  		RPM_VREG_FREQ_1p60),
  	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
  		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
---- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-08-02 16:04:21.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-09-25 14:09:43.000000000 -0400
+--- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-19 15:40:45.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-22 11:34:36.000000000 -0400
 @@ -52,11 +52,11 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
  #define L_VAL_SCPLL_CAL_MIN	0x08 /* =  432 MHz with 27MHz source */
 -#define L_VAL_SCPLL_CAL_MAX	0x1C /* = 1512 MHz with 27MHz source */
-+#define L_VAL_SCPLL_CAL_MAX	0x24 /* = 1890 MHz with 27MHz source */
++#define L_VAL_SCPLL_CAL_MAX	0x25 /* = 1944 MHz with 27MHz source */
  
 -#define MAX_VDD_SC		1250000 /* uV */
 +#define MAX_VDD_SC		1600000 /* uV */
@@ -81,11 +81,11 @@
 +	[14] = {1404000,  1, 0x1A, 1200000, 1250000, 3},
 +	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 3},
 +	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 3},
-+	[17] = {1620000,  1, 0x1E, 1300000, 1350000, 3},
++	[17] = {1620000,  1, 0x1E, 1350000, 1450000, 3},
  };
  
  #define L2(x) (&l2_freq_tbl_v2[(x)])
-@@ -207,21 +208,22 @@
+@@ -207,21 +208,23 @@
    { {0, 0},  MAX_AXI, ACPU_AFAB,  1, 0, 0, 0,    L2(0),   875000, 0x03006000},
    { {1, 1},  384000,  ACPU_PLL_8, 3, 0, 0, 0,    L2(1),   875000, 0x03006000},
    { {1, 1},  432000,  ACPU_SCPLL, 0, 0, 1, 0x08, L2(1),   887500, 0x03006000},
@@ -120,10 +120,11 @@
 +  { {1, 1}, 1728000,  ACPU_SCPLL, 0, 0, 1, 0x20, L2(16), 1350000, 0x03006000},
 +  { {1, 1}, 1836000,  ACPU_SCPLL, 0, 0, 1, 0x22, L2(16), 1450000, 0x03006000},
 +  { {1, 1}, 1890000,  ACPU_SCPLL, 0, 0, 1, 0x23, L2(16), 1600000, 0x03006000},
++  { {1, 1}, 1944000,  ACPU_SCPLL, 0, 0, 1, 0x24, L2(17), 1600000, 0x03006000},
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
-@@ -749,37 +753,8 @@
+@@ -749,37 +754,8 @@
  static void __init cpufreq_table_init(void) {}
  #endif
  
@@ -161,7 +162,7 @@
  	int cpu;
  
  	mutex_init(&drv_state.lock);
-@@ -788,7 +763,10 @@
+@@ -788,7 +764,10 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
@@ -173,7 +174,7 @@
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +777,7 @@
+@@ -799,7 +778,7 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
