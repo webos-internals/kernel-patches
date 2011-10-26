@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/tenderloin_defconfig b/arch/arm/configs/tenderloin_defconfig
-index 5017808..ddb4dfd 100644
+index 5017808..f4142f5 100644
 --- a/arch/arm/configs/tenderloin_defconfig
 +++ b/arch/arm/configs/tenderloin_defconfig
 @@ -76,6 +76,7 @@ CONFIG_CGROUPS=y
@@ -43,3 +43,30 @@ index 5017808..ddb4dfd 100644
  CONFIG_ARM_GIC=y
  CONFIG_COMMON_CLKDEV=y
  # CONFIG_FIQ_DEBUGGER is not set
+@@ -642,7 +647,7 @@ CONFIG_INET_TCP_DIAG=y
+ CONFIG_TCP_CONG_ADVANCED=y
+ CONFIG_TCP_CONG_BIC=m
+ CONFIG_TCP_CONG_CUBIC=y
+-# CONFIG_TCP_CONG_WESTWOOD is not set
++CONFIG_TCP_CONG_WESTWOOD=y
+ # CONFIG_TCP_CONG_HTCP is not set
+ # CONFIG_TCP_CONG_HSTCP is not set
+ # CONFIG_TCP_CONG_HYBLA is not set
+@@ -653,14 +658,14 @@ CONFIG_TCP_CONG_CUBIC=y
+ # CONFIG_TCP_CONG_YEAH is not set
+ # CONFIG_TCP_CONG_ILLINOIS is not set
+ # CONFIG_DEFAULT_BIC is not set
+-CONFIG_DEFAULT_CUBIC=y
++# CONFIG_DEFAULT_CUBIC is not set
+ # CONFIG_DEFAULT_HTCP is not set
+ # CONFIG_DEFAULT_HYBLA is not set
+ # CONFIG_DEFAULT_VEGAS is not set
+ # CONFIG_DEFAULT_VENO is not set
+-# CONFIG_DEFAULT_WESTWOOD is not set
++CONFIG_DEFAULT_WESTWOOD=y
+ # CONFIG_DEFAULT_RENO is not set
+-CONFIG_DEFAULT_TCP_CONG="cubic"
++CONFIG_DEFAULT_TCP_CONG="westwood"
+ # CONFIG_TCP_MD5SIG is not set
+ # CONFIG_IPV6 is not set
+ # CONFIG_ANDROID_PARANOID_NETWORK is not set
