@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/rib_defconfig b/arch/arm/configs/rib_defconfig
-index de2201d..b623a18 100644
+index de2201d..48f1f7d 100644
 --- a/arch/arm/configs/rib_defconfig
 +++ b/arch/arm/configs/rib_defconfig
 @@ -64,6 +64,7 @@ CONFIG_CGROUPS=y
@@ -33,3 +33,28 @@ index de2201d..b623a18 100644
  
  #
  # Bus support
+@@ -528,7 +531,7 @@ CONFIG_INET_TCP_DIAG=y
+ CONFIG_TCP_CONG_ADVANCED=y
+ CONFIG_TCP_CONG_BIC=m
+ CONFIG_TCP_CONG_CUBIC=y
+-CONFIG_TCP_CONG_WESTWOOD=m
++CONFIG_TCP_CONG_WESTWOOD=y
+ CONFIG_TCP_CONG_HTCP=m
+ CONFIG_TCP_CONG_HSTCP=m
+ # CONFIG_TCP_CONG_HYBLA is not set
+@@ -539,12 +542,12 @@ CONFIG_TCP_CONG_HSTCP=m
+ # CONFIG_TCP_CONG_YEAH is not set
+ # CONFIG_TCP_CONG_ILLINOIS is not set
+ # CONFIG_DEFAULT_BIC is not set
+-CONFIG_DEFAULT_CUBIC=y
++# CONFIG_DEFAULT_CUBIC is not set
+ # CONFIG_DEFAULT_HTCP is not set
+ # CONFIG_DEFAULT_VEGAS is not set
+-# CONFIG_DEFAULT_WESTWOOD is not set
++CONFIG_DEFAULT_WESTWOOD=y
+ # CONFIG_DEFAULT_RENO is not set
+-CONFIG_DEFAULT_TCP_CONG="cubic"
++CONFIG_DEFAULT_TCP_CONG="westwood"
+ # CONFIG_TCP_MD5SIG is not set
+ # CONFIG_IPV6 is not set
+ # CONFIG_ANDROID_PARANOID_NETWORK is not set
