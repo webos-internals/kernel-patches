@@ -1,0 +1,89 @@
+diff --git a/include/net/tcp.h b/include/net/tcp.h
+index 80fdaca..3b16ac7 100644
+--- a/include/net/tcp.h
++++ b/include/net/tcp.h
+@@ -60,6 +60,9 @@ extern void tcp_time_wait(struct sock *sk, int state, int timeo);
+  */
+ #define MAX_TCP_WINDOW		32767U
+ 
++/* Offer an initial receive window of 10 mss. */
++#define TCP_DEFAULT_INIT_RCVWND	10
++
+ /* Minimal accepted MSS. It is (60+60+8) - (20+20). */
+ #define TCP_MIN_MSS		88U
+ 
+@@ -199,6 +202,9 @@ extern void tcp_time_wait(struct sock *sk, int state, int timeo);
+ /* TCP thin-stream limits */
+ #define TCP_THIN_LINEAR_RETRIES 6       /* After 6 linear retries, do exp. backoff */
+ 
++/* TCP initial congestion window */
++#define TCP_INIT_CWND		10
++
+ extern struct inet_timewait_death_row tcp_death_row;
+ 
+ /* sysctl variables for tcp */
+diff --git a/net/dccp/ccids/ccid2.c b/net/dccp/ccids/ccid2.c
+index 9b3ae99..67d8733 100644
+--- a/net/dccp/ccids/ccid2.c
++++ b/net/dccp/ccids/ccid2.c
+@@ -698,6 +698,15 @@ static void ccid2_hc_tx_packet_recv(struct sock *sk, struct sk_buff *skb)
+ 	ccid2_hc_tx_check_sanity(hc);
+ }
+ 
++/*
++ * Convert RFC 3390 larger initial window into an equivalent number of packets.
++ * This is based on the numbers specified in RFC 5681, 3.1.
++ */
++static inline u32 rfc3390_bytes_to_packets(const u32 smss)
++{
++	return smss <= 1095 ? 4 : (smss > 2190 ? 2 : 3);
++}
++
+ static int ccid2_hc_tx_init(struct ccid *ccid, struct sock *sk)
+ {
+ 	struct ccid2_hc_tx_sock *hc = ccid_priv(ccid);
+diff --git a/net/ipv4/tcp_input.c b/net/ipv4/tcp_input.c
+index 7af5397..99871bf 100644
+--- a/net/ipv4/tcp_input.c
++++ b/net/ipv4/tcp_input.c
+@@ -815,11 +815,7 @@ __u32 tcp_init_cwnd(struct tcp_sock *tp, struct dst_entry *dst)
+ 	__u32 cwnd = (dst ? dst_metric(dst, RTAX_INITCWND) : 0);
+ 
+ 	if (!cwnd) {
+-		if (tp->mss_cache > 1460)
+-			cwnd = 2;
+-		else
+-			cwnd = (tp->mss_cache > 1095) ? 3 : 4;
+-	}
++		cwnd = TCP_INIT_CWND;
+ 	return min_t(__u32, cwnd, tp->snd_cwnd_clamp);
+ }
+ 
+diff --git a/net/ipv4/tcp_output.c b/net/ipv4/tcp_output.c
+index 3053b21..2d5c57c 100644
+--- a/net/ipv4/tcp_output.c
++++ b/net/ipv4/tcp_output.c
+@@ -230,16 +230,15 @@ void tcp_select_initial_window(int __space, __u32 mss,
+ 		}
+ 	}
+ 
+-	/* Set initial window to value enough for senders,
+-	 * following RFC2414. Senders, not following this RFC,
+-	 * will be satisfied with 2.
++	/* Set initial window to value enough for senders, starting with
++	 * initial congestion window of TCP_DEFAULT_INIT_RCVWND. Place
++	 * a limit on the initial window when mss is larger than 1460.
+ 	 */
+ 	if (mss > (1 << *rcv_wscale)) {
+-		int init_cwnd = 4;
+-		if (mss > 1460 * 3)
+-			init_cwnd = 2;
+-		else if (mss > 1460)
+-			init_cwnd = 3;
++		int init_cwnd = TCP_DEFAULT_INIT_RCVWND;
++		if (mss > 1460)
++			init_cwnd = 
++			max_t(u32, (1460 * TCP_DEFAULT_INIT_RCVWND) / mss, 2);
+ 		/* when initializing use the value from init_rcv_wnd
+ 		 * rather than the default from above
+ 		 */
