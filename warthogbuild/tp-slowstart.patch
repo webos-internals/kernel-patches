@@ -43,18 +43,20 @@ index 9b3ae99..67d8733 100644
  {
  	struct ccid2_hc_tx_sock *hc = ccid_priv(ccid);
 diff --git a/net/ipv4/tcp_input.c b/net/ipv4/tcp_input.c
-index 7af5397..99871bf 100644
+index 7af5397..3d7cef0 100644
 --- a/net/ipv4/tcp_input.c
 +++ b/net/ipv4/tcp_input.c
-@@ -815,11 +815,7 @@ __u32 tcp_init_cwnd(struct tcp_sock *tp, struct dst_entry *dst)
+@@ -814,12 +814,8 @@ __u32 tcp_init_cwnd(struct tcp_sock *tp, struct dst_entry *dst)
+ {
  	__u32 cwnd = (dst ? dst_metric(dst, RTAX_INITCWND) : 0);
  
- 	if (!cwnd) {
+-	if (!cwnd) {
 -		if (tp->mss_cache > 1460)
 -			cwnd = 2;
 -		else
 -			cwnd = (tp->mss_cache > 1095) ? 3 : 4;
 -	}
++	if (!cwnd)
 +		cwnd = TCP_INIT_CWND;
  	return min_t(__u32, cwnd, tp->snd_cwnd_clamp);
  }
