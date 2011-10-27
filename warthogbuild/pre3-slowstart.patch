@@ -1,0 +1,85 @@
+diff --git a/include/net/tcp.h b/include/net/tcp.h
+index b964889..a41ca11 100644
+--- a/include/net/tcp.h
++++ b/include/net/tcp.h
+@@ -59,6 +59,9 @@ extern void tcp_time_wait(struct sock *sk, int state, int timeo);
+  */
+ #define MAX_TCP_WINDOW		32767U
+ 
++/* Offer an initial receive window of 10 mss. */
++#define TCP_DEFAULT_INIT_RCVWND	10
++
+ /* Minimal accepted MSS. It is (60+60+8) - (20+20). */
+ #define TCP_MIN_MSS		88U
+ 
+@@ -193,6 +196,9 @@ extern void tcp_time_wait(struct sock *sk, int state, int timeo);
+ #define TCP_NAGLE_CORK		2	/* Socket is corked	    */
+ #define TCP_NAGLE_PUSH		4	/* Cork is overridden for already queued data */
+ 
++/* TCP initial congestion window */
++#define TCP_INIT_CWND		10
++
+ extern struct inet_timewait_death_row tcp_death_row;
+ 
+ /* sysctl variables for tcp */
+diff --git a/net/dccp/ccids/ccid2.c b/net/dccp/ccids/ccid2.c
+index e8cf99e..efd9c69 100644
+--- a/net/dccp/ccids/ccid2.c
++++ b/net/dccp/ccids/ccid2.c
+@@ -700,6 +700,15 @@ static void ccid2_hc_tx_packet_recv(struct sock *sk, struct sk_buff *skb)
+ 	ccid2_hc_tx_check_sanity(hctx);
+ }
+ 
++/*
++ * Convert RFC 3390 larger initial window into an equivalent number of packets.
++ * This is based on the numbers specified in RFC 5681, 3.1.
++ */
++static inline u32 rfc3390_bytes_to_packets(const u32 smss)
++{
++	return smss <= 1095 ? 4 : (smss > 2190 ? 2 : 3);
++}
++
+ static int ccid2_hc_tx_init(struct ccid *ccid, struct sock *sk)
+ {
+ 	struct ccid2_hc_tx_sock *hctx = ccid_priv(ccid);
+diff --git a/net/ipv4/tcp_input.c b/net/ipv4/tcp_input.c
+index aa72abf..7a7fa0d 100644
+--- a/net/ipv4/tcp_input.c
++++ b/net/ipv4/tcp_input.c
+@@ -811,12 +811,8 @@ __u32 tcp_init_cwnd(struct tcp_sock *tp, struct dst_entry *dst)
+ {
+ 	__u32 cwnd = (dst ? dst_metric(dst, RTAX_INITCWND) : 0);
+ 
+-	if (!cwnd) {
+-		if (tp->mss_cache > 1460)
+-			cwnd = 2;
+-		else
+-			cwnd = (tp->mss_cache > 1095) ? 3 : 4;
+-	}
++	if (!cwnd)
++		cwnd = TCP_INIT_CWND;
+ 	return min_t(__u32, cwnd, tp->snd_cwnd_clamp);
+ }
+ 
+diff --git a/net/ipv4/tcp_output.c b/net/ipv4/tcp_output.c
+index ec79f7f..3f7e95e 100644
+--- a/net/ipv4/tcp_output.c
++++ b/net/ipv4/tcp_output.c
+@@ -229,13 +229,10 @@ void tcp_select_initial_window(int __space, __u32 mss,
+ 	 * will be satisfied with 2.
+ 	 */
+ 	if (mss > (1 << *rcv_wscale)) {
+-		int init_cwnd = 4;
+-		if (mss > 1460 * 3)
+-			init_cwnd = 2;
+-		else if (mss > 1460)
+-			init_cwnd = 3;
+-		if (*rcv_wnd > init_cwnd * mss)
+-			*rcv_wnd = init_cwnd * mss;
++		int init_cwnd = TCP_DEFAULT_INIT_RCVWND;
++		if (mss > 1460)
++			init_cwnd = 
++			max_t(u32, (1460 * TCP_DEFAULT_INIT_RCVWND) / mss, 2);
+ 	}
+ 
+ 	/* Set the clamp no higher than max representable value */
