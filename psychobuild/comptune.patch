@@ -1,0 +1,13 @@
+--- a/Makefile	2011-11-02 23:25:25.000000000 -0400
++++ b/Makefile	2011-11-06 01:44:05.000000000 -0400
+@@ -332,8 +332,8 @@
+ CFLAGS_MODULE   = $(MODFLAGS)
+ AFLAGS_MODULE   = $(MODFLAGS)
+ LDFLAGS_MODULE  = -T $(srctree)/scripts/module-common.lds
+-CFLAGS_KERNEL	=
+-AFLAGS_KERNEL	=
++CFLAGS_KERNEL	=  -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr -ffast-math -fsingle-precision-constant -mtune=cortex-a8 -mfpu=neon -ftree-vectorize -funswitch-loops
++AFLAGS_KERNEL	= -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr -ffast-math -fsingle-precision-constant -mtune=cortex-a8 -mfpu=neon -ftree-vectorize -funswitch-loops
+ CFLAGS_GCOV	= -fprofile-arcs -ftest-coverage
+ 
+ 
