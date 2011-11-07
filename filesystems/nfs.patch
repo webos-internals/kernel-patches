@@ -1,6 +1,6 @@
 --- a/arch/arm/configs/rib_defconfig
 +++ b/arch/arm/configs/rib_defconfig
-@@ -2214,18 +2247,27 @@
+@@ -2214,14 +2247,17 @@
  CONFIG_NETWORK_FILESYSTEMS=y
  CONFIG_NFS_FS=y
  CONFIG_NFS_V3=y
