@@ -267,8 +267,8 @@
 +EXPORT_SYMBOL(cpufreq_override_driver_exit);
 +EXPORT_SYMBOL(cpufreq_override_driver_init);
 --- a/arch/arm/mach-msm/override_plug.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/arch/arm/mach-msm/override_plug.c	2011-11-06 14:30:13.000000000 -0500
-@@ -0,0 +1,71 @@
++++ b/arch/arm/mach-msm/override_plug.c	2011-11-06 21:06:20.000000000 -0500
+@@ -0,0 +1,73 @@
 +/*
 + *  override_plug.c
 + *
@@ -318,8 +318,10 @@
 +
 +	for (f = freq_table; f->frequency != CPUFREQ_TABLE_END; f++) {
 +		while(v->acpu_clk_khz != f->frequency) v++;
-+		if(v->acpu_clk_khz == f->frequency)
++		if(v->acpu_clk_khz == f->frequency) {
 +			v->vdd_mv = acpu_freqs_vlt_tbl[i];
++			v->vdd_raw = VDD_RAW(v->vdd_mv);
++		}
 +		else printk("override: BUG!\n");
 +		i++;
 +	}
