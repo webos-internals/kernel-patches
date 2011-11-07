@@ -1,7 +1,7 @@
---- a/arch/arm/Kconfig	2011-07-30 12:55:51.000000000 -0400
-+++ b/arch/arm/Kconfig	2011-07-31 15:15:31.000000000 -0400
-@@ -1078,6 +1078,16 @@
-           Scorpion processor supported hardware performance counters on a per
+--- a/arch/arm/Kconfig	2011-11-06 11:44:37.000000000 -0500
++++ b/arch/arm/Kconfig	2011-11-06 13:45:01.000000000 -0500
+@@ -730,6 +730,16 @@
+           Scorpion processor supported hardware performace counters on a per
            thread basis or AXI counters on an overall system basis.
  
 +config ALLOW_CPU_ALIGNMENT
@@ -17,25 +17,25 @@
  endmenu
  
  source "arch/arm/common/Kconfig"
---- a/arch/arm/kernel/head-nommu.S	2010-08-01 18:11:14.000000000 -0400
-+++ b/arch/arm/kernel/head-nommu.S	2011-07-31 15:31:20.000000000 -0400
-@@ -65,10 +65,10 @@
- 	 * CP15 system control register value returned in r0 from
- 	 * the CPU init function.
- 	 */
+--- a/arch/arm/kernel/head-nommu.S	2009-03-23 19:12:14.000000000 -0400
++++ b/arch/arm/kernel/head-nommu.S	2011-11-06 13:46:54.000000000 -0500
+@@ -60,10 +60,10 @@
+ __after_proc_init:
+ #ifdef CONFIG_CPU_CP15
+ 	mrc	p15, 0, r0, c1, c0, 0		@ read control reg
 -#ifdef CONFIG_ALIGNMENT_TRAP
 -	orr	r0, r0, #CR_A
--#else
 +#ifdef CONFIG_ALLOW_CPU_ALIGNMENT
- 	bic	r0, r0, #CR_A
-+#else
-+	orr	r0, r0, #CR_A
++i	bic     r0, r0, #CR_A
+ #else
+-	bic	r0, r0, #CR_A
++	orr     r0, r0, #CR_A
  #endif
  #ifdef CONFIG_CPU_DCACHE_DISABLE
  	bic	r0, r0, #CR_C
---- a/arch/arm/kernel/head.S	2011-07-30 12:55:51.000000000 -0400
-+++ b/arch/arm/kernel/head.S	2011-07-31 15:15:31.000000000 -0400
-@@ -160,10 +160,10 @@
+--- a/arch/arm/kernel/head.S	2011-11-06 11:44:37.000000000 -0500
++++ b/arch/arm/kernel/head.S	2011-11-06 13:45:01.000000000 -0500
+@@ -154,10 +154,10 @@
   * registers.
   */
  __enable_mmu:
