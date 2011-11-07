@@ -21,7 +21,7 @@
  	bool "Enable CPUfreq debugging"
  	help
 --- a/drivers/cpufreq/Makefile	2011-11-02 23:25:26.000000000 -0400
-+++ b/drivers/cpufreq/Makefile	2011-11-05 18:25:58.000000000 -0400
++++ b/drivers/cpufreq/Makefile	2011-11-06 10:53:55.000000000 -0500
 @@ -10,6 +10,7 @@
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND)	+= cpufreq_ondemand.o
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE)	+= cpufreq_ondemand_tickle.o
@@ -31,8 +31,8 @@
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
 --- a/arch/arm/mach-msm/acpuclock-7x30.c	2011-11-02 23:25:25.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-7x30.c	2011-11-05 19:44:04.000000000 -0400
-@@ -482,3 +494,6 @@
++++ b/arch/arm/mach-msm/acpuclock-7x30.c	2011-11-06 01:36:58.000000000 -0400
+@@ -482,3 +493,6 @@
  	lpj_init();
  	setup_cpufreq_table();
  }
@@ -232,8 +232,8 @@
 +module_exit(cpufreq_override_driver_exit);
 +
 --- a/arch/arm/mach-msm/override_plug.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/arch/arm/mach-msm/override_plug.c	2011-11-05 21:21:56.000000000 -0400
-@@ -0,0 +1,63 @@
++++ b/arch/arm/mach-msm/override_plug.c	2011-11-06 20:40:40.000000000 -0500
+@@ -0,0 +1,64 @@
 +/*
 + *  override_plug.c
 + *
@@ -277,6 +277,7 @@
 +	for (f = acpu_freq_tbl; f->acpu_clk_khz; f++) {
 +		if(f->use_for_scaling == 0) continue;
 +		f->vdd_mv = acpu_freqs_vlt_tbl[i];
++		f->vdd_raw = VDD_RAW(f->vdd_mv);
 +		i++;
 +	}
 +}
