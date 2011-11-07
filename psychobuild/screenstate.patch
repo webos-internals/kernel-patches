@@ -1,0 +1,198 @@
+--- a/include/linux/cpufreq.h	2011-11-02 23:25:27.000000000 -0400
++++ b/include/linux/cpufreq.h	2011-11-06 23:26:18.000000000 -0500
+@@ -388,6 +388,9 @@
+ #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_CONSERVATIVE)
+ extern struct cpufreq_governor cpufreq_gov_conservative;
+ #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_conservative)
++#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE)
++extern struct cpufreq_governor cpufreq_gov_screenstate;
++#define CPUFREQ_DEFAULT_SCREENSTATE	(&cpufreq_gov_screenstate)
+ #endif
+ 
+ 
+--- a/drivers/cpufreq/Makefile	2011-11-02 23:25:26.000000000 -0400
++++ b/drivers/cpufreq/Makefile	2011-11-07 10:19:23.000000000 -0500
+@@ -4,6 +4,7 @@
+ obj-$(CONFIG_CPU_FREQ_STAT)             += cpufreq_stats.o
+ 
+ # CPUfreq governors 
++obj-$(CONFIG_CPU_FREQ_GOV_SCREENSTATE)	+= cpufreq_screenstate.o
+ obj-$(CONFIG_CPU_FREQ_GOV_PERFORMANCE)	+= cpufreq_performance.o
+ obj-$(CONFIG_CPU_FREQ_GOV_POWERSAVE)	+= cpufreq_powersave.o
+ obj-$(CONFIG_CPU_FREQ_GOV_USERSPACE)	+= cpufreq_userspace.o
+--- a/drivers/cpufreq/Kconfig	2011-11-02 23:25:26.000000000 -0400
++++ b/drivers/cpufreq/Kconfig	2011-11-06 23:24:25.000000000 -0500
+@@ -78,6 +91,10 @@
+ 	  the frequency statically to the lowest frequency supported by
+ 	  the CPU.
+ 
++config CPU_FREQ_DEFAULT_GOV_SCREENSTATE
++	bool "screenstate"
++	select CPU_FREQ_GOV_SCREENSTATE
++
+ config CPU_FREQ_DEFAULT_GOV_USERSPACE
+ 	bool "userspace"
+ 	select CPU_FREQ_GOV_USERSPACE
+@@ -136,6 +153,9 @@
+ 
+ 	  If in doubt, say Y.
+ 
++config CPU_FREQ_GOV_SCREENSTATE
++	tristate "'screenstate' governor"
++
+ config CPU_FREQ_GOV_POWERSAVE
+ 	tristate "'powersave' governor"
+ 	help
+--- a/drivers/video/msm/msm_fb.c	2011-11-02 23:25:26.000000000 -0400
++++ b/drivers/video/msm/msm_fb.c	2011-11-07 10:00:37.000000000 -0500
+@@ -51,6 +51,10 @@
+ #include "mdp.h"
+ #include "mdp4.h"
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++void cpufreq_set_ss_state(bool state);
++#endif
++
+ #ifdef CONFIG_FB_MSM_LOGO
+ #define INIT_IMAGE_FILE "/initlogo.rle"
+ extern int load_565rle_image(char *filename);
+@@ -365,6 +369,9 @@
+ 			++mfd->panel_info.frame_count;
+ 			up(&msm_fb_pan_sem);
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++			cpufreq_set_ss_state(1);
++#endif
+ 		}
+ 
+ 	}
+@@ -387,6 +394,9 @@
+ 				mfd->suspended = true;
+ 			}
+ 			release_console_sem();
++#ifdef CONFIG_CPU_FREQ_GOV_SCREENSTATE
++			cpufreq_set_ss_state(0);
++#endif
+ 		}
+ 
+ 	}
+--- a/drivers/cpufreq/cpufreq_screenstate.c	1969-12-31 19:00:00.000000000 -0500
++++ b/drivers/cpufreq/cpufreq_screenstate.c	2011-11-07 10:06:18.000000000 -0500
+@@ -0,0 +1,117 @@
++/*
++ *  linux/drivers/cpufreq/cpufreq_screenstate.c
++ *
++ *  Screenstate V1 1.5
++ *
++ *  Marco Benton marco@unixpsycho.com 
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License version 2 as
++ * published by the Free Software Foundation.
++ *
++ */
++
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/cpufreq.h>
++#include <linux/cpu.h>
++#include <linux/types.h>
++#include <linux/mutex.h>
++#include <asm/uaccess.h>
++
++static bool lcd_state = 1; // FIXME: need to make this more reliable
++static bool cpu_is_managed = 0;
++
++static DEFINE_MUTEX(screenstate_mutex);
++
++void cpufreq_set_ss_state(bool state) {
++	struct cpufreq_policy *policy;
++
++	if(cpu_is_managed) {
++		policy = cpufreq_cpu_get(0);
++		BUG_ON(!policy);
++
++		if(!(lcd_state = state))
++			__cpufreq_driver_target(policy, policy->min,
++						CPUFREQ_RELATION_L);
++		else
++			__cpufreq_driver_target(policy, policy->max,
++						CPUFREQ_RELATION_H);
++
++		printk("screenstate: lcd %s\n", lcd_state ? "on" : "off");
++	}
++}
++EXPORT_SYMBOL(cpufreq_set_ss_state);
++
++static int cpufreq_governor_screenstate(struct cpufreq_policy *policy,
++				   unsigned int event) {
++	unsigned int cpu = policy->cpu;
++
++	switch (event) {
++		case CPUFREQ_GOV_START:
++			if (!cpu_online(cpu)) return -EINVAL;
++			if(cpu_is_managed) goto out;
++
++			mutex_lock(&screenstate_mutex);
++
++			cpu_is_managed = 1;
++			printk("screenstate on CPU %d: initialized\n",cpu);
++
++			mutex_unlock(&screenstate_mutex);
++			break;
++		case CPUFREQ_GOV_STOP:
++			mutex_lock(&screenstate_mutex);
++
++			cpu_is_managed = 0;
++			printk("screenstate on CPU %d: uninitialized\n",cpu);
++
++			mutex_unlock(&screenstate_mutex);
++			break;
++		case CPUFREQ_GOV_LIMITS:
++			mutex_lock(&screenstate_mutex);
++
++			printk("screenstate: policy change on cpu #%d"
++				" min=%d max=%d\n", cpu, policy->min,
++							policy->max);
++			if(lcd_state && (policy->cur != policy->max))
++				__cpufreq_driver_target(policy, policy->max,
++							CPUFREQ_RELATION_H);
++			if(!lcd_state && (policy->cur != policy->min))
++				__cpufreq_driver_target(policy, policy->min,
++							CPUFREQ_RELATION_L);
++
++			mutex_unlock(&screenstate_mutex);
++			break;
++		}
++
++out:
++		return 0;
++}
++
++struct cpufreq_governor cpufreq_gov_screenstate = {
++	.name		= "screenstate",
++	.governor	= cpufreq_governor_screenstate,
++	.owner		= THIS_MODULE,
++};
++
++static int __init cpufreq_gov_screenstate_init(void) {
++	return cpufreq_register_governor(&cpufreq_gov_screenstate);
++}
++
++static void __exit cpufreq_gov_screenstate_exit(void) {
++	cpufreq_unregister_governor(&cpufreq_gov_screenstate);
++}
++
++EXPORT_SYMBOL(cpufreq_gov_screenstate);
++
++MODULE_AUTHOR ("marco@unixpsycho.com");
++MODULE_DESCRIPTION ("CPUfreq policy governor 'screenstate'");
++MODULE_LICENSE ("GPL");
++
++#ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_SCREENSTATE
++fs_initcall(cpufreq_gov_screenstate_init);
++#else
++module_init(cpufreq_gov_screenstate_init);
++#endif
++module_exit(cpufreq_gov_screenstate_exit);
