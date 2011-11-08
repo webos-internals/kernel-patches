@@ -1,14 +1,12 @@
 --- a/arch/arm/configs/shank_defconfig
 +++ b/arch/arm/configs/shank_defconfig
-@@ -1549,8 +1549,19 @@
+@@ -1549,6 +1549,19 @@
  # CONFIG_SYSV_FS is not set
  # CONFIG_UFS_FS is not set
  CONFIG_NETWORK_FILESYSTEMS=y
 -# CONFIG_NFS_FS is not set
 +CONFIG_NFS_FS=y
 +CONFIG_NFS_V3=y
--# CONFIG_NFS_V3_ACL is not set
--# CONFIG_NFS_V4 is not set
 +CONFIG_NFS_V3_ACL=y
 +CONFIG_NFS_V4=y
 +# CONFIG_NFS_V4_1 is not set
