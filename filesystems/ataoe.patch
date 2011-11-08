@@ -1,0 +1,11 @@
+--- a/arch/arm/configs/shank_defconfig
++++ b/arch/arm/configs/shank_defconfig
+@@ -742,7 +742,7 @@
+ CONFIG_BLK_DEV_RAM_SIZE=65536
+ # CONFIG_BLK_DEV_XIP is not set
+ # CONFIG_CDROM_PKTCDVD is not set
+-# CONFIG_ATA_OVER_ETH is not set
++CONFIG_ATA_OVER_ETH=y
+ CONFIG_MISC_DEVICES=y
+ CONFIG_ANDROID_PMEM=y
+ # CONFIG_ANDROID_PMEM_DEBUG is not set
