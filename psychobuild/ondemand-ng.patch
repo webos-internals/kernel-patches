@@ -1,0 +1,295 @@
+--- a/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-11-02 23:25:26.000000000 -0400
++++ b/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-11-08 22:59:19.000000000 -0500
+@@ -1,5 +1,5 @@
+ /*
+- *  drivers/cpufreq/cpufreq_ondemand_tickle.c
++ *  drivers/cpufreq/cpufreq_ondemandtcl.c
+  *
+  *  A version of cpufreq_ondemand supporing hinting, or tickling, into
+  *  high performance levels based on platform defined events. This governor
+@@ -13,6 +13,8 @@
+  *                      Jun Nakajima <jun.nakajima@intel.com>
+  *            (C)  2009 Palm Inc, Corey Tabaka <corey.tabaka@palm.com>
+  *
++ *		Screenstate mod by uNiXpXyChO
++ *
+  * This program is free software; you can redistribute it and/or modify
+  * it under the terms of the GNU General Public License version 2 as
+  * published by the Free Software Foundation.
+@@ -286,6 +288,30 @@
+ 	return count;
+ }
+ 
++static bool ss_enabled = 0;
++static unsigned int sleep_max_freq = 368640;
++extern bool msm_fb_state;
++
++static int cpufreq_target(struct cpufreq_policy *policy, unsigned int freq,
++							unsigned int relation)
++{
++	int retval = -EINVAL;
++
++	if(msm_fb_state || !ss_enabled) {
++		retval = __cpufreq_driver_target(policy, freq, relation);
++	}
++	else {
++		if(freq <= sleep_max_freq)
++			retval = __cpufreq_driver_target(policy, freq,
++								relation);
++		else
++			retval = __cpufreq_driver_target(policy, sleep_max_freq,
++								relation);
++	}
++
++	return retval;
++}
++
+ static void *stats_start(struct seq_file *m, loff_t *pos)
+ {	
+ 	struct stats_state *state = kmalloc(sizeof(struct stats_state),  GFP_KERNEL);
+@@ -698,6 +724,16 @@
+ 	return sprintf (buf, "%u\n", MIN_SAMPLING_RATE);
+ }
+ 
++static ssize_t show_screen_off_max_freq(struct cpufreq_policy *unused, char *buf)
++{
++	return sprintf(buf, "%u\n", sleep_max_freq);
++}
++
++static ssize_t show_screenstate_enable(struct cpufreq_policy *unused, char *buf)
++{
++	return sprintf(buf, "%u\n", ss_enabled);
++}
++
+ #define define_one_ro(_name)		\
+ static struct freq_attr _name =		\
+ __ATTR(_name, 0444, show_##_name, NULL)
+@@ -712,6 +748,7 @@
+ {									\
+ 	return sprintf(buf, "%u\n", dbs_tuners_ins.object);		\
+ }
++
+ show_one(sampling_rate, sampling_rate);
+ show_one(up_threshold, up_threshold);
+ show_one(down_differential, down_differential);
+@@ -878,6 +915,45 @@
+ 	return count;
+ }
+ 
++static ssize_t store_screen_off_max_freq(struct cpufreq_policy *unuesd,
++						const char *buf, size_t count)
++{
++	unsigned int input;
++	int ret;
++	ret = sscanf(buf, "%u", &input);
++
++	if (ret != 1)
++		return -EINVAL;
++
++	if (input < 122880 || input > 2000000) {
++		printk("ondemandtcl: invalid sleep freq\n");
++		return -EINVAL;
++	}
++
++	sleep_max_freq = input;
++
++	return count;
++}
++
++static ssize_t store_screenstate_enable(struct cpufreq_policy *unuesd,
++                                                const char *buf, size_t count)
++{
++	unsigned int input;
++	int ret; 
++	ret = sscanf(buf, "%u", &input);
++
++	if (ret != 1)
++		return -EINVAL;
++
++	if (input != 0 && input != 1) {
++		return -EINVAL;
++	}
++
++	ss_enabled = input;
++
++	return count;
++}
++
+ #define define_one_rw(_name) \
+ static struct freq_attr _name = \
+ __ATTR(_name, 0644, show_##_name, store_##_name)
+@@ -889,6 +965,8 @@
+ define_one_rw(powersave_bias);
+ define_one_rw(max_tickle_window);
+ define_one_rw(max_floor_window);
++define_one_rw(screen_off_max_freq);
++define_one_rw(screenstate_enable);
+ 
+ static struct attribute * dbs_attributes[] = {
+ 	&sampling_rate_max.attr,
+@@ -900,6 +978,8 @@
+ 	&powersave_bias.attr,
+ 	&max_tickle_window.attr,
+ 	&max_floor_window.attr,
++	&screen_off_max_freq.attr,
++	&screenstate_enable.attr,
+ 	NULL
+ };
+ 
+@@ -1003,7 +1083,8 @@
+ 				/* ramp up to the policy max */
+ 				if (policy->cur < policy->max) {
+ 					record_sample(policy->cur, policy->max, -2, policy->cpu);
+-					__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
++					cpufreq_target(policy, policy->max,
++							CPUFREQ_RELATION_H);
+ 				}
+ 
+ 				dbs_info->tickle_active = 1;
+@@ -1213,7 +1294,8 @@
+ 
+ 				if (policy->cur < f) {
+ 					record_sample(policy->cur, f, -3, policy->cpu);
+-					__cpufreq_driver_target(policy, f, CPUFREQ_RELATION_H);
++					cpufreq_target(policy, f,
++							CPUFREQ_RELATION_H);
+ 				}
+ 
+ 				mutex_unlock(&dbs_info->timer_mutex);
+@@ -1246,7 +1328,7 @@
+ 			policy = dbs_info->cur_policy;
+ 
+ 			dbs_info->floor_active = 0;
+-			__cpufreq_driver_target(policy, dbs_info->freq_save, dbs_info->rel_save);
++			cpufreq_target(policy, dbs_info->freq_save, dbs_info->rel_save);
+ 			record_sample(dbs_info->freq_save, policy->min, -5, policy->cpu);
+ 
+ 			mutex_unlock(&dbs_info->timer_mutex);
+@@ -1484,7 +1566,7 @@
+ 				this_dbs_info->rel_save = CPUFREQ_RELATION_H;
+ 			}
+ 
+-			__cpufreq_driver_target(policy, policy->max,
++			cpufreq_target(policy, policy->max,
+ 				CPUFREQ_RELATION_H);
+ 		} else {
+ 			int freq = powersave_bias_target(policy, policy->max,
+@@ -1500,8 +1582,7 @@
+ 			}
+ 			record_sample(policy->cur, freq, load, policy->cpu);
+ 
+-			__cpufreq_driver_target(policy, freq,
+-				CPUFREQ_RELATION_L);
++			cpufreq_target(policy, freq, CPUFREQ_RELATION_L);
+ 		}
+ 		return;
+ 	}
+@@ -1534,7 +1615,7 @@
+ 				}
+ 			}
+ 			record_sample(policy->cur, freq_next, load, policy->cpu);
+-			__cpufreq_driver_target(policy, freq_next,
++			cpufreq_target(policy, freq_next,
+ 					CPUFREQ_RELATION_L);
+ 		} else {
+ 			int freq = powersave_bias_target(policy, freq_next,
+@@ -1548,8 +1629,7 @@
+ 				}
+ 			}
+ 			record_sample(policy->cur, freq, load, policy->cpu);
+-			__cpufreq_driver_target(policy, freq,
+-				CPUFREQ_RELATION_L);
++			cpufreq_target(policy, freq, CPUFREQ_RELATION_L);
+ 		}
+ 	}
+ }
+@@ -1581,9 +1661,9 @@
+ 		}
+ 	} else {
+ 		record_sample(dbs_info->cur_policy->cur, dbs_info->freq_lo, -1, cpu);
+-		__cpufreq_driver_target(dbs_info->cur_policy,
+-	                        	dbs_info->freq_lo,
+-	                        	CPUFREQ_RELATION_H);
++		cpufreq_target(dbs_info->cur_policy,
++					dbs_info->freq_lo,
++					CPUFREQ_RELATION_H);
+ 	}
+ 	queue_delayed_work_on(cpu, kondemand_wq, &dbs_info->work, delay);
+ 	mutex_unlock(&dbs_info->timer_mutex);
+@@ -1673,8 +1753,7 @@
+ 	if (policy->cur < policy->max) {
+ 		policy->cur = policy->max;
+ 
+-		__cpufreq_driver_target(policy, policy->max,
+-					CPUFREQ_RELATION_L);
++		cpufreq_target(policy, policy->max, CPUFREQ_RELATION_L);
+ 		this_dbs_info->prev_cpu_idle = get_cpu_idle_time(0,
+ 				&this_dbs_info->prev_cpu_wall);
+ 	}
+@@ -1853,14 +1932,14 @@
+ 		mutex_lock(&this_dbs_info->timer_mutex);
+ 		if (policy->max < this_dbs_info->cur_policy->cur) {
+ 			record_sample(policy->cur, policy->max, -1, policy->cpu);
+-			__cpufreq_driver_target(this_dbs_info->cur_policy,
+-			                        policy->max,
+-			                        CPUFREQ_RELATION_H);
++			cpufreq_target(this_dbs_info->cur_policy,
++						policy->max,
++						CPUFREQ_RELATION_H);
+ 		} else if (policy->min > this_dbs_info->cur_policy->cur) {
+ 			record_sample(policy->cur, policy->min, -1, policy->cpu);
+-			__cpufreq_driver_target(this_dbs_info->cur_policy,
+-			                        policy->min,
+-			                        CPUFREQ_RELATION_L);
++			cpufreq_target(this_dbs_info->cur_policy,
++						policy->min,
++						CPUFREQ_RELATION_L);
+ 		}
+ 		mutex_unlock(&this_dbs_info->timer_mutex);
+ 		break;
+@@ -1941,7 +2020,8 @@
+ MODULE_AUTHOR("Alexey Starikovskiy <alexey.y.starikovskiy@intel.com>");
+ MODULE_AUTHOR("Corey Tabaka <corey.tabaka@palm.com>");
+ MODULE_DESCRIPTION("'cpufreq_ondemand_tickle' - A dynamic cpufreq governor for "
+-                   "Low Latency Frequency Transition capable processors");
++                   "Low Latency Frequency Transition capable processors"
++                   "With Screenstate");
+ MODULE_LICENSE("GPL");
+ 
+ #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND_TICKLE
+--- a/drivers/video/msm/msm_fb.c	2011-11-02 23:25:26.000000000 -0400
++++ b/drivers/video/msm/msm_fb.c	2011-11-08 21:08:22.000000000 -0500
+@@ -59,6 +63,11 @@
+ /* define the custom FBIO_WAITFORVSYNC ioctl */
+ #define FBIO_WAITFORVSYNC       _IOW('F', 0x20, u_int32_t)
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE
++bool msm_fb_state=1;
++EXPORT_SYMBOL(msm_fb_state);
++#endif
++
+ static unsigned char *fbram;
+ static unsigned char *fbram_phys;
+ static int fbram_size;
+@@ -341,6 +350,10 @@
+ 		else {
+ 			printk(KERN_INFO"msmfb: Resuming msmfb\n");
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE
++                        msm_fb_state=1;
++#endif
++
+ 			acquire_console_sem();
+ 			ret = msm_fb_resume_sub(mfd);
+ 			mfd->pdev->dev.power.power_state = PMSG_ON;
+@@ -376,6 +392,10 @@
+ 		else {
+ 			printk(KERN_INFO"msmfb: Suspending msmfb\n");
+ 
++#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE
++			msm_fb_state=0;
++#endif
++
+ 			acquire_console_sem();
+ 			//fb_set_suspend(mfd->fbi[0], 1);
+ 
