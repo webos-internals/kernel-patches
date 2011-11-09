@@ -1,9 +1,9 @@
 --- a/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-11-02 23:25:26.000000000 -0400
-+++ b/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-11-08 21:52:19.000000000 -0500
++++ b/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-11-08 22:59:19.000000000 -0500
 @@ -1,5 +1,5 @@
  /*
 - *  drivers/cpufreq/cpufreq_ondemand_tickle.c
-+ *  drivers/cpufreq/cpufreq_ondemand-ng.c
++ *  drivers/cpufreq/cpufreq_ondemandtcl.c
   *
   *  A version of cpufreq_ondemand supporing hinting, or tickling, into
   *  high performance levels based on platform defined events. This governor
@@ -87,7 +87,7 @@
 +		return -EINVAL;
 +
 +	if (input < 122880 || input > 2000000) {
-+		printk("ondemand-ng: invalid sleep freq\n");
++		printk("ondemandtcl: invalid sleep freq\n");
 +		return -EINVAL;
 +	}
 +
@@ -127,7 +127,7 @@
  
  static struct attribute * dbs_attributes[] = {
  	&sampling_rate_max.attr,
-@@ -900,12 +978,14 @@
+@@ -900,6 +978,8 @@
  	&powersave_bias.attr,
  	&max_tickle_window.attr,
  	&max_floor_window.attr,
@@ -136,13 +136,6 @@
  	NULL
  };
  
- static struct attribute_group dbs_attr_group = {
- 	.attrs = dbs_attributes,
--	.name = "ondemandtcl",
-+	.name = "ondemand-ng",
- };
- 
- /************************** sysfs end ************************/
 @@ -1003,7 +1083,8 @@
  				/* ramp up to the policy max */
  				if (policy->cur < policy->max) {
@@ -254,22 +247,11 @@
  		}
  		mutex_unlock(&this_dbs_info->timer_mutex);
  		break;
-@@ -1872,7 +1951,7 @@
- static
- #endif
- struct cpufreq_governor cpufreq_gov_ondemand_tickle = {
--	.name			= "ondemandtcl",
-+	.name			= "ondemand-ng",
- 	.governor		= cpufreq_governor_dbs,
- 	.max_transition_latency = TRANSITION_LATENCY_LIMIT,
- 	.owner			= THIS_MODULE,
-@@ -1940,8 +2019,9 @@
- MODULE_AUTHOR("Venkatesh Pallipadi <venkatesh.pallipadi@intel.com>");
+@@ -1941,7 +2020,8 @@
  MODULE_AUTHOR("Alexey Starikovskiy <alexey.y.starikovskiy@intel.com>");
  MODULE_AUTHOR("Corey Tabaka <corey.tabaka@palm.com>");
--MODULE_DESCRIPTION("'cpufreq_ondemand_tickle' - A dynamic cpufreq governor for "
+ MODULE_DESCRIPTION("'cpufreq_ondemand_tickle' - A dynamic cpufreq governor for "
 -                   "Low Latency Frequency Transition capable processors");
-+MODULE_DESCRIPTION("'cpufreq_ondemand-ng' - A dynamic cpufreq governor for "
 +                   "Low Latency Frequency Transition capable processors"
 +                   "With Screenstate");
  MODULE_LICENSE("GPL");
