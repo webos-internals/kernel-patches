@@ -1,12 +1,5 @@
 --- a/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-11-02 23:25:26.000000000 -0400
 +++ b/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-11-08 22:59:19.000000000 -0500
-@@ -1,5 +1,5 @@
- /*
-- *  drivers/cpufreq/cpufreq_ondemand_tickle.c
-+ *  drivers/cpufreq/cpufreq_ondemandtcl.c
-  *
-  *  A version of cpufreq_ondemand supporing hinting, or tickling, into
-  *  high performance levels based on platform defined events. This governor
 @@ -13,6 +13,8 @@
   *                      Jun Nakajima <jun.nakajima@intel.com>
   *            (C)  2009 Palm Inc, Corey Tabaka <corey.tabaka@palm.com>
