@@ -1,5 +1,5 @@
 --- a/drivers/cpufreq/Kconfig	2011-11-06 11:44:37.000000000 -0500
-+++ b/drivers/cpufreq/Kconfig	2011-11-06 14:07:27.000000000 -0500
++++ b/drivers/cpufreq/Kconfig	2011-11-07 10:47:30.000000000 -0500
 @@ -18,6 +18,19 @@
  config CPU_FREQ_TABLE
  	tristate
@@ -21,8 +21,8 @@
  	bool "Enable CPUfreq debugging"
  	help
 --- a/drivers/cpufreq/Makefile	2011-11-06 11:44:37.000000000 -0500
-+++ b/drivers/cpufreq/Makefile	2011-11-06 14:08:43.000000000 -0500
-@@ -11,6 +11,7 @@
++++ b/drivers/cpufreq/Makefile	2011-11-07 10:47:30.000000000 -0500
+@@ -11,6 +12,7 @@
  obj-$(CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE)	+= cpufreq_ondemand_tickle.o
  obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
  obj-$(CONFIG_CPU_FREQ_GOV_SCREEN)	+= cpufreq_screen.o
@@ -76,8 +76,8 @@
 +#include "override_plug.c"
 +
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-11-06 15:44:11.000000000 -0500
-@@ -0,0 +1,188 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-11-12 12:22:05.000000000 -0500
+@@ -0,0 +1,195 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -144,6 +144,13 @@
 +        return (char *)str;
 +}
 +
++char *find_spaces(const char *str)
++{
++        while (*str != ' ' && *str != '\t')
++                ++str;
++        return (char *)str;
++}
++
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
 +static ssize_t show_vdd_max(struct cpufreq_policy *policy, char *buf)
 +{
@@ -185,7 +192,8 @@
 +		sscanf(wp,"%u",&c[i]);
 +		if(c[i] < VDD_MIN || c[i] > VDD_MAX) break;
 +		c[i] /= 1000;
-+		wp=strchr(wp,' ')+1;
++		c[i] = DIV_ROUND_CLOSEST(c[i] , 25) * 25;
++		wp=find_spaces(wp);
 +  	}
 +
 +	if(i != nr_freqs)
@@ -249,12 +257,11 @@
 +	printk("override: freqs configured: %u\n",nr_freqs);
 +
 +	if(!policy) goto out;
-+	if((ret = sysfs_create_group(&policy->kobj, &override_attr_group)))
-+		 printk("override: failed!\n");
-+	else
++	if(!(ret = sysfs_create_group(&policy->kobj, &override_attr_group)))
 +		 printk("override: initialized!\n");
++	else
 +out:
-+	return ret;
++		 printk("override: failed!\n");
 +}
 +
 +void cpufreq_override_driver_exit(void)
