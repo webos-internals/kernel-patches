@@ -1,12 +1,5 @@
 --- a/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-10-19 15:40:46.000000000 -0400
 +++ b/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-11-10 22:27:43.000000000 -0500
-@@ -1,5 +1,5 @@
- /*
-- *  drivers/cpufreq/cpufreq_ondemand_tickle.c
-+ *  drivers/cpufreq/cpufreq_ondemandtcl.c
-  *
-  *  A version of cpufreq_ondemand supporing hinting, or tickling, into
-  *  high performance levels based on platform defined events. This governor
 @@ -13,6 +13,8 @@
   *                      Jun Nakajima <jun.nakajima@intel.com>
   *            (C)  2009 Palm Inc, Corey Tabaka <corey.tabaka@palm.com>
@@ -16,7 +9,7 @@
   * This program is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License version 2 as
   * published by the Free Software Foundation.
-@@ -315,6 +317,30 @@
+@@ -296,6 +298,30 @@
  	return count;
  }
  
@@ -47,7 +40,7 @@
  static void *stats_start(struct seq_file *m, loff_t *pos)
  {
  	int i;
-@@ -773,6 +799,18 @@
+@@ -748,6 +774,18 @@
  	return sprintf(buf, "%u\n", min_sampling_rate);
  }
  
@@ -66,7 +59,7 @@
  define_one_global_ro(sampling_rate_max);
  define_one_global_ro(sampling_rate_min);
  
-@@ -783,6 +821,7 @@
+@@ -758,6 +796,7 @@
  {									\
  	return sprintf(buf, "%u\n", dbs_tuners_ins.object);		\
  }
@@ -74,7 +67,7 @@
  show_one(sampling_rate, sampling_rate);
  show_one(io_is_busy, io_is_busy);
  show_one(up_threshold, up_threshold);
-@@ -993,6 +1032,44 @@
+@@ -990,6 +1029,45 @@
  	return count;
  }
  
@@ -116,28 +109,29 @@
 +
 +	return count;
 +}
- 
++ 
  define_one_global_rw(sampling_rate);
  define_one_global_rw(io_is_busy);
-@@ -1002,6 +1079,8 @@
- define_one_global_rw(ignore_nice_load);
+ define_one_global_rw(up_threshold);
+@@ -999,6 +1077,8 @@
  define_one_global_rw(powersave_bias);
  define_one_global_rw(max_tickle_window);
+ define_one_global_rw(max_floor_window);
 +define_one_global_rw(screen_off_max_freq);
 +define_one_global_rw(screenstate_enable);
  
  static struct attribute *dbs_attributes[] = {
  	&sampling_rate_max.attr,
-@@ -1014,6 +1093,8 @@
- 	&powersave_bias.attr,
+@@ -1012,6 +1092,8 @@
  	&io_is_busy.attr,
  	&max_tickle_window.attr,
+ 	&max_floor_window.attr,
 +	&screen_off_max_freq.attr,
 +	&screenstate_enable.attr,
  	NULL
  };
  
-@@ -1075,7 +1156,7 @@
+@@ -1076,7 +1158,7 @@
  	else if (p->cur == p->max)
  		return;
  
@@ -146,96 +140,92 @@
  			CPUFREQ_RELATION_L : CPUFREQ_RELATION_H);
  }
  
-@@ -1173,7 +1254,7 @@
+@@ -1174,6 +1256,6 @@
  				if (policy->cur < policy->max) {
- 					record_sample(policy->cur, policy->max,
- 						 -21, policy->cpu, NULL);
+ 					record_sample(policy->cur, policy->max, -2, policy->cpu);
 -					__cpufreq_driver_target(policy, policy->max, CPUFREQ_RELATION_H);
 +					cpufreq_target(policy, policy->max, CPUFREQ_RELATION_H);
  				}
  
  				dbs_info->tickle_active = 1;
-@@ -1383,7 +1464,7 @@
+@@ -1384,6 +1466,6 @@
  				if (policy->cur < f) {
- 					record_sample(policy->cur, f, -31,
- 						policy->cpu, NULL);
--					__cpufreq_driver_target(policy, f,
-+					cpufreq_target(policy, f,
- 						CPUFREQ_RELATION_L);
+ 					record_sample(policy->cur, f, -3, policy->cpu);
+-					__cpufreq_driver_target(policy, f, CPUFREQ_RELATION_H);
++					cpufreq_target(policy, f, CPUFREQ_RELATION_H);
  				}
  
-@@ -1697,7 +1778,7 @@
+ 				mutex_unlock(&dbs_info->timer_mutex);
+@@ -1674,6 +1756,6 @@
  
- 			record_sample(policy->cur, policy->max, load,
- 				policy->cpu, &this_dbs_info->rlv);
+ 			record_sample(policy->cur, policy->max, load, policy->cpu);
 -			__cpufreq_driver_target(policy, policy->max,
 +			cpufreq_target(policy, policy->max,
  				CPUFREQ_RELATION_H);
  		} else {
  			int freq = powersave_bias_target(policy, policy->max,
-@@ -1711,7 +1792,7 @@
- 			if (policy->cur != freq)
- 				record_sample(policy->cur, freq, load,
- 					policy->cpu, &this_dbs_info->rlv);
+@@ -1688,7 +1770,7 @@
+ 				}
+ 			}
+ 			record_sample(policy->cur, freq, load, policy->cpu);
 -			__cpufreq_driver_target(policy, freq,
 +			cpufreq_target(policy, freq,
  				CPUFREQ_RELATION_L);
  		}
  		return;
-@@ -1750,7 +1831,7 @@
- 			if (policy->cur != freq_next)
- 				record_sample(policy->cur, freq_next, load,
- 					policy->cpu, &this_dbs_info->rlv);
+@@ -1728,7 +1810,7 @@
+ 				}
+ 			}
+ 			record_sample(policy->cur, freq_next, load, policy->cpu);
 -			__cpufreq_driver_target(policy, freq_next,
 +			cpufreq_target(policy, freq_next,
  					CPUFREQ_RELATION_L);
  		} else {
  			int freq = powersave_bias_target(policy, freq_next,
-@@ -1763,7 +1844,7 @@
- 			if (policy->cur != freq)
- 				record_sample(policy->cur, freq, load,
- 					policy->cpu, &this_dbs_info->rlv);
+@@ -1742,7 +1824,7 @@
+ 				}
+ 			}
+ 			record_sample(policy->cur, freq, load, policy->cpu);
 -			__cpufreq_driver_target(policy, freq,
 +			cpufreq_target(policy, freq,
  				CPUFREQ_RELATION_L);
  		}
  	}
-@@ -1799,7 +1880,7 @@
+@@ -1777,7 +1859,7 @@
+ 		}
  	} else {
- 		record_sample(dbs_info->cur_policy->cur, dbs_info->freq_lo,
- 			-1, cpu, NULL);
+ 		record_sample(dbs_info->cur_policy->cur, dbs_info->freq_lo, -1, cpu);
 -		__cpufreq_driver_target(dbs_info->cur_policy,
 +		cpufreq_target(dbs_info->cur_policy,
  			dbs_info->freq_lo, CPUFREQ_RELATION_H);
  	}
  	queue_delayed_work_on(cpu, kondemand_wq, &dbs_info->work, delay);
-@@ -1894,8 +1975,7 @@
- 		record_sample(policy->cur, policy->max, -51, policy->cpu, NULL);
+@@ -1892,8 +1974,7 @@
  		policy->cur = policy->max;
  
+ 		record_sample(policy->cur, policy->max, -200, policy->cpu);
 -		__cpufreq_driver_target(policy, policy->max,
 -					CPUFREQ_RELATION_L);
 +		cpufreq_target(policy, policy->max, CPUFREQ_RELATION_L);
  		this_dbs_info->prev_cpu_idle = get_cpu_idle_time(0,
  				&this_dbs_info->prev_cpu_wall);
  	}
-@@ -2165,13 +2245,13 @@
+@@ -2088,12 +2169,12 @@
+ 		mutex_lock(&this_dbs_info->timer_mutex);
  		if (policy->max < this_dbs_info->cur_policy->cur) {
- 			record_sample(policy->cur, policy->max, -40,
- 				policy->cpu, NULL);
+ 			record_sample(policy->cur, policy->max, -1, policy->cpu);
 -			__cpufreq_driver_target(this_dbs_info->cur_policy,
 +			cpufreq_target(this_dbs_info->cur_policy,
  			                        policy->max,
  			                        CPUFREQ_RELATION_H);
  		} else if (policy->min > this_dbs_info->cur_policy->cur) {
- 			record_sample(policy->cur, policy->min, -41,
- 				policy->cpu, NULL);
+ 			record_sample(policy->cur, policy->min, -1, policy->cpu);
 -			__cpufreq_driver_target(this_dbs_info->cur_policy,
 +			cpufreq_target(this_dbs_info->cur_policy,
  			                        policy->min,
  			                        CPUFREQ_RELATION_L);
  		}
-@@ -2260,7 +2340,8 @@
+@@ -2183,7 +2264,8 @@
  MODULE_AUTHOR("Alexey Starikovskiy <alexey.y.starikovskiy@intel.com>");
  MODULE_AUTHOR("Corey Tabaka <corey.tabaka@palm.com>");
  MODULE_DESCRIPTION("'cpufreq_ondemand_tickle' - A dynamic cpufreq governor for "
@@ -247,7 +237,7 @@
  #ifdef CONFIG_CPU_FREQ_DEFAULT_GOV_ONDEMAND_TICKLE
 --- a/drivers/video/msm_pe/msm_fb.c	2011-10-19 15:40:47.000000000 -0400
 +++ b/drivers/video/msm_pe/msm_fb.c	2011-11-10 22:11:24.000000000 -0500
-@@ -68,6 +72,11 @@
+@@ -72,6 +72,11 @@
  
  int vsync_mode = 1;
  
@@ -259,7 +249,7 @@
  #define MAX_BLIT_REQ 256
  
  #define MAX_FBI_LIST 32
-@@ -347,6 +356,9 @@
+@@ -351,6 +356,9 @@
  		}
  		else {
  			printk(KERN_INFO "msmfb: Resuming msmfb\n");
@@ -269,7 +259,7 @@
  			acquire_console_sem();
  			ret = msm_fb_resume_sub(mfd);
  			release_console_sem();
-@@ -364,6 +380,9 @@
+@@ -372,6 +380,9 @@
  		}
  		else {
  			printk(KERN_INFO "msmfb: Suspending msmfb\n");
