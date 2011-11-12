@@ -1,5 +1,5 @@
---- linux-2.6.35/arch/arm/configs/tenderloin_defconfig.orig
-+++ linux-2.6.35/arch/arm/configs/tenderloin_defconfig
+--- a/arch/arm/configs/tenderloin_defconfig
++++ b/arch/arm/configs/tenderloin_defconfig
 @@ -2473,7 +2473,19 @@
  # CONFIG_SYSV_FS is not set
  # CONFIG_UFS_FS is not set
