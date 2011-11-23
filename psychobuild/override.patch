@@ -62,7 +62,7 @@
  # CPUfreq cross-arch helpers
  obj-$(CONFIG_CPU_FREQ_TABLE)		+= freq_table.o
 --- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-19 15:40:45.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-22 11:34:36.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-11-22 15:28:48.000000000 -0500
 @@ -231,6 +234,8 @@
  static struct clkctl_l2_speed *l2_freq_tbl;
  static unsigned int l2_freq_tbl_size;
@@ -134,9 +134,73 @@
  	cpu_hotplug_driver_unlock();
  
  	if (ret >= 0)
+--- a/drivers/cpufreq/cpufreq.c	2011-10-19 15:40:46.000000000 -0400
++++ b/drivers/cpufreq/cpufreq.c	2011-11-23 15:13:29.000000000 -0500
+@@ -1816,6 +1816,20 @@
+ 	return ret;
+ }
+ 
++#ifdef CONFIG_CPU_FREQ_OVERRIDE
++void cpufreq_set_policy(struct cpufreq_policy *policy, unsigned int cpu)
++{
++        struct cpufreq_policy *data = cpufreq_cpu_get(cpu);
++	lock_policy_rwsem_write(cpu);
++        __cpufreq_set_policy(data, policy);
++	unlock_policy_rwsem_write(cpu);
++        data->user_policy.min = data->min;
++        data->user_policy.max = data->max;
++        cpufreq_cpu_put(data);
++}
++EXPORT_SYMBOL(cpufreq_set_policy);
++#endif
++
+ /**
+  *	cpufreq_update_policy - re-evaluate an existing cpufreq policy
+  *	@cpu: CPU which shall be re-evaluated
+--- a/drivers/power/max8903b_charger.c	2011-10-19 15:40:46.000000000 -0400
++++ b/drivers/power/max8903b_charger.c	2011-11-23 16:36:41.000000000 -0500
+@@ -35,6 +35,9 @@
+ #include <linux/sysfs.h>
+ #include <linux/max8903b_charger.h>
+ 
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++void cpufreq_override_set_chrg(bool state);
++#endif
+ 
+ static struct max8903b_platform_data	*pdevice_resource;
+ static enum max8903b_current  current_limit;
+@@ -50,12 +53,18 @@
+ 			/* disable charging */
+ 			gpio_set_value(pdevice_resource->CEN_N_in, pdevice_resource->CEN_N_in_polarity ? 0 : 1);  /* charger disable */
+ 			printk(KERN_INFO "%s: ### CHARGE_DISABLE\n", __func__);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++			cpufreq_override_set_chrg(0);
++#endif
+ 			break;
+ 		case CURRENT_ZERO:  // this is for no charger connection.
+ 			gpio_set_value(pdevice_resource->DCM_in, pdevice_resource->DCM_in_polarity ? 1 : 0); /* usb mode */
+ 			gpio_set_value(pdevice_resource->USUS_in, pdevice_resource->USUS_in_polarity ? 0 : 1); /* usb suspend */
+ 			pdevice_resource->suspend_gpio_config();
+ 			printk(KERN_INFO "%s: CURRENT_ZERO\n", __func__);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++			cpufreq_override_set_chrg(0);
++#endif
+ 			break;
+ 		case CURRENT_100MA:
+ 			gpio_set_value(pdevice_resource->DCM_in, pdevice_resource->DCM_in_polarity? 1 : 0); /* usb mode */
+@@ -81,6 +90,9 @@
+ 			pdevice_resource->set_DC_CHG_Mode_current(value);
+ 			gpio_set_value(pdevice_resource->CEN_N_in, pdevice_resource->CEN_N_in_polarity ? 1 : 0);  /* charger enable */
+ 			printk(KERN_INFO "%s: CURRENT_750(4), 900(5), 1000(6), 1400(7), 2000MA(9): %d\n", __func__, value);
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++			cpufreq_override_set_chrg(1);
++#endif
+ 			break;
+ 		default:
+ 			printk(KERN_INFO "%s: Not supported current setting\n", __func__);
 --- a/drivers/cpufreq/cpufreq_override.c	1969-12-31 19:00:00.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_override.c	2011-10-22 11:25:59.000000000 -0400
-@@ -0,0 +1,490 @@
++++ b/drivers/cpufreq/cpufreq_override.c	2011-11-23 16:31:12.000000000 -0500
+@@ -0,0 +1,601 @@
 +/*
 + *  drivers/cpufreq/cpufreq_override.c
 + *
@@ -167,6 +231,7 @@
 +#include <linux/workqueue.h>
 +#include <linux/string.h>
 +#include <linux/kernel_stat.h>
++#include <linux/delay.h>
 +
 +// Voltage min
 +#define VDD_MIN 800000
@@ -186,6 +251,9 @@
 +// CPU load poll jiffies
 +#define POLL_FREQ 100
 +
++// Max charging freq default
++#define CHARGING_MAX 1188000
++
 +/* ************* end of tunables ***************************************** */
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
@@ -204,6 +272,10 @@
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +static bool lcd_state = 1;
++static bool chrg_state = 0;
++static bool chrg_override = 1;
++static unsigned int chrg_max = CHARGING_MAX, chrg_prevmax = 0;
++void cpufreq_set_policy(struct cpufreq_policy *policy, unsigned int cpu);
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE_ENABLE
 +static bool turbomode = 1;
 +#else
@@ -364,6 +436,107 @@
 +	return lcd_state;
 +}
 +EXPORT_SYMBOL(cpufreq_override_get_lcd_state);
++#endif
++
++#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
++void cpufreq_override_set_chrg(bool state)
++{
++	struct cpufreq_policy policy;
++	int ttmp, i;
++
++	if(chrg_override) goto out;
++
++	mutex_lock(&override_mutex);
++
++	if(state) {
++		if(!chrg_state) {
++			ttmp = turbomode;
++			turbomode=1;
++			cpu_state(1);
++			for_each_online_cpu(i) {
++				msleep(200);
++				cpufreq_get_policy(&policy, i);
++				chrg_prevmax = policy.max;
++				policy.max = chrg_max;
++				cpufreq_set_policy(&policy, i);
++			}
++			turbomode = ttmp;
++		}
++	}
++	else {
++		if(chrg_state) {
++			ttmp = turbomode;
++			turbomode=1;
++			cpu_state(1);
++			for_each_online_cpu(i) {
++				msleep(200);
++				cpufreq_get_policy(&policy, i);
++				policy.max = (chrg_prevmax) ? chrg_prevmax :
++							freq_table[nr_freqs-1];
++				cpufreq_set_policy(&policy, i);
++			}
++			turbomode = ttmp;
++		}
++	}
++
++	mutex_unlock(&override_mutex);
++out:
++	chrg_state = state;
++
++	printk("override: charger %s!\n", (chrg_state) ? "plugged in" \
++							: "unplugged");
++}
++EXPORT_SYMBOL(cpufreq_override_set_chrg);
++
++static ssize_t show_override_charger(struct kobject *kobj,
++					struct attribute *attr, char *buf)
++{
++        return sprintf(buf,"%u\n", chrg_override);
++}
++
++static ssize_t store_override_charger(struct kobject *a, struct attribute *b,
++                                const char *buf, size_t count)
++{
++	struct cpufreq_policy policy;
++	unsigned int tmp, ttmp, i;
++
++	if(sscanf(buf, "%u", &tmp) == 1) {
++		tmp = (tmp != 0 && tmp != 1) ? chrg_override : tmp;
++		if(tmp && (!chrg_override && chrg_state)) {
++			ttmp = turbomode;
++			turbomode=1;
++			cpu_state(1);
++			for_each_online_cpu(i) {
++				msleep(200);
++				cpufreq_get_policy(&policy, i);
++				policy.max = (chrg_prevmax) ? chrg_prevmax :
++							freq_table[nr_freqs-1];
++				cpufreq_set_policy(&policy, i);
++			}
++			turbomode = ttmp;
++		}
++		if(!tmp && (chrg_override && chrg_state)) {
++			ttmp = turbomode;
++			turbomode=1;
++			cpu_state(1);
++			for_each_online_cpu(i) {
++				msleep(200);
++				cpufreq_get_policy(&policy, i);
++				chrg_prevmax = policy.max;
++				policy.max = chrg_max;
++				cpufreq_set_policy(&policy, i);
++			}
++			turbomode = ttmp;
++		}
++		chrg_override = tmp;
++
++		printk("override: set chrg_override: %u\n", chrg_override);
++	}       
++	else
++		printk("override: invalid chrg_override mode\n");
++
++	return count;
++}
 +#endif
 +
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_VOLT_CONFIG
@@ -559,6 +732,7 @@
 +#endif
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +define_one_global_rw(turbo_mode);
++define_one_global_rw(override_charger);
 +#endif
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
 +define_one_global_rw(l2_boost);
@@ -576,6 +750,7 @@
 +#endif
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_TURBO_MODE
 +	&turbo_mode.attr,
++	&override_charger.attr,
 +#endif
 +#ifdef CONFIG_CPU_FREQ_OVERRIDE_L2_HACK
 +	&l2_boost.attr,
@@ -717,7 +892,7 @@
 +}
 +EXPORT_SYMBOL(acpuclk_get_freqs);
 --- a/drivers/video/msm_pe/msm_fb.c	2011-10-19 15:40:47.000000000 -0400
-+++ b/drivers/video/msm_pe/msm_fb.c	2011-10-22 11:17:47.000000000 -0400
++++ b/drivers/video/msm_pe/msm_fb.c	2011-10-22 11:47:09.000000000 -0400
 @@ -51,6 +51,10 @@
  #include "mdp.h"
  #include "mdp4.h"
