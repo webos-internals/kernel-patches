@@ -31,7 +31,7 @@
  	RPM_VREG_INIT_SMPS(PM8058_S2, 0, 1, 0, 1200000, 1400000,  SMPS_HMIN,
  		RPM_VREG_PIN_CTRL_A0, RPM_VREG_FREQ_1p60),
 --- a/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-19 15:40:45.000000000 -0400
-+++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-10-22 11:34:36.000000000 -0400
++++ b/arch/arm/mach-msm/acpuclock-8x60.c	2011-12-02 16:33:19.000000000 -0500
 @@ -52,11 +52,11 @@
   * The PLL hardware is capable of 384MHz to 1536MHz. The L_VALs
   * used for calibration should respect these limits. */
@@ -47,7 +47,15 @@
  #define SCPLL_LOW_VDD		1000000 /* uV */
  #define SCPLL_NOMINAL_VDD	1100000 /* uV */
  
-@@ -182,21 +182,22 @@
+@@ -167,6 +167,7 @@
+ 	[1] = BW_MBPS(1336), /* At least 167 MHz on bus. */
+ 	[2] = BW_MBPS(2008), /* At least 251 MHz on bus. */
+ 	[3] = BW_MBPS(2480), /* At least 310 MHz on bus. */
++	[4] = BW_MBPS(3200), /* At least 360 MHz on bus. */
+ };
+ 
+ static struct msm_bus_scale_pdata bus_client_pdata = {
+@@ -182,21 +183,22 @@
  static struct clkctl_l2_speed l2_freq_tbl_v2[] = {
  	[0]  = { MAX_AXI, 0, 0,    1000000, 1100000, 0},
  	[1]  = { 432000,  1, 0x08, 1000000, 1100000, 0},
@@ -78,14 +86,14 @@
 +	[11] = {1242000,  1, 0x17, 1200000, 1250000, 3},
 +	[12] = {1296000,  1, 0x18, 1200000, 1250000, 3},
 +	[13] = {1350000,  1, 0x19, 1200000, 1250000, 3},
-+	[14] = {1404000,  1, 0x1A, 1200000, 1250000, 3},
-+	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 3},
-+	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 3},
-+	[17] = {1620000,  1, 0x1E, 1350000, 1450000, 3},
++	[14] = {1404000,  1, 0x1A, 1200000, 1250000, 4},
++	[15] = {1458000,  1, 0x1B, 1250000, 1250000, 4},
++	[16] = {1512000,  1, 0x1C, 1250000, 1300000, 4},
++	[17] = {1620000,  1, 0x1E, 1350000, 1450000, 4},
  };
  
  #define L2(x) (&l2_freq_tbl_v2[(x)])
-@@ -207,21 +208,23 @@
+@@ -207,21 +209,23 @@
    { {0, 0},  MAX_AXI, ACPU_AFAB,  1, 0, 0, 0,    L2(0),   875000, 0x03006000},
    { {1, 1},  384000,  ACPU_PLL_8, 3, 0, 0, 0,    L2(1),   875000, 0x03006000},
    { {1, 1},  432000,  ACPU_SCPLL, 0, 0, 1, 0x08, L2(1),   887500, 0x03006000},
@@ -124,7 +132,7 @@
    { {0, 0}, 0 },
  };
  /* acpu_freq_tbl row to use when reconfiguring SC/L2 PLLs. */
-@@ -749,37 +754,8 @@
+@@ -749,37 +755,8 @@
  static void __init cpufreq_table_init(void) {}
  #endif
  
@@ -162,7 +170,7 @@
  	int cpu;
  
  	mutex_init(&drv_state.lock);
-@@ -788,7 +764,10 @@
+@@ -788,7 +765,10 @@
  	drv_state.vdd_switch_time_us = clkdata->vdd_switch_time_us;
  
  	/* Configure hardware. */
@@ -174,12 +182,12 @@
  	unselect_scplls();
  	scpll_set_refs();
  	for_each_possible_cpu(cpu)
-@@ -799,7 +778,7 @@
+@@ -799,7 +779,7 @@
  
  	/* Improve boot time by ramping up CPUs immediately. */
  	for_each_online_cpu(cpu)
 -		acpuclk_set_rate(cpu, max_cpu_khz, SETRATE_INIT);
-+		acpuclk_set_rate(cpu, 384000, SETRATE_INIT);
++		acpuclk_set_rate(cpu, 1188000, SETRATE_INIT);
  
  	cpufreq_table_init();
  }
