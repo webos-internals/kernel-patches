@@ -1,5 +1,5 @@
 --- a/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-03-09 12:54:14.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-12-04 11:58:27.000000000 -0500
++++ b/drivers/cpufreq/cpufreq_ondemand_tickle.c	2011-12-04 13:34:19.000000000 -0500
 @@ -255,6 +255,30 @@
  	return count;
  }
@@ -182,19 +182,18 @@
  			                        CPUFREQ_RELATION_L);
  		}
 --- a/drivers/video/omap/lcd_panel.c	2011-03-09 12:54:14.000000000 -0500
-+++ b/drivers/video/omap/lcd_panel.c	2011-12-04 11:45:13.000000000 -0500
-@@ -52,6 +57,10 @@
- #define DISPLAY_BACKLIGHT_STATE_ON     1
- #define DISPLAY_BACKLIGHT_STATE_OFF    0
++++ b/drivers/video/omap/lcd_panel.c	2011-12-04 14:45:30.000000000 -0500
+@@ -43,6 +48,9 @@
+ #define DPRINTK(format,...)
+ #endif
  
-+#ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_TICKLE
 +bool omap_fb_state = 1;
 +EXPORT_SYMBOL(omap_fb_state);
-+#endif
- 
- struct lcd_params {
- 	struct display_device *disp_dev;
-@@ -112,6 +121,7 @@
++
+ #define DISPLAY_DEVICE_STATE_ON        1
+ #define DISPLAY_DEVICE_STATE_OFF       0
+ #define DISPLAY_PANEL_STATE_ON         1
+@@ -112,6 +120,7 @@
  		    params->ctrl_ops->ctrl_set_state) {
  			params->ctrl_ops->ctrl_set_state(params->ctrl_dev,
  						DISPLAY_CONTROLLER_STATE_ON);
