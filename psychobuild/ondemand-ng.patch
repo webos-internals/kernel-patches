@@ -177,14 +177,6 @@
  #define DISPLAY_DEVICE_STATE_ON        1
  #define DISPLAY_DEVICE_STATE_OFF       0
  #define DISPLAY_PANEL_STATE_ON         1
-@@ -52,7 +60,6 @@
- #define DISPLAY_BACKLIGHT_STATE_ON     1
- #define DISPLAY_BACKLIGHT_STATE_OFF    0
- 
--
- struct lcd_params {
- 	struct display_device *disp_dev;
- 	struct platform_device *pdev;
 @@ -112,6 +119,7 @@
  		    params->ctrl_ops->ctrl_set_state) {
  			params->ctrl_ops->ctrl_set_state(params->ctrl_dev,
