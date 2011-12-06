@@ -1,5 +1,5 @@
 --- a/drivers/cpufreq/cpufreq_ondemand.c	2008-01-24 17:58:37.000000000 -0500
-+++ b/drivers/cpufreq/cpufreq_ondemand.c	2011-12-06 15:43:55.000000000 -0500
++++ b/drivers/cpufreq/cpufreq_ondemand.c	2011-12-06 17:59:54.000000000 -0500
 @@ -94,6 +94,30 @@
  	.powersave_bias = 0,
  };
@@ -31,7 +31,88 @@
  static inline cputime64_t get_cpu_idle_time(unsigned int cpu)
  {
  	cputime64_t idle_time;
-@@ -391,12 +415,12 @@
+@@ -192,6 +216,16 @@
+ 	return sprintf (buf, "%u\n", MIN_SAMPLING_RATE);
+ }
+ 
++static ssize_t show_screen_off_max_freq(struct cpufreq_policy *unused, char *buf)
++{
++        return sprintf(buf, "%u\n", sleep_max_freq);
++}
++
++static ssize_t show_screenstate_enable(struct cpufreq_policy *unused, char *buf)
++{
++        return sprintf(buf, "%u\n", ss_enabled);
++}
++
+ #define define_one_ro(_name)		\
+ static struct freq_attr _name =		\
+ __ATTR(_name, 0444, show_##_name, NULL)
+@@ -306,6 +340,45 @@
+ 	return count;
+ }
+ 
++static ssize_t store_screen_off_max_freq(struct cpufreq_policy *unuesd,
++                                                const char *buf, size_t count)
++{
++        unsigned int input;
++        int ret;
++        ret = sscanf(buf, "%u", &input);
++
++        if (ret != 1)
++                return -EINVAL;
++
++        if (input < 122880 || input > 2000000) {
++                printk("ondemand-ng: invalid sleep freq\n");
++                return -EINVAL;
++        }
++
++        sleep_max_freq = input;
++
++        return count;
++}
++
++static ssize_t store_screenstate_enable(struct cpufreq_policy *unuesd,
++                                                const char *buf, size_t count)
++{
++        unsigned int input;
++        int ret;
++        ret = sscanf(buf, "%u", &input);
++
++        if (ret != 1)
++                return -EINVAL;
++
++        if (input != 0 && input != 1) {
++                return -EINVAL;
++        }
++
++        ss_enabled = input;
++
++        return count;
++}
++
+ #define define_one_rw(_name) \
+ static struct freq_attr _name = \
+ __ATTR(_name, 0644, show_##_name, store_##_name)
+@@ -314,6 +387,8 @@
+ define_one_rw(up_threshold);
+ define_one_rw(ignore_nice_load);
+ define_one_rw(powersave_bias);
++define_one_rw(screen_off_max_freq);
++define_one_rw(screenstate_enable);
+ 
+ static struct attribute * dbs_attributes[] = {
+ 	&sampling_rate_max.attr,
+@@ -322,6 +397,8 @@
+ 	&up_threshold.attr,
+ 	&ignore_nice_load.attr,
+ 	&powersave_bias.attr,
++	&screen_off_max_freq.attr,
++	&screenstate_enable.attr,
+ 	NULL
+ };
+ 
+@@ -391,12 +468,12 @@
  			if (policy->cur == policy->max)
  				return;
  
@@ -46,7 +127,7 @@
  				CPUFREQ_RELATION_L);
  		}
  		return;
-@@ -423,12 +447,12 @@
+@@ -423,12 +500,12 @@
  			(dbs_tuners_ins.up_threshold - 10);
  
  		if (!dbs_tuners_ins.powersave_bias) {
@@ -61,7 +142,7 @@
  				CPUFREQ_RELATION_L);
  		}
  	}
-@@ -465,7 +489,7 @@
+@@ -465,7 +542,7 @@
  			delay = dbs_info->freq_hi_jiffies;
  		}
  	} else {
@@ -70,7 +151,7 @@
  	                        	dbs_info->freq_lo,
  	                        	CPUFREQ_RELATION_H);
  	}
-@@ -566,11 +590,11 @@
+@@ -566,11 +643,11 @@
  	case CPUFREQ_GOV_LIMITS:
  		mutex_lock(&dbs_mutex);
  		if (policy->max < this_dbs_info->cur_policy->cur)
@@ -96,6 +177,14 @@
  #define DISPLAY_DEVICE_STATE_ON        1
  #define DISPLAY_DEVICE_STATE_OFF       0
  #define DISPLAY_PANEL_STATE_ON         1
+@@ -52,7 +60,6 @@
+ #define DISPLAY_BACKLIGHT_STATE_ON     1
+ #define DISPLAY_BACKLIGHT_STATE_OFF    0
+ 
+-
+ struct lcd_params {
+ 	struct display_device *disp_dev;
+ 	struct platform_device *pdev;
 @@ -112,6 +119,7 @@
  		    params->ctrl_ops->ctrl_set_state) {
  			params->ctrl_ops->ctrl_set_state(params->ctrl_dev,
