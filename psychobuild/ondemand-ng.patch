@@ -1,0 +1,114 @@
+--- a/drivers/cpufreq/cpufreq_ondemand.c	2008-01-24 17:58:37.000000000 -0500
++++ b/drivers/cpufreq/cpufreq_ondemand.c	2011-12-06 15:43:55.000000000 -0500
+@@ -94,6 +94,30 @@
+ 	.powersave_bias = 0,
+ };
+ 
++static bool ss_enabled = 0;
++static unsigned int sleep_max_freq = 500000;
++extern bool omap_fb_state;
++
++static int cpufreq_target(struct cpufreq_policy *policy, unsigned int freq,
++                                                        unsigned int relation)
++{
++        int retval = -EINVAL;
++
++        if(omap_fb_state || !ss_enabled) {
++                retval = __cpufreq_driver_target(policy, freq, relation);
++        }
++        else {
++                if(freq <= sleep_max_freq)
++                        retval = __cpufreq_driver_target(policy, freq,
++                                                                relation);
++                else
++                        retval = __cpufreq_driver_target(policy, sleep_max_freq,
++                                                                relation);
++        }
++
++        return retval;
++}
++
+ static inline cputime64_t get_cpu_idle_time(unsigned int cpu)
+ {
+ 	cputime64_t idle_time;
+@@ -391,12 +415,12 @@
+ 			if (policy->cur == policy->max)
+ 				return;
+ 
+-			__cpufreq_driver_target(policy, policy->max,
++			cpufreq_target(policy, policy->max,
+ 				CPUFREQ_RELATION_H);
+ 		} else {
+ 			int freq = powersave_bias_target(policy, policy->max,
+ 					CPUFREQ_RELATION_H);
+-			__cpufreq_driver_target(policy, freq,
++			cpufreq_target(policy, freq,
+ 				CPUFREQ_RELATION_L);
+ 		}
+ 		return;
+@@ -423,12 +447,12 @@
+ 			(dbs_tuners_ins.up_threshold - 10);
+ 
+ 		if (!dbs_tuners_ins.powersave_bias) {
+-			__cpufreq_driver_target(policy, freq_next,
++			cpufreq_target(policy, freq_next,
+ 					CPUFREQ_RELATION_L);
+ 		} else {
+ 			int freq = powersave_bias_target(policy, freq_next,
+ 					CPUFREQ_RELATION_L);
+-			__cpufreq_driver_target(policy, freq,
++			cpufreq_target(policy, freq,
+ 				CPUFREQ_RELATION_L);
+ 		}
+ 	}
+@@ -465,7 +489,7 @@
+ 			delay = dbs_info->freq_hi_jiffies;
+ 		}
+ 	} else {
+-		__cpufreq_driver_target(dbs_info->cur_policy,
++		cpufreq_target(dbs_info->cur_policy,
+ 	                        	dbs_info->freq_lo,
+ 	                        	CPUFREQ_RELATION_H);
+ 	}
+@@ -566,11 +590,11 @@
+ 	case CPUFREQ_GOV_LIMITS:
+ 		mutex_lock(&dbs_mutex);
+ 		if (policy->max < this_dbs_info->cur_policy->cur)
+-			__cpufreq_driver_target(this_dbs_info->cur_policy,
++			cpufreq_target(this_dbs_info->cur_policy,
+ 			                        policy->max,
+ 			                        CPUFREQ_RELATION_H);
+ 		else if (policy->min > this_dbs_info->cur_policy->cur)
+-			__cpufreq_driver_target(this_dbs_info->cur_policy,
++			cpufreq_target(this_dbs_info->cur_policy,
+ 			                        policy->min,
+ 			                        CPUFREQ_RELATION_L);
+ 		mutex_unlock(&dbs_mutex);
+--- a/drivers/video/omap/lcd_panel.c	2010-06-11 17:48:35.000000000 -0400
++++ b/drivers/video/omap/lcd_panel.c	2011-12-06 15:44:14.000000000 -0500
+@@ -43,6 +48,9 @@
+ #define DPRINTK(format,...)
+ #endif
+ 
++bool omap_fb_state=1;
++EXPORT_SYMBOL(omap_fb_state);
++
+ #define DISPLAY_DEVICE_STATE_ON        1
+ #define DISPLAY_DEVICE_STATE_OFF       0
+ #define DISPLAY_PANEL_STATE_ON         1
+@@ -112,6 +119,7 @@
+ 		    params->ctrl_ops->ctrl_set_state) {
+ 			params->ctrl_ops->ctrl_set_state(params->ctrl_dev,
+ 						DISPLAY_CONTROLLER_STATE_ON);
++			omap_fb_state = 1;
+ 		}
+ 
+ 		/* Panel ON */
+@@ -140,6 +153,7 @@
+ 		    params->bl_ops->bl_set_state) {
+ 			params->bl_ops->bl_set_state(params->bl_dev,
+ 						DISPLAY_BACKLIGHT_STATE_OFF);
++			omap_fb_state = 0;
+ 		}
+ 
+ 		/* Panel OFF */
