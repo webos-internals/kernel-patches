@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/rib_defconfig b/arch/arm/configs/rib_defconfig
-index de2201d..19bb2a4 100644
+index de2201d..cfe18e9 100644
 --- a/arch/arm/configs/rib_defconfig
 +++ b/arch/arm/configs/rib_defconfig
 @@ -280,7 +280,7 @@ CONFIG_MSM_SMD_TTY=y
@@ -29,7 +29,7 @@ index de2201d..19bb2a4 100644
  
  #
  # RTC interfaces
-@@ -2315,28 +2315,26 @@ CONFIG_TIMER_STATS=y
+@@ -2315,16 +2315,14 @@ CONFIG_TIMER_STATS=y
  # CONFIG_DEBUG_OBJECTS is not set
  # CONFIG_SLUB_DEBUG_ON is not set
  # CONFIG_SLUB_STATS is not set
@@ -48,11 +48,7 @@ index de2201d..19bb2a4 100644
  CONFIG_PROVE_LOCKING=y
  CONFIG_LOCKDEP=y
  # CONFIG_LOCK_STAT is not set
- # CONFIG_DEBUG_LOCKDEP is not set
- CONFIG_TRACE_IRQFLAGS=y
--CONFIG_DEBUG_SPINLOCK_SLEEP=y
-+# CONFIG_DEBUG_SPINLOCK_SLEEP is not set
- # CONFIG_DEBUG_LOCKING_API_SELFTESTS is not set
+@@ -2335,8 +2333,8 @@ CONFIG_DEBUG_SPINLOCK_SLEEP=y
  CONFIG_STACKTRACE=y
  CONFIG_MINI_CORE=y
  # CONFIG_DEBUG_KOBJECT is not set
