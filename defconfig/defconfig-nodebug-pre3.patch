@@ -1,5 +1,5 @@
 diff --git a/arch/arm/configs/rib_defconfig b/arch/arm/configs/rib_defconfig
-index de2201d..cfe18e9 100644
+index de2201d..bcc8498 100644
 --- a/arch/arm/configs/rib_defconfig
 +++ b/arch/arm/configs/rib_defconfig
 @@ -280,7 +280,7 @@ CONFIG_MSM_SMD_TTY=y
@@ -20,16 +20,7 @@ index de2201d..cfe18e9 100644
  CONFIG_GPIO_SYSFS=y
  
  #
-@@ -2004,7 +2004,7 @@ CONFIG_RTC_LIB=y
- CONFIG_RTC_CLASS=y
- CONFIG_RTC_HCTOSYS=y
- CONFIG_RTC_HCTOSYS_DEVICE="rtc0"
--CONFIG_RTC_DEBUG=y
-+# CONFIG_RTC_DEBUG is not set
- 
- #
- # RTC interfaces
-@@ -2315,16 +2315,14 @@ CONFIG_TIMER_STATS=y
+@@ -2315,10 +2315,8 @@ CONFIG_TIMER_STATS=y
  # CONFIG_DEBUG_OBJECTS is not set
  # CONFIG_SLUB_DEBUG_ON is not set
  # CONFIG_SLUB_STATS is not set
@@ -41,13 +32,6 @@ index de2201d..cfe18e9 100644
  # CONFIG_DEBUG_PREEMPT is not set
  # CONFIG_DEBUG_RT_MUTEXES is not set
  # CONFIG_RT_MUTEX_TESTER is not set
- CONFIG_DEBUG_SPINLOCK=y
- CONFIG_DEBUG_MUTEXES=y
--CONFIG_DEBUG_LOCK_ALLOC=y
-+# CONFIG_DEBUG_LOCK_ALLOC is not set
- CONFIG_PROVE_LOCKING=y
- CONFIG_LOCKDEP=y
- # CONFIG_LOCK_STAT is not set
 @@ -2335,8 +2333,8 @@ CONFIG_DEBUG_SPINLOCK_SLEEP=y
  CONFIG_STACKTRACE=y
  CONFIG_MINI_CORE=y
